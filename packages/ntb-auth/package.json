@@ -1,0 +1,7 @@
+{
+  "name": "@turistforeningen/ntb-auth",
+  "version": "0.0.1-alpha",
+  "scripts": {
+    "test": "jest"
+  }
+}

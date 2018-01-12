@@ -1,0 +1,30 @@
+0 silly input [ 'test' ]
+1 silly flags { _: [ 'run' ],
+1 silly flags   'reject-cycles': false,
+1 silly flags   rejectCycles: false,
+1 silly flags   _onRejected: [Function: _onRejected],
+1 silly flags   script: 'test',
+1 silly flags   args: [] }
+2 verbose rootPath /Users/roar/projects/DNT/ntb
+3 info version 2.7.0
+4 silly existsSync /Users/roar/projects/DNT/ntb/VERSION
+5 silly initialize attempt
+6 silly initialize success
+7 silly execute attempt
+8 silly runScriptInDir test [] ntb-auth
+9 silly getExecOpts { cwd: '/Users/roar/projects/DNT/ntb/packages/ntb-auth' }
+10 silly runScriptInDir test [] api
+11 silly getExecOpts { cwd: '/Users/roar/projects/DNT/ntb/services/api' }
+12 silly runScriptInDir test [] legacy-harvester
+13 silly getExecOpts { cwd: '/Users/roar/projects/DNT/ntb/tools/legacy-harvester' }
+14 error test Errored while running script in '@turistforeningen/ntb-auth'
+15 error execute callback with error
+16 error Error: Command failed: yarn run test
+16 error warning package.json: No license field
+16 error /bin/sh: jest: command not found
+16 error error Command failed with exit code 127.
+16 error $ jest
+16 error info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
+16 error
+16 error     at Promise.all.then.arr (/Users/roar/projects/DNT/ntb/node_modules/execa/index.js:236:11)
+16 error     at <anonymous>
