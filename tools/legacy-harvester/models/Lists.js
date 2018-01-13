@@ -1,17 +1,20 @@
-'use strict'
+'use strict';
 
-const AbstractModel = require('../lib/AbstractModel')
+const AbstractModel = require('../lib/AbstractModel');
 
 
 class List extends AbstractModel {
+  // eslint-disable-next-line class-methods-use-this
   legacyType() {
-    return 'lister'
+    return 'lister';
   }
 
+  // eslint-disable-next-line class-methods-use-this
   label() {
-    return 'List'
+    return 'List';
   }
 
+  // eslint-disable-next-line class-methods-use-this
   getLegacyStructure() {
     return {
       _id: 'string',
@@ -50,10 +53,10 @@ class List extends AbstractModel {
           id: 'string',
           navn: 'string',
         },
-      }
-    }
+      },
+    };
   }
 }
 
 
-module.exports = List
+module.exports = List;

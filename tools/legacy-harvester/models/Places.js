@@ -1,21 +1,24 @@
-'use strict'
+'use strict';
 
-const AbstractModel = require('../lib/AbstractModel')
+const AbstractModel = require('../lib/AbstractModel');
 
 
 class Places extends AbstractModel {
+  // eslint-disable-next-line class-methods-use-this
   legacyType() {
-    return 'steder'
+    return 'steder';
   }
 
+  // eslint-disable-next-line class-methods-use-this
   label() {
-    return 'Place'
+    return 'Place';
   }
 
+  // eslint-disable-next-line class-methods-use-this
   getLegacyStructure() {
     return {
       _id: 'string',
-      err: 'string',      // CABIN NOT FOUND 53a930f4a12751a2007eb6cf
+      err: 'string', // CABIN NOT FOUND 53a930f4a12751a2007eb6cf
       checksum: 'string',
       navngiving: 'string',
       tags: 'array-strings',
@@ -129,8 +132,8 @@ class Places extends AbstractModel {
             til: 'date',
             betjeningsgrad: 'string',
             nøkkel: 'string',
-            kommentar: 'string'
-          }
+            kommentar: 'string',
+          },
         ],
         kontaktinfo: {
           sesong: {
@@ -160,7 +163,7 @@ class Places extends AbstractModel {
             type: 'string',
             gruppe_id: 'string',
             navn: 'string',
-          }
+          },
         },
         sherpa2_id: 'number',
         gammel_url: 'string',
@@ -183,12 +186,12 @@ class Places extends AbstractModel {
           ekstra: 'number',
           betjent: 'number',
           selvbetjent: 'number',
-          ubetjent: 'number'
-        }
+          ubetjent: 'number',
+        },
       },
-    }
+    };
   }
 }
 
 
-module.exports = Places
+module.exports = Places;

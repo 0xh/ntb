@@ -1,17 +1,20 @@
-'use strict'
+'use strict';
 
-const AbstractModel = require('../lib/AbstractModel')
+const AbstractModel = require('../lib/AbstractModel');
 
 
 class Areas extends AbstractModel {
+  // eslint-disable-next-line class-methods-use-this
   legacyType() {
-    return 'områder'
+    return 'områder';
   }
 
+  // eslint-disable-next-line class-methods-use-this
   label() {
-    return 'Area'
+    return 'Area';
   }
 
+  // eslint-disable-next-line class-methods-use-this
   getLegacyStructure() {
     return {
       _id: 'string',
@@ -30,15 +33,14 @@ class Areas extends AbstractModel {
       tilbyder: 'string',
       beskrivelse: 'string',
       navn: 'string',
-      kart: 'string',
       privat: {
         sherpa2_code: 'string',
         gammel_url: 'string',
-        sherpa2_id: 'number'
+        sherpa2_id: 'number',
       },
-    }
+    };
   }
 }
 
 
-module.exports = Areas
+module.exports = Areas;

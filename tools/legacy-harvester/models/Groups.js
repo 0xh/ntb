@@ -1,17 +1,20 @@
-'use strict'
+'use strict';
 
-const AbstractModel = require('../lib/AbstractModel')
+const AbstractModel = require('../lib/AbstractModel');
 
 
 class Areas extends AbstractModel {
+  // eslint-disable-next-line class-methods-use-this
   legacyType() {
-    return 'grupper'
+    return 'grupper';
   }
 
+  // eslint-disable-next-line class-methods-use-this
   label() {
-    return 'Group'
+    return 'Group';
   }
 
+  // eslint-disable-next-line class-methods-use-this
   getLegacyStructure() {
     return {
       _id: 'string',
@@ -47,7 +50,7 @@ class Areas extends AbstractModel {
             pbkdf2: 'ignore',
             navn: 'string',
             epost: 'string',
-          }
+          },
         ],
         invitasjoner: 'ignore',
       },
@@ -68,11 +71,11 @@ class Areas extends AbstractModel {
           adresse1: 'string',
           adresse2: 'string',
           postnummer: 101,
-        }
-      ]
-    }
+        },
+      ],
+    };
   }
 }
 
 
-module.exports = Areas
+module.exports = Areas;

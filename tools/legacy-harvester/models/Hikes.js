@@ -1,17 +1,20 @@
-'use strict'
+'use strict';
 
-const AbstractModel = require('../lib/AbstractModel')
+const AbstractModel = require('../lib/AbstractModel');
 
 
 class Places extends AbstractModel {
+  // eslint-disable-next-line class-methods-use-this
   legacyType() {
-    return 'turer'
+    return 'turer';
   }
 
+  // eslint-disable-next-line class-methods-use-this
   label() {
-    return 'Hike'
+    return 'Hike';
   }
 
+  // eslint-disable-next-line class-methods-use-this
   getLegacyStructure() {
     return {
       _id: 'string',
@@ -51,7 +54,7 @@ class Places extends AbstractModel {
           dager: 'number',
           timer: 'number',
           minutter: 'number',
-        }
+        },
       },
       tilkomst: {
         generell: 'string',
@@ -83,19 +86,19 @@ class Places extends AbstractModel {
         opprettet_av: {
           id: 'string',
           navn: 'string',
-          epost: 'string'
+          epost: 'string',
         },
         endret_av: {
           id: 'string',
           navn: 'string',
-          epost: 'string'
+          epost: 'string',
         },
         startpunkt: 'geojson',
-        minutter: 'number'
-      }
-    }
+        minutter: 'number',
+      },
+    };
   }
 }
 
 
-module.exports = Places
+module.exports = Places;

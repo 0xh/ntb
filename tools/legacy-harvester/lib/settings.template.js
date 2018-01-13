@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 
 module.exports = {
@@ -11,4 +11,4 @@ module.exports = {
   NEO4J_URI: 'bolt://localhost:7687',
   NEO4J_USER: '',
   NEO4J_PASSWORD: '',
-}
+};
