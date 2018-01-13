@@ -1,8 +1,8 @@
 {
-  "name": "@ntb-tools/ntb-legacy-harvester",
   "private": true,
-  "version": "0.0.0",
   "dependencies": {
+    "eslint": "^4.15.0",
+    "eslint-config-t14n-server": "0.0.4",
     "geojson-validation": "^0.2.0",
     "isomorphic-fetch": "^2.2.1",
     "neo4j-driver": "^1.5.2",

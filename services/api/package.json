@@ -1,7 +1,10 @@
 {
-  "name": "@turistforeningen/ntb-api",
-  "version": "0.0.1-alpha",
+  "private": true,
   "scripts": {
     "test": "jest"
+  },
+  "dependencies": {
+    "eslint-config-t14n-server": "^0.0.4",
+    "eslint": "^4.15.0"
   }
 }

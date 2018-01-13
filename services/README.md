@@ -1,1 +1,0 @@
-Self running application services

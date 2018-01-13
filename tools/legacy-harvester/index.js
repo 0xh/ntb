@@ -1,12 +1,12 @@
-'use strict'
+'use strict';
 
 
-const Areas = require('./models/Areas')
-const Images = require('./models/Images')
-const Groups = require('./models/Groups')
-const Hikes = require('./models/Hikes')
-const Lists = require('./models/Lists')
-const Places = require('./models/Places')
+const Areas = require('./models/Areas');
+const Images = require('./models/Images');
+const Groups = require('./models/Groups');
+const Hikes = require('./models/Hikes');
+const Lists = require('./models/Lists');
+const Places = require('./models/Places');
 
 
 // console.log('** AREAS **')  // 81
@@ -17,12 +17,12 @@ const Places = require('./models/Places')
 // console.log('** IMAGES **')  // 62.088
 // const images = new Images()
 // images.testStructureOfRandomObjects(5)
-// images.testStructureOfAllObjects()
+// images.testStructureOfAllObjects(5000)
 
 
 // console.log('** GROUPS **')  // 1153
-const groups = new Groups()
-groups.testStructureOfRandomObjects(5)
+// const groups = new Groups()
+// groups.testStructureOfRandomObjects(5)
 // groups.testStructureOfAllObjects()
 
 
