@@ -71,19 +71,22 @@ class Abstract {
     }
   }
 
-  getObjectIds() {
+  getObjectIds(limit) {
     return this.getCount()
       .then((count) => {
         let ids = []
+        let maxCount = limit ? limit : count;
         console.log(
-          `  - API reports ${count} objects. Fetching 100 per request`
+          `  - API reports ${count} objects. ` +
+          (limit ? `Limited to ${limit}. ` : '') +
+          'Fetching 100 per request'
         )
 
         // Queue all requests
         const queue = new PQueue({concurrency: settings.CONCURRENCY})
         let i = 1
         let skip = 0
-        while (skip < count) {
+        while (skip < maxCount) {
           queue.add(this.getObjectIdsSubset(skip, i))
             .then((subsetIds) => {
               ids = ids.concat(subsetIds)
@@ -195,6 +198,9 @@ class Abstract {
         if (!type) {
           // If key does not exist in defined legacy structure
           isValid = false
+        } else if (type === 'ignore') {
+          // ignore type checking
+          isValid = true
         } else if (helpers.isObject(type)) {
           if (!helpers.isObject(value)) {
             // if object type but value is not an object
@@ -338,10 +344,10 @@ class Abstract {
       })
   }
 
-  testStructureOfAllObjects() {
+  testStructureOfAllObjects(limit = null) {
     console.log('- Verifying defined legacy structure of all objects')
     console.log('- Fetching all objects IDs')
-    return this.getObjectIds()
+    return this.getObjectIds(limit)
       .then((ids) => {
         console.log('  - Fetching full objects')
 

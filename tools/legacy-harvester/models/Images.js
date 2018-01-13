@@ -53,7 +53,24 @@ class Areas extends AbstractModel {
         Make: 'string',
         Model: 'string',
         Software: 'string',
+        Artist: 'string',
+        Copyright: 'string',
+        DateTime: 'string',
+        ImageDescription: 'string',
       },
+      privat: {
+        sherpa2_id: 'number',
+        opprettet_av: {
+          id: 'string',
+          navn: 'string',
+          epost: 'string',
+        },
+        endret_av: {
+          id: 'string',
+          navn: 'string',
+          epost: 'string',
+        },
+      }
     }
   }
 }

@@ -39,6 +39,18 @@ class List extends AbstractModel {
       tilbyder: 'string',
       endret: 'date',
       checksum: 'string',
+      privat: {
+        endret_av: {
+          epost: 'string',
+          id: 'string',
+          navn: 'string',
+        },
+        opprettet_av: {
+          epost: 'string',
+          id: 'string',
+          navn: 'string',
+        },
+      }
     }
   }
 }

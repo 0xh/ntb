@@ -76,6 +76,23 @@ class Places extends AbstractModel {
           tittel: 'string',
         },
       ],
+      privat: {
+        hovedkategori: 'number',
+        gammel_url: 'string',
+        sherpa2_id: 'number',
+        opprettet_av: {
+          id: 'string',
+          navn: 'string',
+          epost: 'string'
+        },
+        endret_av: {
+          id: 'string',
+          navn: 'string',
+          epost: 'string'
+        },
+        startpunkt: 'geojson',
+        minutter: 'number'
+      }
     }
   }
 }

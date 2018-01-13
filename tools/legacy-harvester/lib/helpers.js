@@ -23,13 +23,10 @@ const isString = (value) =>
 
 
 const isNumber = (value) => {
-  // There are instances where type is number, but the actual value
-  // is "0" (string). For instance in steder.senger.[any-of-the-keys]
-  if (value === '0') {
-    return true
-  }
-
+  const regex = /^\d+$/g;
   return typeof value === 'number' && Number.isFinite(value)
+    ? true
+    : regex.test(value)
 }
 
 

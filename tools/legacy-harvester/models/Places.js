@@ -15,6 +15,7 @@ class Places extends AbstractModel {
   getLegacyStructure() {
     return {
       _id: 'string',
+      err: 'string',      // CABIN NOT FOUND 53a930f4a12751a2007eb6cf
       checksum: 'string',
       navngiving: 'string',
       tags: 'array-strings',
@@ -96,7 +97,7 @@ class Places extends AbstractModel {
           gruppe_id: 'string',
           adresse1: 'string',
           adresse2: 'string',
-          postnummer: 'string',
+          postnummer: 'number',
           poststed: 'string',
           fax: 'string',
           kontaktperson: 'string',
@@ -108,6 +109,83 @@ class Places extends AbstractModel {
           kommentar: 'string',
         },
       ],
+      steder: {
+        endret_av: {
+          epost: 'string',
+          id: 'string',
+          navn: 'string',
+        },
+        opprettet_av: {
+          epost: 'string',
+          id: 'number',
+          navn: 'string',
+        },
+      },
+      privat: {
+        åpningstider: [
+          {
+            helårs: 'string',
+            fra: 'date',
+            til: 'date',
+            betjeningsgrad: 'string',
+            nøkkel: 'string',
+            kommentar: 'string'
+          }
+        ],
+        kontaktinfo: {
+          sesong: {
+            epost: 'string',
+            postnummer: 'string',
+            adresse: 'string',
+            adresse1: 'string',
+            adresse2: 'string',
+            poststed: 'string',
+            telefon: 'string',
+            mobil: 'string',
+            fax: 'string',
+            type: 'string',
+            gruppe_id: 'string',
+            navn: 'string',
+          },
+          utenom_sesong: {
+            epost: 'string',
+            postnummer: 'string',
+            adresse: 'string',
+            adresse1: 'string',
+            adresse2: 'string',
+            poststed: 'string',
+            telefon: 'string',
+            mobil: 'string',
+            fax: 'string',
+            type: 'string',
+            gruppe_id: 'string',
+            navn: 'string',
+          }
+        },
+        sherpa2_id: 'number',
+        gammel_url: 'string',
+        juridisk_eier: 'string',
+        vedlikeholdes_av: 'string',
+        endret_av: {
+          epost: 'string',
+          id: 'string',
+          navn: 'string',
+        },
+        opprettet_av: {
+          epost: 'string',
+          id: 'string',
+          navn: 'string',
+        },
+        hyttetype: 'number',
+        hytteeier: 'string',
+        senger: {
+          vinter: 'number',
+          ekstra: 'number',
+          betjent: 'number',
+          selvbetjent: 'number',
+          ubetjent: 'number'
+        }
+      },
     }
   }
 }

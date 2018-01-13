@@ -30,7 +30,27 @@ class Areas extends AbstractModel {
       lisens: 'string',
       organisasjonsnr: 'string',
       foreldregrupper: 'array-strings',
-      privat: {},
+      privat: {
+        sherpa2_id: 'number',
+        endret_av: {
+          epost: 'string',
+          id: 'string',
+          navn: 'string',
+        },
+        opprettet_av: {
+          epost: 'string',
+          id: 'string',
+          navn: 'string',
+        },
+        brukere: [
+          {
+            pbkdf2: 'ignore',
+            navn: 'string',
+            epost: 'string',
+          }
+        ],
+        invitasjoner: 'ignore',
+      },
       lenker: [
         {
           type: 'string',
@@ -42,9 +62,11 @@ class Areas extends AbstractModel {
           type: 'string',
           epost: 'string',
           telefon: 'string',
+          fax: 'string',
           tittel: 'string',
           poststed: 'string',
           adresse1: 'string',
+          adresse2: 'string',
           postnummer: 101,
         }
       ]
