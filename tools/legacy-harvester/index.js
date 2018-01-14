@@ -1,44 +1,31 @@
 'use strict';
 
+const neo4j = require('neo4j-driver').v1;
 
-const Areas = require('./models/Areas');
-const Images = require('./models/Images');
-const Groups = require('./models/Groups');
-const Hikes = require('./models/Hikes');
-const Lists = require('./models/Lists');
-const Places = require('./models/Places');
+const settings = require('./lib/settings');
+const harvester = require('./lib/harvester');
+const legacy = require('./legacy-structure/legacy');
 
 
-// console.log('** AREAS **')  // 81
-// const areas = new Areas()
-// areas.testStructureOfRandomObjects(5)
-// areas.testStructureOfAllObjects()
-
-// console.log('** IMAGES **')  // 62.088
-// const images = new Images()
-// images.testStructureOfRandomObjects(5)
-// images.testStructureOfAllObjects(5000)
-
-
-// console.log('** GROUPS **')  // 1153
-// const groups = new Groups()
-// groups.testStructureOfRandomObjects(5)
-// groups.testStructureOfAllObjects()
+const driver = neo4j.driver(
+  settings.NEO4J_URI,
+  neo4j.auth.basic(
+    settings.NEO4J_USER,
+    settings.NEO4J_PASSWORD
+  )
+);
+const session = driver.session();
 
 
-// console.log('** HIKES **')  // 19.101
-// const hikes = new Hikes()
-// hikes.testStructureOfRandomObjects(5)
-// hikes.testStructureOfAllObjects()
+const main = async () => {
+  // await harvester.testRandomObjects('turer', legacy.tur, 100);
+  // await harvester.testStructureOfAllObjects('turer', legacy.tur);
+  const objects = await harvester.getObjects('lister', legacy.liste);
+  console.log('test DONE', objects[0]);  // eslint-disable-line
+
+  session.close();
+  driver.close();
+};
 
 
-// console.log('** LISTS **')  // 262
-// const lists = new Lists()
-// lists.testStructureOfRandomObjects(5)
-// lists.testStructureOfAllObjects()
-
-
-// console.log('** PLACES **')  // 4.481
-// const places = new Places()
-// places.testStructureOfRandomObjects(5)
-// places.testStructureOfAllObjects()
+main();
