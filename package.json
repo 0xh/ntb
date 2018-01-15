@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "dependencies": {
+    "eslint": "^4.15.0",
+    "eslint-config-t14n-server": "0.0.9"
+  }
+}
