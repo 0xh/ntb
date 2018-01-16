@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "name": "@turistforeningen/ntb-shared-neo4j-utils",
+  "version": "0.0.0",
+  "dependencies": {
+    "neo4j-driver": "*",
+    "@turistforeningen/ntb-shared-settings": "*"
+  }
+}

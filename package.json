@@ -1,7 +1,18 @@
 {
   "private": true,
+  "workspaces": [
+    "services/*",
+    "shared/*"
+  ],
   "dependencies": {
     "eslint": "^4.15.0",
-    "eslint-config-t14n-server": "0.0.9"
+    "eslint-config-t14n-server": "^0.0.9",
+    "nodemon": "^1.14.11",
+    "umzug": "^2.1.0",
+    "@turistforeningen/ntb-shared-umzug-neo4j-storage": "*",
+    "@turistforeningen/ntb-shared-neo4j-utils": "*"
+  },
+  "devDependencies": {
+    "lerna": "^2.5.1"
   }
 }
