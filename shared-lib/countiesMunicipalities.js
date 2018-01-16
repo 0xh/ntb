@@ -55,18 +55,18 @@ const findByUUID = (type, uuid, includeExpiredInfo = true) => {
 
   const match = data.filter((c) => c.uuid.toLowerCase() === uuid.toLowerCase())[0];
   const result = {
-    active: true,
     replace: false,
     data: {
       uuid: match.uuid,
       name: match.description,
       code: match.label,
+      active: true,
     },
   };
 
   // If this county is expired
   if (includeExpiredInfo && match.status.toLowerCase() === 'utgått') {
-    result.active = false;
+    result.data.active = false;
 
     // If we have data on the replacement
     if (expired.has(uuid)) {

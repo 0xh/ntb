@@ -243,6 +243,7 @@ const verifyObjects = (objects, structure) => {
 
 
 const getObjects = async (path, structure) => {
+  console.log(`*** ${path} ***`);
   console.log('- Fetching object count');
   const count = await getCount(path);
   console.log(`  - Number of objects: ${count}`);

@@ -256,9 +256,9 @@ eslint-config-airbnb-base@^12.1.0:
   dependencies:
     eslint-restricted-globals "^0.1.1"
 
-eslint-config-t14n-server@0.0.7:
-  version "0.0.7"
-  resolved "https://registry.yarnpkg.com/eslint-config-t14n-server/-/eslint-config-t14n-server-0.0.7.tgz#d63b863dc449c523142ff03db0117b17e9c617a1"
+eslint-config-t14n-server@0.0.9:
+  version "0.0.9"
+  resolved "https://registry.yarnpkg.com/eslint-config-t14n-server/-/eslint-config-t14n-server-0.0.9.tgz#99bf619c2cac730b78c5cabc381e3a863ec97dcb"
   dependencies:
     eslint-config-airbnb-base "^12.1.0"
     eslint-plugin-import "*"
