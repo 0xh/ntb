@@ -7,20 +7,42 @@ class Storage {
   }
 
   logMigration(migrationName) {
-    console.log('*logMigration', migrationName, this.session);
-    return Promise.resolve();
+    return this.executed()
+      .then((migrations) => {
+        migrations.push(migrationName);
+        return this.session.run(
+          'MATCH (m:MigrationDetails) SET m.migrations = $migrations',
+          { migrations }
+        );
+      });
   }
 
 
   unlogMigration(migrationName) {
-    console.log('*unlogMigration', migrationName, this.session);
-    return Promise.resolve();
+    return this.executed()
+      .then((migrations) => (
+        this.session.run(
+          'MATCH (m:MigrationDetails) SET m.migrations = $migrations',
+          {
+            migrations: migrations.filter((m) => m !== migrationName),
+          }
+        )
+      ));
   }
 
 
   executed() {
-    console.log('*executed', this.session);
-    return Promise.resolve([]);
+    const query = (
+      'MERGE (m:MigrationDetails {key:"all"}) ' +
+      'RETURN m.migrations AS migrations'
+    );
+
+    return this.session.run(query)
+      .then((result) => (
+        result.records.length
+          ? result.records[0].get('migrations') || []
+          : []
+      ));
   }
 }
 
