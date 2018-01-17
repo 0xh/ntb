@@ -10,7 +10,8 @@
     "nodemon": "^1.14.11",
     "umzug": "^2.1.0",
     "@turistforeningen/ntb-shared-umzug-neo4j-storage": "*",
-    "@turistforeningen/ntb-shared-neo4j-utils": "*"
+    "@turistforeningen/ntb-shared-neo4j-utils": "*",
+    "@turistforeningen/ntb-shared-counties-municipalities": "*"
   },
   "devDependencies": {
     "lerna": "^2.5.1"
