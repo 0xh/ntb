@@ -12,10 +12,26 @@ Install all required npm-packages in all modules
 lerna bootstrap
 ```
 
+Remember to run migrations (see below).
+
+----
+
+# Migrations
+
 Run migrations (located in `./migrations`)
 ```
 node migrate.js up
 ```
+
+----
+
+# Cronjobs
+
+## 01-harvest-counties-municipalities
+Execute:
+`node cronjobs/01-harvest-counties-municipalities/index.js`
+
+Harvest counties and municipalities from Kartverket and update in Neo4j.
 
 ----
 
