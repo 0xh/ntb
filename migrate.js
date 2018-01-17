@@ -2,12 +2,12 @@
 
 const path = require('path');
 const Umzug = require('umzug');
-const ne04jUtils = require('@turistforeningen/ntb-shared-neo4j-utils');
+const neo4jUtils = require('@turistforeningen/ntb-shared-neo4j-utils');
 const Storage = require('@turistforeningen/ntb-shared-umzug-neo4j-storage');
 
 
-const driver = ne04jUtils.createDriver();
-const session = ne04jUtils.createSession(driver);
+const driver = neo4jUtils.createDriver();
+const session = neo4jUtils.createSession(driver);
 
 
 const umzug = new Umzug({
