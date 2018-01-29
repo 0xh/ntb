@@ -1,3 +1,5 @@
 {
-  "extends": "t14n-server"
+  "extends": [
+    "t14n-server-flow"
+  ]
 }

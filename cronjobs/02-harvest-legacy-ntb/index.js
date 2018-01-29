@@ -3,7 +3,7 @@
 const { performance } = require('perf_hooks'); // eslint-disable-line
 const { MongoClient } = require('mongodb');
 const settings = require('@turistforeningen/ntb-shared-settings');
-const CM = require('@turistforeningen/ntb-shared-counties-municipalities');
+const CM = require('@turistforeningen/ntb-shared-counties-municipalities-harvester');
 
 const legacy = require('./legacy-structure/legacy');
 const verify = require('./lib/verify');

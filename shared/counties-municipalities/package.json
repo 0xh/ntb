@@ -1,9 +1,0 @@
-{
-  "private": true,
-  "name": "@turistforeningen/ntb-shared-counties-municipalities",
-  "version": "0.0.0",
-  "dependencies": {
-    "isomorphic-fetch": "^2.2.1",
-    "performance-now": "^2.1.0"
-  }
-}

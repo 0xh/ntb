@@ -1,0 +1,14 @@
+[ignore]
+<PROJECT_ROOT>/data/.*
+<PROJECT_ROOT>/neo4j/.*
+
+[include]
+
+[libs]
+./flow-typed/
+
+[lints]
+
+[options]
+
+[strict]

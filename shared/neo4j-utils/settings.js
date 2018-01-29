@@ -18,7 +18,9 @@ type settingsObject = {
 };
 
 
-const settings: settingsObject = settingsJson;
+const settings: settingsObject = {
+  ...settingsJson,
+};
 
 
 module.exports = settings;

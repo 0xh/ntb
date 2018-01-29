@@ -1,24 +1,36 @@
-'use strict';
+// @flow
 
-const neo4jUtils = require('@turistforeningen/ntb-shared-neo4j-utils');
-const CM = require('@turistforeningen/ntb-shared-counties-municipalities');
+import {
+  createDriver,
+  createSession,
+} from '@turistforeningen/ntb-shared-neo4j-utils';
+import { createLogger } from '@turistforeningen/ntb-shared-utils';
+import harvest from
+  '@turistforeningen/ntb-shared-counties-municipalities-harvester';
 
 
-const driver = neo4jUtils.createDriver();
-const session = neo4jUtils.createSession(driver);
+const logger = createLogger();
+const driver = createDriver();
+const session = createSession(driver);
 
 
-console.log('Harvesting counties and municipalities from Kartverket');
-CM.harvest(session)
-  .then(() => {
+logger.info('Harvesting counties and municipalities from Kartverket');
+harvest(session)
+  .then((status) => {
     session.close();
     driver.close();
 
-    console.log('Done with success!');
-    process.exit(0);
+    if (status) {
+      logger.info('Done with success!');
+      process.exit(0);
+    }
+    else {
+      logger.error('Done with error!');
+      process.exit(1);
+    }
   })
   .catch((err) => {
-    console.log('ERROR');
-    console.log(err);
+    logger.error('UNCAUGHT ERROR');
+    logger.error(err.stack);
     process.exit(1);
   });

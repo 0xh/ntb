@@ -2,8 +2,5 @@
   "lerna": "2.5.1",
   "npmClient": "yarn",
   "useWorkspaces": true,
-  "version": "unversioned",
-  "packages": [
-    "services/*"
-  ]
+  "version": "unversioned"
 }

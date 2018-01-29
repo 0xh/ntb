@@ -1,10 +1,14 @@
-'use strict';
+import express from 'express';
+import type
 
-const express = require('express');
+const app: express$Application = express();
 
 
-const app = express();
+app.get('/', (req: express$Request, res: express$Response) => {
+  res.send('Hello world!');
+});
 
-app.get('/', (req, res) => res.send('Hello World!'));
+app.get('/')
 
-app.listen(3000, () => console.log('Example app listening on port 3000!'));
+
+app.listen('3000', () => console.log('Example app listening on port 3000!'));

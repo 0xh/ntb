@@ -1,25 +1,49 @@
 'use strict';
 
-const mapping = () => {};
+const statusMapper = require('../lib/statusMapper');
+
+
+const mapping = (obj, handler) => {
+  const res = {};
+
+  res.area = {
+    id_legacy_ntb: obj._id,
+    name: obj.navn,
+    description: obj.beskrivelse,
+
+    url: 'string',
+    license: obj.lisens,
+
+    provider: obj.tilbyder,
+    status: statusMapper(obj.status),
+    last_modified: obj.endret,
+  };
+
+  return res;
+};
 
 
 module.exports = {
   mapping,
   structure: {
     _id: 'string',
+
+    navn: 'string',
+    beskrivelse: 'string',
+
+    lisens: 'string',
+    url: 'string',
+
     tilbyder: 'string',
     status: 'string',
+    endret: 'date',
+
     grupper: 'array-strings',
     tags: 'array-strings',
     navngiving: 'string',
     logo: 'string',
     foreldregruppe: 'string',
-    url: 'string',
-    endret: 'date',
-    navn: 'string',
-    beskrivelse: 'string',
     checksum: 'string',
-    lisens: 'string',
     organisasjonsnr: 'string',
     foreldregrupper: 'array-strings',
     privat: {

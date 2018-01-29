@@ -3,11 +3,12 @@
   "name": "@turistforeningen/ntb-cronjobs-02",
   "version": "0.0.0",
   "dependencies": {
-    "@turistforeningen/ntb-shared-counties-municipalities": "*",
+    "@turistforeningen/ntb-shared-counties-municipalities-harvester": "*",
     "@turistforeningen/ntb-shared-neo4j-utils": "*",
     "@turistforeningen/ntb-shared-settings": "*",
     "geojson-validation": "^0.2.0",
     "mongodb": "^3.0.1",
-    "performance-now": "^2.1.0"
+    "performance-now": "^2.1.0",
+    "wellknown": "^0.5.0"
   }
 }

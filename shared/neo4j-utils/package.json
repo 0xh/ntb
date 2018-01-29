@@ -3,7 +3,9 @@
   "name": "@turistforeningen/ntb-shared-neo4j-utils",
   "version": "0.0.0",
   "dependencies": {
+    "@turistforeningen/ntb-shared-settings": "*",
+    "@turistforeningen/ntb-shared-utils": "*",
     "neo4j-driver": "*",
-    "@turistforeningen/ntb-shared-settings": "*"
+    "uuid": "^3.2.1"
   }
 }
