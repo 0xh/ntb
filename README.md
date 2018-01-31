@@ -43,6 +43,14 @@ Harvest counties and municipalities from Kartverket and update in Neo4j.
 
 # Deployment
 
+## Secrets
+
+`LEGACY_MONGO_DB_URI` - MongoDB-uri to the legacy NTB database
+`LEGACY_MONGO_DB_NAME` - MongoDB-name to the legacy NTB database
+`NEO4J_URI` - Bolt connection uri (example `bolt://localhost:7687`)
+`NEO4J_USER` - Username for the Neo4j database
+`NEO4J_PASSWORD` - Password for the Neo4j database
+
 ## Build
 
 ```
