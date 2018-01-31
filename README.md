@@ -46,9 +46,13 @@ Harvest counties and municipalities from Kartverket and update in Neo4j.
 ## Secrets
 
 `LEGACY_MONGO_DB_URI` - MongoDB-uri to the legacy NTB database
+
 `LEGACY_MONGO_DB_NAME` - MongoDB-name to the legacy NTB database
+
 `NEO4J_URI` - Bolt connection uri (example `bolt://localhost:7687`)
+
 `NEO4J_USER` - Username for the Neo4j database
+
 `NEO4J_PASSWORD` - Password for the Neo4j database
 
 ## Build
@@ -62,7 +66,6 @@ cp migrate.js build/migrate.js
 cp package.json build/package.json
 cp lerna.json build/lerna.json
 cp yarn.lock build/yarn.lock
-cp settings.json build/settings.json
 cd build
 lerna bootstrap
 ./node_modules/.bin/babel cronjobs --out-dir cronjobs
