@@ -3,9 +3,8 @@ FROM node:9.4.0-alpine
 # Add our user and group first to make sure their IDs get assigned consistently
 RUN addgroup -S app && adduser -S -g app app
 
- RUN npm install --global lerna
-#     && mkdir lerna-repo \
-#     && cd lerna-repo && lerna init
+# install lerna
+RUN npm install --global lerna
 
 # Create a directory where the build-related files should live and set it as the
 # current working directory
@@ -31,4 +30,4 @@ RUN ./node_modules/.bin/babel cronjobs --out-dir cronjobs \
 RUN chown -R app:app /build
 USER app
 
-ENTRYPOINT node migrate.js up && node services/api/index.js
+ENTRYPOINT node services/api/index.js
