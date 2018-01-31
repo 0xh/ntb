@@ -1,7 +1,6 @@
 
 build/
-neo4j/*
-!neo4j/.gitkeep
+neo4j/data/*
 
 settings.json
 
