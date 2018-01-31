@@ -8,17 +8,17 @@
   "dependencies": {
     "babel-cli": "^6.26.0",
     "babel-eslint": "^8.2.1",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "babel-preset-env": "^1.6.1",
     "babel-preset-flow": "^6.23.0",
-    "eslint": "^4.15.0",
-    "eslint-config-t14n-server": "^0.0.9",
-    "eslint-config-t14n-server-flow": "turistforeningen/eslint-config-t14n-server-flow",
+    "eslint": "^4.16.0",
+    "eslint-config-t14n-server-flow":                 "turistforeningen/eslint-config-t14n-server-flow",
     "eslint-plugin-flowtype": "^2.41.0",
     "flow-bin": "^0.63.1",
-    "nodemon": "^1.14.11",
+    "lerna": "^2.5.1",
     "umzug": "^2.1.0"
   },
   "devDependencies": {
-    "lerna": "^2.5.1"
+    "nodemon": "^1.14.11"
   }
 }

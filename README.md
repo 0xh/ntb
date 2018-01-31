@@ -33,6 +33,44 @@ Execute:
 
 Harvest counties and municipalities from Kartverket and update in Neo4j.
 
+## 02-harvest-legacy-ntb
+Execute:
+`node cronjobs/01-harvest-counties-municipalities/index.js`
+
+Harvest counties and municipalities from Kartverket and update in Neo4j.
+
+----
+
+# Deployment
+
+## Build
+
+```
+cp -a cronjobs/. build/cronjobs
+cp -a migrations/. build/migrations
+cp -a services/. build/services
+cp -a shared/. build/shared
+cp migrate.js build/migrate.js
+cp package.json build/package.json
+cp lerna.json build/lerna.json
+cp yarn.lock build/yarn.lock
+cp settings.json build/settings.json
+cd build
+lerna bootstrap
+./node_modules/.bin/babel cronjobs --out-dir cronjobs
+./node_modules/.bin/babel migrations --out-dir migrations
+./node_modules/.bin/babel services --out-dir services
+./node_modules/.bin/babel shared --out-dir shared
+```
+
+## Run migrations
+
+`node migrate.js up`
+
+## Start API service
+
+`node services/api/index.js`
+
 ----
 
 # Lerna

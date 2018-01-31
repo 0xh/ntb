@@ -1,4 +1,5 @@
 
+build/
 neo4j/*
 !neo4j/.gitkeep
 
