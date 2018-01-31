@@ -1,6 +1,7 @@
 // @flow
 
 import { performance } from 'perf_hooks'; // eslint-disable-line
+import uuid4 from 'uuid/v4';
 import winston from 'winston';
 
 
@@ -44,13 +45,14 @@ const logger = createLogger();
 export function printDone(
   m1: string = 'a',
   m2: string = 'b',
-  clearMarks: boolean = true
+  clearMarks: boolean = true,
+  comment: ?string,
 ): void {
   const label = `${m1} to ${m2}`;
   performance.measure(label, m1, m2);
   const measure = performance.getEntriesByName(label)[0];
   logger.info(
-    `- done ${(measure.duration / 1000).toFixed(3)} s`
+    `- ${comment || 'done'} ${(measure.duration / 1000).toFixed(3)} s`
   );
   performance.clearMeasures(label);
 
@@ -65,6 +67,10 @@ export function printDone(
  * Prints Neo4j query statistics
  */
 export function printNeo4jStats(result: neo4j$result): void {
+  if (result.records && result.records.length) {
+    logger.info(`- ${result.records.length} rows returned`);
+  }
+
   const stats = {
     nodesCreated: result.summary.counters.nodesCreated(),
     nodesDeleted: result.summary.counters.nodesDeleted(),
@@ -86,6 +92,26 @@ export function printNeo4jStats(result: neo4j$result): void {
       logger.info(`- ${stat} ${label}`);
     }
   });
+}
+
+
+/**
+ * Start a duration timer and return the mark id
+ */
+export function startDuration(): string {
+  const mark = uuid4();
+  performance.mark(mark);
+  return mark;
+}
+
+
+/**
+ * Given a starting mark id, end the duration timer and print the results
+ */
+export function endDuration(startMark: string, comment: ?string): void {
+  const endMark = uuid4();
+  performance.mark(endMark);
+  printDone(startMark, endMark, true, comment);
 }
 
 

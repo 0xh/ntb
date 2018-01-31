@@ -14,7 +14,7 @@ const mapCounties = (obj, res, handler) => {
     res.counties = obj.fylker
       .map((f) => {
         const match = handler.counties
-          .filter((c) => c.name.toLowerCase() === f.trim().toLowerCase());
+          .filter((c) => c.data.name.toLowerCase() === f.trim().toLowerCase());
         if (match.length === 1) {
           return match[0].uuid;
         }
@@ -31,7 +31,7 @@ const mapMunicipalities = (obj, res, handler) => {
     res.municipalities = obj.kommuner
       .map((f) => {
         const match = handler.municipalities
-          .filter((c) => c.name.toLowerCase() === f.trim());
+          .filter((c) => c.data.name.toLowerCase() === f.trim());
         if (match.length === 1) {
           return match[0].uuid;
         }

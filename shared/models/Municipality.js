@@ -52,6 +52,13 @@ class Municipality extends CM {
   }
 
   /**
+   * Return a list of all Municipalities
+   */
+  static findAll(session: neo4j$session): Promise<?CM[]> {
+    return super._findAll('Municipality', session);
+  }
+
+  /**
    * Save multiple municipalities
    */
   static async saveAll(

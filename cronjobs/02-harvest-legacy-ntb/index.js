@@ -1,230 +1,195 @@
-'use strict';
+// @flow
 
-const { performance } = require('perf_hooks'); // eslint-disable-line
-const { MongoClient } = require('mongodb');
-const settings = require('@turistforeningen/ntb-shared-settings');
-const CM = require('@turistforeningen/ntb-shared-counties-municipalities-harvester');
+import { performance } from 'perf_hooks'; // eslint-disable-line
+import { MongoClient } from 'mongodb';
+import type { Db } from 'mongodb';
 
-const legacy = require('./legacy-structure/legacy');
-const verify = require('./lib/verify');
-const processArea = require('./process/area');
+import settings from '@turistforeningen/ntb-shared-settings';
+import {
+  createDriver,
+  createSession,
+} from '@turistforeningen/ntb-shared-neo4j-utils';
+import {
+  createLogger,
+  startDuration,
+  endDuration,
+} from '@turistforeningen/ntb-shared-utils';
+import { County, Municipality } from '@turistforeningen/ntb-shared-models';
 
-const neo4jUtils = require('@turistforeningen/ntb-shared-neo4j-utils');
+import type {
+  legacyTypes,
+  handlerObj,
+  legacyDocuments,
+} from './lib/flow-types';
+
+import legacy from './legacy-structure/legacy';
+import verify from './lib/verify';
+import processArea from './process/area';
 
 
-const getCollectionDocuments = (db, collectionName) =>
-  new Promise((resolve) => {
+const logger = createLogger();
+
+
+// ######################################
+// Flow types
+// ######################################
+
+
+type MongoDb = Db;
+
+
+// ######################################
+// Configuration
+// ######################################
+
+
+const LEGACY_TYPES: legacyTypes[] = [
+  'områder',
+  // 'lister',
+  'grupper',
+  // 'steder',
+  // 'turer',
+  // 'bilder',
+];
+
+
+// ######################################
+// Harvest logic
+// ######################################
+
+
+/**
+ * Get all documents from the specified collection from legacy-ntb MongoDB
+ */
+function getCollectionDocuments(db: MongoDb, collectionName: string) {
+  return new Promise((resolve) => {
+    const durationId = startDuration();
     const collection = db.collection(collectionName);
 
     collection.find({ status: { $ne: 'Slettet' } }).toArray((err, items) => {
+      endDuration(
+        durationId,
+        `Fetching "${collectionName}" from mongodb done in`
+      );
       resolve(items);
     });
   });
+}
 
 
-const getAllDocuments = async (db, handler) => {
-  console.log('- Fetching all documents from mongodb');
-  const documents = {};
-  performance.mark('a');
+/**
+ * Get all documents for all collections from legacy-ntb MongoDb
+ */
+async function getAllDocuments(
+  db: MongoDb,
+  handler: handlerObj
+): Promise<void> {
+  logger.info('Fetching all documents from mongodb (async)');
+  const durationId = startDuration();
+  const documents: legacyDocuments = {};
+
   await Promise.all(
-    ['områder', 'lister'].map(async (type) => {
+    LEGACY_TYPES.map(async (type) => {
       documents[type] = await getCollectionDocuments(db, type);
       documents[type].forEach((document) => {
         document._id = document._id.toString();
       });
     })
   );
-  performance.mark('b');
-  handler.printDone();
 
-  return documents;
-};
+  handler.documents = documents;
+  endDuration(durationId, 'Fetching all documents from mongodb done in');
+}
 
 
-const verifyAllDocuments = (handler) => {
+/**
+ * Verify structure of documents from legacy-ntb towards the defined structure.
+ */
+function verifyAllDocuments(handler: handlerObj): boolean {
   let verified = true;
 
+  if (!handler.documents) {
+    return false;
+  }
+
   Object.keys(handler.documents).forEach((type) => {
-    console.log(`- Verifying structure of <${type}>`);
+    logger.info(`Verifying structure of <${type}>`);
     const { structure } = legacy[type];
-    handler.documents[type].forEach((obj) => {
-      const status = verify(obj, obj._id, structure);
-      if (!status.verified) {
-        verified = false;
-        status.errors.forEach((e) => console.log(e));
-      }
-    });
+
+    if (handler.documents && handler.documents[type]) {
+      handler.documents[type].forEach((obj) => {
+        const status = verify(obj, obj._id, structure);
+        if (!status.verified) {
+          verified = false;
+          status.errors.forEach((e) => logger.error(e));
+        }
+      });
+    }
+    else {
+      verified = false;
+    }
   });
 
   return verified;
-};
+}
 
 
-const getAllCM = async (handler) => {
-  console.log('- Fetching all counties from Neo4j');
-  performance.mark('a');
-  handler.counties = await CM.counties.all(handler.session);
-  performance.mark('b');
-  handler.printDone();
+/**
+ * Get all Counties and Municipalities
+ */
+async function getAllCM(handler: handlerObj): Promise<void> {
+  if (handler.session) {
+    const { session } = handler;
 
-  console.log('- Fetching all municipalities from Neo4j');
-  performance.mark('a');
-  handler.municipalities = await CM.municipalities.all(handler.session);
-  performance.mark('b');
-  handler.printDone();
-};
+    logger.info('Fetching all counties from Neo4j');
+    handler.counties = await County.findAll(session);
 
-
-// const processArea = async (session, documents) => {
-//   console.log('- Processing areas');
-//   let query;
-//   let result;
-
-//   const legacyDocuments = documents['områder'];
-//   const areas = [];
-//   await Promise.all(
-//     legacyDocuments.map(async (d) => {
-//       const area = await legacy.områder.mapping(d, session);
-//       areas.push(area);
-//     })
-//   );
-
-//   console.log('  - Fetching current areas');
-//   query = 'MATCH (a:Area) RETURN a.id_legacy_ntb';
-//   result = await runQuery(session, query);
-
-//   const idsToDelete = [];
-//   if (result.records.length) {
-//     const existingIds = areas.map((a) => a.area.id_legacy_ntb);
-//     result.records.forEach((r) => {
-//       const id = r.get(0);
-//       if (!existingIds.includes(id)) {
-//         idsToDelete.push(id);
-//       }
-//     });
-//   }
-
-//   if (idsToDelete.length) {
-//     console.log(`  - Delete old areas (${idsToDelete.length})`);
-//     query = [
-//       'MATCH (a:Area)',
-//       'WHERE a.id_legacy_ntb IN $ids',
-//       'DETACH DELETE a',
-//     ].join('\n');
-//     await runQuery(session, query, { ids: idsToDelete });
-//   }
-
-//   console.log('  - Adding/updating areas');
-//   query = [
-//     'UNWIND $items as item',
-//     'MERGE (a:Area {id_legacy_ntb:item.area.id_legacy_ntb})',
-//     'ON CREATE SET a = item.area',
-//     'ON MATCH SET a = item.area',
-//   ].join('\n');
-//   await runQuery(session, query, { items: areas });
-
-
-//   console.log('  - Fetching current (Area)-->(County) relations');
-//   query = [
-//     'MATCH (a:Area)-[:LOCATED_IN]->(c:County)',
-//     'RETURN a.id_legacy_ntb, c.uuid',
-//   ].join('\n');
-//   result = await runQuery(session, query);
-
-
-//   // Identify existing relations that should be deleted
-//   const relationsToDelete = [];
-//   if (result.records.length) {
-//     result.records.forEach((r) => {
-//       const id = r.get(0);
-//       const uuid = r.get(1);
-//       const area = areas.filter((a) => a.area.id_legacy_ntb === id);
-//       if (area.length) {
-//         if (!area[0].counties || !area[0].counties.includes(uuid)) {
-//           relationsToDelete.push({ id_legacy_ntb: id, uuid });
-//         }
-//       }
-//     });
-//   }
-
-//   if (relationsToDelete.length) {
-//     console.log(
-//       '  - Delete old (Area)-->(County) relations ' +
-//       ` (${relationsToDelete.length})`
-//     );
-//     query = [
-//       'UNWIND $items as item',
-//       'MATCH (a:Area)-[r:LOCATED_IN]->(c:County)',
-//       'WHERE a.id_legacy_ntb = item.id_legacy_ntb',
-//       '      AND c.uuid = item.uuid',
-//       'DELETE r',
-//     ].join('\n');
-//     await runQuery(session, query, { items: relationsToDelete });
-//   }
-
-//   console.log('  - Adding/updating (Area)-->(County) relations');
-//   query = [
-//     'UNWIND $items as item',
-//     'MATCH (a:Area {id_legacy_ntb:item.area.id_legacy_ntb})',
-//     'WITH a, item',
-//     'UNWIND item.counties AS uuid',
-//     'MATCH (c:County {uuid:uuid})',
-//     'MERGE (a)-[:LOCATED_IN]->(c)',
-//   ].join('\n');
-//   await runQuery(session, query, { items: areas });
-// };
-
-
-const printDone = (padding = 4, m1 = 'a', m2 = 'b', clearMarks = true) => {
-  const label = `${m1} to ${m2}`;
-  performance.measure(label, m1, m2);
-  const measure = performance.getEntriesByName(label)[0];
-  console.log(
-    `${' '.repeat(padding)}- done ${(measure.duration / 1000).toFixed(3)} s`
-  );
-  performance.clearMeasures(label);
-
-  if (clearMarks) {
-    performance.clearMarks(m1);
-    performance.clearMarks(m2);
+    logger.info('Fetching all municipalities from Neo4j');
+    handler.municipalities = await Municipality.findAll(session);
   }
-};
+}
 
 
-const main = async (db) => {
-  const handler = {};
-  handler.printDone = printDone;
-  performance.mark('main-a');
+/**
+ * Harvest data from legacy-ntb through it's MongoDB, verify the structure of
+ * the data towards the defined legacy structure and map the data to Neo4j
+ * nodes and relations.
+ */
+async function main(db: MongoDb): Promise<void> {
+  const durationId = startDuration();
+  const handler: handlerObj = {};
 
-  handler.documents = await getAllDocuments(db, handler);
+  await getAllDocuments(db, handler);
 
   if (!verifyAllDocuments(handler)) {
     throw new Error('Document verification failed.');
   }
 
-  const driver = neo4jUtils.createDriver();
-  handler.session = neo4jUtils.createSession(driver);
+  const driver = createDriver();
+  const session = createSession(driver);
+  handler.session = session;
 
   await getAllCM(handler);
 
   await processArea(handler);
 
-  performance.mark('main-b');
-  handler.printDone(0, 'main-a', 'main-b');
-  handler.session.close();
+  logger.info('Harvesting complete');
+  endDuration(durationId);
+  session.close();
   driver.close();
-};
+}
+
 
 MongoClient.connect(settings.LEGACY_MONGO_DB_URI)
   .then(async (client) => {
-    const db = client.db(settings.LEGACY_MONGO_DB_NAME);
+    const db: MongoDb = client.db(settings.LEGACY_MONGO_DB_NAME);
     await main(db);
     client.close();
     process.exit(0);
   })
   .catch((err) => {
-    console.log('ERROR - some error occured');
-    console.log(err);
-    console.log(err.stack);
+    logger.error('ERROR - some error occured');
+    logger.error(err);
+    logger.error(err.stack);
     process.exit(1);
   });

@@ -2,11 +2,7 @@
 
 import { performance } from 'perf_hooks'; // eslint-disable-line
 
-import {
-  printDone,
-  createLogger,
-  printNeo4jStats,
-} from '@turistforeningen/ntb-shared-utils';
+import { createLogger } from '@turistforeningen/ntb-shared-utils';
 import { run } from '@turistforeningen/ntb-shared-neo4j-utils';
 
 
@@ -134,6 +130,33 @@ class CM {
     }
 
     // Loop through and verify the results
+    return CM._processResult(result, label);
+  }
+
+  /**
+   * Return a list of all counties or municipalities.
+   * If no match is found, `null` is returned.
+   */
+  static async _findAll(
+    label: string,
+    session: neo4j$session
+  ): Promise<?CM[]> {
+    // Execute query towards Neo4j
+    const query = [
+      `MATCH (n:${label})`,
+      'RETURN n {.name, .uuid, .code, .status}',
+    ].join('\n');
+
+    const result = await run(session, query);
+    if (!result.records.length) {
+      return null;
+    }
+
+    // Loop through and verify the results
+    return CM._processResult(result, label);
+  }
+
+  static _processResult(result: neo4j$result, label: string): ?CM[] {
     const objects = [];
     result.records.forEach((r) => {
       const {

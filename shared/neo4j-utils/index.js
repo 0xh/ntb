@@ -15,6 +15,9 @@ import {
 } from '@turistforeningen/ntb-shared-settings';
 
 
+/**
+ * Create a Neo4j driver
+ */
 export const createDriver = () =>
   neo4j.driver(
     NEO4J_URI,
@@ -25,10 +28,17 @@ export const createDriver = () =>
   );
 
 
+/**
+ * Create a Neo4j session using a driver
+ */
 export const createSession = (driver: neo4j$driver): neo4j$session =>
   driver.session();
 
 
+/**
+ * Execute a Ne04j query and time the execution. Prints execution time and
+ * result statistics afterwards.
+ */
 export async function run(
   session: neo4j$session,
   query: string,

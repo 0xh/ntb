@@ -6,6 +6,8 @@
     "@turistforeningen/ntb-shared-counties-municipalities-harvester": "*",
     "@turistforeningen/ntb-shared-neo4j-utils": "*",
     "@turistforeningen/ntb-shared-settings": "*",
+    "@turistforeningen/ntb-shared-models": "*",
+    "@turistforeningen/ntb-shared-utils": "*",
     "geojson-validation": "^0.2.0",
     "mongodb": "^3.0.1",
     "performance-now": "^2.1.0",

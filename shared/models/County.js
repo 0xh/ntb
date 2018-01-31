@@ -41,6 +41,13 @@ class County extends CM {
   }
 
   /**
+   * Return a list of all Counties
+   */
+  static findAll(session: neo4j$session): Promise<?CM[]> {
+    return super._findAll('County', session);
+  }
+
+  /**
    * Save multiple counties
    */
   static async saveAll(
