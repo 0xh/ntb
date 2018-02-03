@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "name": "@turistforeningen/ntb-migrate",
+  "version": "0.0.0",
+  "dependencies": {
+    "@turistforeningen/ntb-shared-db-utils": "*",
+    "@turistforeningen/ntb-shared-utils": "*",
+    "umzug": "^2.1.0"
+  }
+}

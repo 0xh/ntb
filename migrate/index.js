@@ -1,32 +1,38 @@
-'use strict';
+// @flow
 
-const path = require('path');
-const Umzug = require('umzug');
-const neo4jUtils = require('@turistforeningen/ntb-shared-neo4j-utils');
-const Storage = require('@turistforeningen/ntb-shared-umzug-neo4j-storage');
+import path from 'path';
+
+import Umzug from 'umzug';
+
+import sequelize from '@turistforeningen/ntb-shared-db-utils';
+import { createLogger } from '@turistforeningen/ntb-shared-utils';
 
 
-const driver = neo4jUtils.createDriver();
-const session = neo4jUtils.createSession(driver);
+const logger = createLogger();
 
 
 const umzug = new Umzug({
-  storage: new Storage(session),
+  storage: 'sequelize',
+  storageOptions: { sequelize },
 
   migrations: {
+    params: [
+      sequelize.getQueryInterface(), // queryInterface
+      sequelize.constructor, // DataTypes
+    ],
     path: './migrations',
     pattern: /\.js$/,
   },
 
   logging: function log(...args) {
-    console.log.apply(null, args);
+    logger.info.apply(null, args);
   },
 });
 
 
-function logUmzugEvent(eventName) {
-  return (name, migration) => {
-    console.log(`${name} ${eventName}`);
+function logUmzugEvent(eventName: string) {
+  return (name: string, migration: string) => {
+    logger.info(`${name} ${eventName}`);
   };
 }
 
@@ -37,7 +43,10 @@ umzug.on('reverting', logUmzugEvent('reverting'));
 umzug.on('reverted', logUmzugEvent('reverted'));
 
 
-function cmdStatus() {
+function cmdStatus(): Promise<{
+  executed: Array<{ name: string }>,
+  pending: Array<{ name: string }>,
+}> {
   const result = {};
 
   return umzug.executed()
@@ -68,19 +77,19 @@ function cmdStatus() {
         pending: pending.map((m) => m.file),
       };
 
-      console.log(JSON.stringify(status, null, 2));
+      logger.info(JSON.stringify(status, null, 2));
 
       return { executed, pending };
     });
 }
 
 
-function cmdMigrate() {
+function cmdMigrate(): Promise<Umzug.Migration[]> {
   return umzug.up();
 }
 
 
-function cmdMigrateNext() {
+function cmdMigrateNext(): Promise<Umzug.Migration[]> {
   return cmdStatus()
     .then(({ executed, pending }) => {
       if (pending.length === 0) {
@@ -92,12 +101,12 @@ function cmdMigrateNext() {
 }
 
 
-function cmdReset() {
+function cmdReset(): Promise<Umzug.Migration[]> {
   return umzug.down({ to: 0 });
 }
 
 
-function cmdResetPrev() {
+function cmdResetPrev(): Promise<Umzug.Migration[]> {
   return cmdStatus()
     .then(({ executed, pending }) => {
       if (executed.length === 0) {
@@ -113,7 +122,7 @@ const cmd = process.argv[2].trim();
 let executedCmd;
 
 
-console.log(`${cmd.toUpperCase()} BEGIN`);
+logger.info(`${cmd.toUpperCase()} BEGIN`);
 
 switch (cmd) {
   case 'status':
@@ -141,34 +150,31 @@ switch (cmd) {
     break;
 
   default:
-    console.log(`invalid cmd: ${cmd}`);
+    logger.info(`invalid cmd: ${cmd}`);
     process.exit(1);
 }
 
-executedCmd
-  .then((result) => {
-    const doneStr = `${cmd.toUpperCase()} DONE`;
-    console.log(doneStr);
-    console.log('='.repeat(doneStr.length));
-  })
-  .catch((err) => {
-    const errorStr = `${cmd.toUpperCase()} ERROR`;
-    console.log(errorStr);
-    console.log('='.repeat(errorStr.length));
-    console.log(err);
-    console.log('='.repeat(errorStr.length));
-
-    session.close();
-    driver.close();
-  })
-  .then(() => {
-    if (cmd !== 'status' && cmd !== 'reset-hard') {
-      return cmdStatus();
-    }
-    return Promise.resolve();
-  })
-  .then(() => {
-    process.exit(0);
-    session.close();
-    driver.close();
-  });
+if (executedCmd) {
+  executedCmd
+    .then((result) => {
+      const doneStr = `${cmd.toUpperCase()} DONE`;
+      logger.info(doneStr);
+      logger.info('='.repeat(doneStr.length));
+    })
+    .catch((err) => {
+      const errorStr = `${cmd.toUpperCase()} ERROR`;
+      logger.info(errorStr);
+      logger.info('='.repeat(errorStr.length));
+      logger.info(err);
+      logger.info('='.repeat(errorStr.length));
+    })
+    .then(() => {
+      if (cmd !== 'status' && cmd !== 'reset-hard') {
+        return cmdStatus();
+      }
+      return Promise.resolve();
+    })
+    .then(() => {
+      process.exit(0);
+    });
+}
