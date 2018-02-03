@@ -45,15 +45,34 @@ Harvest counties and municipalities from Kartverket and update in Neo4j.
 
 ## Secrets
 
+All secrets without defaults are **required**
+
 `LEGACY_MONGO_DB_URI` - MongoDB-uri to the legacy NTB database
 
 `LEGACY_MONGO_DB_NAME` - MongoDB-name to the legacy NTB database
 
-`NEO4J_URI` - Bolt connection uri (example `bolt://localhost:7687`)
+**Postgres options**
 
-`NEO4J_USER` - Username for the Neo4j database
+`DB_HOST`: string
 
-`NEO4J_PASSWORD` - Password for the Neo4j database
+`DB_PORT`: string
+
+`DB_USER`: string
+
+`DB_PASSWORD`: string
+
+`DB_NAME`: string - Database name
+
+`DB_POOL_MIN`: number, default 0 - Minimum number of connection in pool
+
+`DB_POOL_MAX`: number, default 5 - Maximum number of connection in pool
+
+`DB_POOL_IDLE`: number, default 10000 - The maximum time, in milliseconds, that a connection can be idle before being released. Use with combination of evict for proper working.
+
+`DB_POOL_ACQUIRE`: number, default 10000 - The maximum time, in milliseconds, that pool will try to get connection before throwing error
+
+`DB_POOL_EVICT`: number, default 10000 - The time interval, in milliseconds, for evicting stale connections. Set it to 0 to disable this feature.
+
 
 ## Build
 
