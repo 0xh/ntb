@@ -4,12 +4,11 @@ import path from 'path';
 
 import Umzug from 'umzug';
 
-import sequelize from '@turistforeningen/ntb-shared-db-utils';
+import { sequelize } from '@turistforeningen/ntb-shared-db-utils';
 import { createLogger } from '@turistforeningen/ntb-shared-utils';
 
 
 const logger = createLogger();
-
 
 const umzug = new Umzug({
   storage: 'sequelize',

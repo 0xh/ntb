@@ -1,31 +1,48 @@
 // @flow
 
-import Sequelize from 'sequelize';
+import _Sequelize from 'sequelize';
+import type {
+  QueryInterface as _QueryInterface,
+  DataTypes as _DataTypes,
+} from 'sequelize';
 
-import {
-  DB_HOST,
-  DB_PORT,
-  DB_NAME,
-  DB_USER,
-  DB_PASSWORD,
-  DB_POOL_MIN,
-  DB_POOL_MAX,
-  DB_POOL_IDLE,
-  DB_POOL_ACQUIRE,
-  DB_POOL_EVICT,
-} from '@turistforeningen/ntb-shared-settings';
+import * as settings from '@turistforeningen/ntb-shared-settings';
+
+// ##################################
+// Export flow types
+// ##################################
 
 
-export default new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
-  host: DB_HOST,
-  port: DB_PORT,
-  dialect: 'postgres',
+export type QueryInterface = _QueryInterface;
+export type DataTypes = _DataTypes;
 
-  pool: {
-    max: DB_POOL_MAX,
-    min: DB_POOL_MIN,
-    idle: DB_POOL_IDLE,
-    acquire: DB_POOL_ACQUIRE,
-    evict: DB_POOL_EVICT,
-  },
-});
+
+// ##################################
+// Utilities
+// ##################################
+
+// Export Sequelize module
+// This helps us in only requiering the sequelize npm module in one package
+// and probably avoid version upgrade mismatching between packages.
+export const Sequelize = _Sequelize;
+
+
+// Create and export sequelize instance
+export const sequelize = new _Sequelize(
+  settings.DB_NAME,
+  settings.DB_USER,
+  settings.DB_PASSWORD,
+  {
+    host: settings.DB_HOST,
+    port: settings.DB_PORT,
+    dialect: 'postgres',
+
+    pool: {
+      max: settings.DB_POOL_MAX,
+      min: settings.DB_POOL_MIN,
+      idle: settings.DB_POOL_IDLE,
+      acquire: settings.DB_POOL_ACQUIRE,
+      evict: settings.DB_POOL_EVICT,
+    },
+  }
+);

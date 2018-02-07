@@ -5,6 +5,7 @@
   "dependencies": {
     "@turistforeningen/ntb-shared-db-utils": "*",
     "@turistforeningen/ntb-shared-utils": "*",
+    "@turistforeningen/ntb-shared-counties-municipalities-harvester": "*",
     "umzug": "^2.1.0"
   }
 }

@@ -4,7 +4,6 @@
   "version": "0.0.0",
   "dependencies": {
     "@turistforeningen/ntb-shared-counties-municipalities-harvester": "*",
-    "@turistforeningen/ntb-shared-neo4j-utils": "*",
     "@turistforeningen/ntb-shared-settings": "*",
     "@turistforeningen/ntb-shared-models": "*",
     "@turistforeningen/ntb-shared-utils": "*",

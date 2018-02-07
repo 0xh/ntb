@@ -4,13 +4,10 @@ import uuid4 from 'uuid/v4';
 
 import { sequelize, Sequelize } from '@turistforeningen/ntb-shared-db-utils';
 
-import CountyTranslation from './CountyTranslation';
 
-
-const County = sequelize.define('county', {
+const CountyTranslation = sequelize.define('countyTranslation', {
   uuid: {
     type: Sequelize.UUID,
-    primaryKey: true,
     defaultValue: uuid4(),
     validate: {
       isUUID: 4,
@@ -31,9 +28,11 @@ const County = sequelize.define('county', {
     },
   },
 
-  status: {
-    type: Sequelize.ENUM,
-    values: ['draft', 'public', 'deleted', 'private'],
+  language: {
+    type: Sequelize.STRING,
+    validate: {
+      notEmpty: true,
+    },
   },
 
   dataSource: {
@@ -44,10 +43,7 @@ const County = sequelize.define('county', {
   timestamps: true,
   indexes: [
     {
-      fields: ['nameLowerCase'],
-    },
-    {
-      fields: ['status'],
+      fields: ['nameLowercase'],
     },
     {
       fields: ['dataSource'],
@@ -58,17 +54,16 @@ const County = sequelize.define('county', {
 
 // ASSOCIATIONS
 
-County.hasMany(CountyTranslation, {
-  as: 'Translation',
+CountyTranslation.belongsTo('county', {
   foreignKey: 'countyUuid',
 });
 
 
 // HOOKS
 
-County.hook('beforeSave', (instance: County) => {
+CountyTranslation.hook('beforeSave', (instance: CountyTranslation) => {
   instance.nameLowercase = instance.name.toLowerCase();
 });
 
 
-export default County;
+export default CountyTranslation;

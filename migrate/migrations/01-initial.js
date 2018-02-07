@@ -1,10 +1,16 @@
-'use strict';
+// @flow
 
-const neo4jUtils = require('@turistforeningen/ntb-shared-neo4j-utils');
-const CM = require('@turistforeningen/ntb-shared-counties-municipalities');
+import type {
+  DataTypes as _DataTypes,
+  QueryInterface,
+} from '@turistforeningen/ntb-shared-db-utils';
+import CMHarvest from
+  '@turistforeningen/ntb-shared-counties-municipalities-harvester';
 
 
-const up = async (query, DataTypes) => {
+const up = async (queryInterface: QueryInterface, DataTypes: _DataTypes) => {
+  let c = DataTypes.STRING;
+
   console.log('Set Neo4j schema');
   const driver = neo4jUtils.createDriver();
   const session = neo4jUtils.createSession(driver);
@@ -16,7 +22,7 @@ const up = async (query, DataTypes) => {
   );
 
   console.log('Harvest counties and municipalities');
-  await CM.harvest(session);
+  await CMHarvest(session);
   console.log('  - done');
 
   session.close();
@@ -25,7 +31,7 @@ const up = async (query, DataTypes) => {
 };
 
 
-const down = async (query, DataTypes) => {
+const down = async (queryInterface, DataTypes) => {
   console.log('Unset Neo4j schema');
   const driver = neo4jUtils.createDriver();
   const session = neo4jUtils.createSession(driver);

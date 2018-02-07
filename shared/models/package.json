@@ -3,8 +3,13 @@
   "name": "@turistforeningen/ntb-shared-models",
   "version": "0.0.0",
   "dependencies": {
-    "performance-now": "^2.1.0",
+    "@turistforeningen/ntb-shared-settings": "*",
+    "@turistforeningen/ntb-shared-db-utils": "*",
     "@turistforeningen/ntb-shared-utils": "*",
-    "@turistforeningen/ntb-shared-neo4j-utils": "*"
+    "uuid": "^3.2.1"
+  },
+  "devDependencies": {
+    "sequelize-auto-migrations": "^1.0.2",
+    "sequelize-cli": "^3.2.0"
   }
 }
