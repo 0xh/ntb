@@ -1,5 +1,3 @@
-// @flow
-
 import { performance } from 'perf_hooks'; // eslint-disable-line
 import uuid4 from 'uuid/v4';
 import winston from 'winston';
@@ -42,12 +40,7 @@ const logger = createLogger();
  * Prints the duration between performance measurement marks.
  * As default, it will clear the marks.
  */
-export function printDone(
-  m1: string = 'a',
-  m2: string = 'b',
-  clearMarks: boolean = true,
-  comment: ?string,
-): void {
+export function printDone(m1 = 'a', m2 = 'b', clearMarks = true, comment) {
   const label = `${m1} to ${m2}`;
   performance.measure(label, m1, m2);
   const measure = performance.getEntriesByName(label)[0];
@@ -66,7 +59,7 @@ export function printDone(
 /**
  * Prints Neo4j query statistics
  */
-export function printNeo4jStats(result: neo4j$result): void {
+export function printNeo4jStats(result) {
   if (result.records && result.records.length) {
     logger.info(`- ${result.records.length} rows returned`);
   }
@@ -98,7 +91,7 @@ export function printNeo4jStats(result: neo4j$result): void {
 /**
  * Start a duration timer and return the mark id
  */
-export function startDuration(): string {
+export function startDuration() {
   const mark = uuid4();
   performance.mark(mark);
   return mark;
@@ -108,7 +101,7 @@ export function startDuration(): string {
 /**
  * Given a starting mark id, end the duration timer and print the results
  */
-export function endDuration(startMark: string, comment: ?string): void {
+export function endDuration(startMark, comment) {
   const endMark = uuid4();
   performance.mark(endMark);
   printDone(startMark, endMark, true, comment);
@@ -118,10 +111,7 @@ export function endDuration(startMark: string, comment: ?string): void {
 /**
  * Print the error message and the error stack
  */
-export function logError(
-  err: Error,
-  msg: string
-): void {
+export function logError(err, msg) {
   logger.error(`ERROR: ${msg}`);
   logger.error(err);
   logger.error(err.stack);
