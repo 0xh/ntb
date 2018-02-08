@@ -1,69 +1,64 @@
-// @flow
-
-import uuid4 from 'uuid/v4';
-
-import { sequelize, Sequelize } from '@turistforeningen/ntb-shared-db-utils';
-
-
-const CountyTranslation = sequelize.define('countyTranslation', {
-  uuid: {
-    type: Sequelize.UUID,
-    defaultValue: uuid4(),
-    validate: {
-      isUUID: 4,
+export default (sequelize, DataTypes) => {
+  const CountyTranslation = sequelize.define('CountyTranslation', {
+    uuid: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      validate: {
+        isUUID: 4,
+      },
     },
-  },
 
-  name: {
-    type: Sequelize.STRING,
-    validate: {
-      notEmpty: true,
+    name: {
+      type: DataTypes.STRING,
+      validate: {
+        notEmpty: true,
+      },
     },
-  },
 
-  nameLowercase: {
-    type: Sequelize.STRING,
-    validate: {
-      notEmpty: true,
+    nameLowercase: {
+      type: DataTypes.STRING,
+      validate: {
+        notEmpty: true,
+      },
     },
-  },
 
-  language: {
-    type: Sequelize.STRING,
-    validate: {
-      notEmpty: true,
+    language: {
+      type: DataTypes.STRING,
+      validate: {
+        notEmpty: true,
+      },
     },
-  },
 
-  dataSource: {
-    type: Sequelize.STRING,
-    allowNull: true,
-  },
-}, {
-  timestamps: true,
-  indexes: [
-    {
-      fields: ['nameLowercase'],
+    dataSource: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
-    {
-      fields: ['dataSource'],
-    },
-  ],
-});
+  }, {
+    timestamps: true,
+    indexes: [
+      {
+        fields: ['nameLowercase'],
+      },
+      {
+        fields: ['dataSource'],
+      },
+    ],
+  });
 
 
-// ASSOCIATIONS
+  // Associations
 
-CountyTranslation.belongsTo('county', {
-  foreignKey: 'countyUuid',
-});
-
-
-// HOOKS
-
-CountyTranslation.hook('beforeSave', (instance: CountyTranslation) => {
-  instance.nameLowercase = instance.name.toLowerCase();
-});
+  CountyTranslation.associate = (models) => {
+    models.CountyTranslation.belongsTo(models.County);
+  };
 
 
-export default CountyTranslation;
+  // HOOKS
+
+  CountyTranslation.hook('beforeSave', (instance) => {
+    instance.nameLowercase = instance.name.toLowerCase();
+  });
+
+
+  return CountyTranslation;
+};
