@@ -3,7 +3,7 @@ build/
 neo4j/data/*
 postgres
 
-settings.json
+settings-dev.json
 
 node_modules
 .vscode
