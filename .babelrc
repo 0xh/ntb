@@ -2,7 +2,6 @@
   "sourceMaps": "inline",
   "retainLines": true,
   "presets": [
-    "flow",
     ["env", { "targets": { "node": "current" } }]
   ],
   "plugins": [

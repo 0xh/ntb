@@ -1,5 +1,5 @@
 {
   "extends": [
-    "t14n-server-flow"
+    "t14n-server-es6"
   ]
 }
