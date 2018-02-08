@@ -1,5 +1,3 @@
-// @flow
-
 import path from 'path';
 
 import Umzug from 'umzug';
@@ -29,8 +27,8 @@ const umzug = new Umzug({
 });
 
 
-function logUmzugEvent(eventName: string) {
-  return (name: string, migration: string) => {
+function logUmzugEvent(eventName) {
+  return (name, migration) => {
     logger.info(`${name} ${eventName}`);
   };
 }
@@ -42,10 +40,7 @@ umzug.on('reverting', logUmzugEvent('reverting'));
 umzug.on('reverted', logUmzugEvent('reverted'));
 
 
-function cmdStatus(): Promise<{
-  executed: Array<{ name: string }>,
-  pending: Array<{ name: string }>,
-}> {
+function cmdStatus() {
   const result = {};
 
   return umzug.executed()
@@ -83,12 +78,12 @@ function cmdStatus(): Promise<{
 }
 
 
-function cmdMigrate(): Promise<Umzug.Migration[]> {
+function cmdMigrate() {
   return umzug.up();
 }
 
 
-function cmdMigrateNext(): Promise<Umzug.Migration[]> {
+function cmdMigrateNext() {
   return cmdStatus()
     .then(({ executed, pending }) => {
       if (pending.length === 0) {
@@ -100,12 +95,12 @@ function cmdMigrateNext(): Promise<Umzug.Migration[]> {
 }
 
 
-function cmdReset(): Promise<Umzug.Migration[]> {
+function cmdReset() {
   return umzug.down({ to: 0 });
 }
 
 
-function cmdResetPrev(): Promise<Umzug.Migration[]> {
+function cmdResetPrev() {
   return cmdStatus()
     .then(({ executed, pending }) => {
       if (executed.length === 0) {
