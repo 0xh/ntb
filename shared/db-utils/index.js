@@ -1,20 +1,11 @@
-// @flow
-
 import _Sequelize from 'sequelize';
-import type {
-  QueryInterface as _QueryInterface,
-  DataTypes as _DataTypes,
-} from 'sequelize';
+import _ from 'lodash';
 
 import * as settings from '@turistforeningen/ntb-shared-settings';
-
-// ##################################
-// Export flow types
-// ##################################
+import { createLogger } from '@turistforeningen/ntb-shared-utils';
 
 
-export type QueryInterface = _QueryInterface;
-export type DataTypes = _DataTypes;
+const logger = createLogger();
 
 
 // ##################################
@@ -22,9 +13,10 @@ export type DataTypes = _DataTypes;
 // ##################################
 
 // Export Sequelize module
-// This helps us in only requiering the sequelize npm module in one package
+// This helps us in only requiring the sequelize npm module in one package
 // and probably avoid version upgrade mismatching between packages.
 export const Sequelize = _Sequelize;
+const { Op } = Sequelize;
 
 
 // Create and export sequelize instance
@@ -33,6 +25,7 @@ export const sequelize = new _Sequelize(
   settings.DB_USER,
   settings.DB_PASSWORD,
   {
+
     host: settings.DB_HOST,
     port: settings.DB_PORT,
     dialect: 'postgres',
@@ -44,5 +37,36 @@ export const sequelize = new _Sequelize(
       acquire: settings.DB_POOL_ACQUIRE,
       evict: settings.DB_POOL_EVICT,
     },
+
+    operatorsAliases: Op,
+    logging: (msg) => logger.info(msg),
   }
 );
+
+
+// Use snake case for all the tings in the database
+sequelize.addHook('beforeDefine', (attributes, options) => {
+  // Set tablename to snake case if not set in model definition
+  if (!options.tableName) {
+    options.tableName = _.snakeCase(options.modelName);
+  }
+
+  // Set underscored to snake case timestamps (if used)
+  options.underscored = true;
+
+  // Set `field` name to snake case if not set in modle definition
+  Object.keys(attributes).forEach((key) => {
+    if (!attributes[key].field) {
+      attributes[key].field = _.snakeCase(key);
+    }
+  });
+
+  // Snake case fields in indexes
+  options.indexes.forEach((index) => {
+    const newFields = [];
+    index.fields.forEach((field) => {
+      newFields.push(attributes[field].field);
+    });
+    index.fields = newFields;
+  });
+});
