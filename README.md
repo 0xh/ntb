@@ -76,7 +76,7 @@ All secrets without defaults are **required**
 
 **Logging**
 
-`MIN_QUERY_TIME_FOR_LOGGING`: number, default 20 - Minimum SQL querytime before the query will be printed to logs.
+`DB_MIN_QUERY_TIME_FOR_LOGGING`: number, default 30 - Minimum SQL querytime before the query will be printed to logs.
 - `0` eaquals NO will be logged
 - `-1` equals all queries will be logged
 - `<number>` ony queries taking longer then the given number of milliseconds will be logged

@@ -62,10 +62,10 @@ const _dbPoolAcquire =
 const _dbPoolEvict =
   +(settingsJson.DB_POOL_EVICT || process.env.DB_POOL_EVICT || 10000);
 
-const _minQueryTimeForLogging = +(
-  settingsJson.MIN_QUERY_TIME_FOR_LOGGING ||
-  process.env.MIN_QUERY_TIME_FOR_LOGGING ||
-  20
+const _dbMinQueryTimeForLogging = +(
+  settingsJson.DB_MIN_QUERY_TIME_FOR_LOGGING ||
+  process.env.DB_MIN_QUERY_TIME_FOR_LOGGING ||
+  30
 );
 
 
@@ -83,4 +83,4 @@ export const DB_POOL_IDLE = _dbPoolIdle;
 export const DB_POOL_ACQUIRE = _dbPoolAcquire;
 export const DB_POOL_EVICT = _dbPoolEvict;
 
-export const MIN_QUERY_TIME_FOR_LOGGING = _minQueryTimeForLogging;
+export const DB_MIN_QUERY_TIME_FOR_LOGGING = _dbMinQueryTimeForLogging;

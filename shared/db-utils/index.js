@@ -41,7 +41,7 @@ export const sequelize = new _Sequelize(
     benchmark: true,
 
     logging: (msg, duration) => {
-      if (duration >= settings.MIN_QUERY_TIME_FOR_LOGGING) {
+      if (duration >= settings.DB_MIN_QUERY_TIME_FOR_LOGGING) {
         logger.info(`SQL QUERY :: ${duration}ms execution time`);
         logger.info(msg);
       }
