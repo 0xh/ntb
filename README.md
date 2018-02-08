@@ -74,6 +74,14 @@ All secrets without defaults are **required**
 `DB_POOL_EVICT`: number, default 10000 - The time interval, in milliseconds, for evicting stale connections. Set it to 0 to disable this feature.
 
 
+**Logging**
+
+`MIN_QUERY_TIME_FOR_LOGGING`: number, default 20 - Minimum SQL querytime before the query will be printed to logs.
+- `0` eaquals NO will be logged
+- `-1` equals all queries will be logged
+- `<number>` ony queries taking longer then the given number of milliseconds will be logged
+
+
 ## Build
 
 ```

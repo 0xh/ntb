@@ -62,9 +62,16 @@ const _dbPoolAcquire =
 const _dbPoolEvict =
   +(settingsJson.DB_POOL_EVICT || process.env.DB_POOL_EVICT || 10000);
 
+const _minQueryTimeForLogging = +(
+  settingsJson.MIN_QUERY_TIME_FOR_LOGGING ||
+  process.env.MIN_QUERY_TIME_FOR_LOGGING ||
+  20
+);
+
 
 export const LEGACY_MONGO_DB_URI = _legacyMongoDbUri;
 export const LEGACY_MONGO_DB_NAME = _legacyMongoDbName;
+
 export const DB_HOST = _dbHost;
 export const DB_PORT = +_dbPort;
 export const DB_USER = _dbUser;
@@ -75,3 +82,5 @@ export const DB_POOL_MAX = _dbPoolMax;
 export const DB_POOL_IDLE = _dbPoolIdle;
 export const DB_POOL_ACQUIRE = _dbPoolAcquire;
 export const DB_POOL_EVICT = _dbPoolEvict;
+
+export const MIN_QUERY_TIME_FOR_LOGGING = _minQueryTimeForLogging;

@@ -25,7 +25,6 @@ export const sequelize = new _Sequelize(
   settings.DB_USER,
   settings.DB_PASSWORD,
   {
-
     host: settings.DB_HOST,
     port: settings.DB_PORT,
     dialect: 'postgres',
@@ -39,7 +38,13 @@ export const sequelize = new _Sequelize(
     },
 
     operatorsAliases: Op,
-    logging: (msg) => logger.info(msg),
+    benchmark: true,
+
+    logging: (msg, duration) => {
+      if (duration >= settings.MIN_QUERY_TIME_FOR_LOGGING) {
+        logger.info(msg);
+      }
+    },
   }
 );
 
