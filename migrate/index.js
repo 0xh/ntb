@@ -2,7 +2,7 @@ import path from 'path';
 
 import Umzug from 'umzug';
 
-import { sequelize } from '@turistforeningen/ntb-shared-db-utils';
+import db from '@turistforeningen/ntb-shared-models';
 import { createLogger } from '@turistforeningen/ntb-shared-utils';
 
 
@@ -10,19 +10,18 @@ const logger = createLogger();
 
 const umzug = new Umzug({
   storage: 'sequelize',
-  storageOptions: { sequelize },
+  storageOptions: {
+    model: db.SequelizeMeta,
+  },
 
   migrations: {
-    params: [
-      sequelize.getQueryInterface(), // queryInterface
-      sequelize.constructor, // DataTypes
-    ],
-    path: './migrations',
+    params: [db],
+    path: path.resolve(__dirname, 'migrations'),
     pattern: /\.js$/,
   },
 
   logging: function log(...args) {
-    logger.info.apply(null, args);
+    logger.info(args);
   },
 });
 
@@ -157,10 +156,11 @@ if (executedCmd) {
     })
     .catch((err) => {
       const errorStr = `${cmd.toUpperCase()} ERROR`;
-      logger.info(errorStr);
-      logger.info('='.repeat(errorStr.length));
-      logger.info(err);
-      logger.info('='.repeat(errorStr.length));
+      logger.error(errorStr);
+      logger.error('='.repeat(errorStr.length));
+      logger.error(err);
+      logger.error(err.stack);
+      logger.error('='.repeat(errorStr.length));
     })
     .then(() => {
       if (cmd !== 'status' && cmd !== 'reset-hard') {

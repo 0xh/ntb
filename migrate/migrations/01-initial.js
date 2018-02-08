@@ -1,53 +1,27 @@
-// @flow
 
-import type {
-  DataTypes as _DataTypes,
-  QueryInterface,
-} from '@turistforeningen/ntb-shared-db-utils';
-import CMHarvest from
-  '@turistforeningen/ntb-shared-counties-municipalities-harvester';
+// import CMHarvest from
+//   '@turistforeningen/ntb-shared-counties-municipalities-harvester';
+
+import { createLogger } from '@turistforeningen/ntb-shared-utils';
 
 
-const up = async (queryInterface: QueryInterface, DataTypes: _DataTypes) => {
-  let c = DataTypes.STRING;
+const logger = createLogger();
 
-  console.log('Set Neo4j schema');
-  const driver = neo4jUtils.createDriver();
-  const session = neo4jUtils.createSession(driver);
-  await session.run(
-    'CREATE CONSTRAINT ON (c:County) ASSERT c.uuid IS UNIQUE'
-  );
-  await session.run(
-    'CREATE CONSTRAINT ON (m:Municipality) ASSERT m.uuid IS UNIQUE'
-  );
 
-  console.log('Harvest counties and municipalities');
-  await CMHarvest(session);
-  console.log('  - done');
-
-  session.close();
-  driver.close();
-  console.log('Done!');
+const up = async (db) => {
+  logger.info('Sync database');
+  await db.sequelize.sync();
+  logger.info('Done!');
 };
 
 
-const down = async (queryInterface, DataTypes) => {
-  console.log('Unset Neo4j schema');
-  const driver = neo4jUtils.createDriver();
-  const session = neo4jUtils.createSession(driver);
-  await session.run(
-    'MATCH (n) WHERE labels(n) <> ["MigrationDetails"] DETACH DELETE n'
+const down = async (db) => {
+  logger.info('Unset all the things');
+  db.sequelize.query(
+    'DROP SCHEMA public CASCADE; ' +
+    'CREATE SCHEMA public;'
   );
-  await session.run(
-    'DROP CONSTRAINT ON (c:County) ASSERT c.uuid IS UNIQUE'
-  );
-  await session.run(
-    'DROP CONSTRAINT ON (m:Municipality) ASSERT m.uuid IS UNIQUE'
-  );
-
-  session.close();
-  driver.close();
-  console.log('Done!');
+  logger.info('Done!');
 };
 
 

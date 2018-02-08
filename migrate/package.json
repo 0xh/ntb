@@ -3,7 +3,7 @@
   "name": "@turistforeningen/ntb-migrate",
   "version": "0.0.0",
   "dependencies": {
-    "@turistforeningen/ntb-shared-db-utils": "*",
+    "@turistforeningen/ntb-shared-models": "*",
     "@turistforeningen/ntb-shared-utils": "*",
     "@turistforeningen/ntb-shared-counties-municipalities-harvester": "*",
     "umzug": "^2.1.0"
