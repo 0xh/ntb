@@ -1,8 +1,6 @@
-// @flow
-
 import * as fs from 'fs';
 
-const DEV_SETTINGS_FILE = `${__dirname}/../../settings.json`;
+const DEV_SETTINGS_FILE = `${__dirname}/../../settings-dev.json`;
 
 let settingsJson = {};
 if (fs.existsSync(DEV_SETTINGS_FILE)) {
@@ -65,15 +63,15 @@ const _dbPoolEvict =
   +(settingsJson.DB_POOL_EVICT || process.env.DB_POOL_EVICT || 10000);
 
 
-export const LEGACY_MONGO_DB_URI: string = _legacyMongoDbUri;
-export const LEGACY_MONGO_DB_NAME: string = _legacyMongoDbName;
-export const DB_HOST: string = _dbHost;
-export const DB_PORT: number = +_dbPort;
-export const DB_USER: string = _dbUser;
-export const DB_PASSWORD: string = _dbPassword;
-export const DB_NAME: string = _dbName;
-export const DB_POOL_MIN: number = _dbPoolMin;
-export const DB_POOL_MAX: number = _dbPoolMax;
-export const DB_POOL_IDLE: number = _dbPoolIdle;
-export const DB_POOL_ACQUIRE: number = _dbPoolAcquire;
-export const DB_POOL_EVICT: number = _dbPoolEvict;
+export const LEGACY_MONGO_DB_URI = _legacyMongoDbUri;
+export const LEGACY_MONGO_DB_NAME = _legacyMongoDbName;
+export const DB_HOST = _dbHost;
+export const DB_PORT = +_dbPort;
+export const DB_USER = _dbUser;
+export const DB_PASSWORD = _dbPassword;
+export const DB_NAME = _dbName;
+export const DB_POOL_MIN = _dbPoolMin;
+export const DB_POOL_MAX = _dbPoolMax;
+export const DB_POOL_IDLE = _dbPoolIdle;
+export const DB_POOL_ACQUIRE = _dbPoolAcquire;
+export const DB_POOL_EVICT = _dbPoolEvict;
