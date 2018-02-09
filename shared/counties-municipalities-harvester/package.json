@@ -3,9 +3,11 @@
   "name": "@turistforeningen/ntb-shared-counties-municipalities-harvester",
   "version": "0.0.0",
   "dependencies": {
-    "isomorphic-fetch": "^2.2.1",
-    "performance-now": "^2.1.0",
     "@turistforeningen/ntb-shared-models": "*",
-    "@turistforeningen/ntb-shared-utils": "*"
+    "@turistforeningen/ntb-shared-utils": "*",
+    "isomorphic-fetch": "^2.2.1",
+    "moment": "^2.20.1",
+    "performance-now": "^2.1.0",
+    "uuid": "^3.2.1"
   }
 }
