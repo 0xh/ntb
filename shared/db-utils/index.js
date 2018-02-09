@@ -71,7 +71,12 @@ sequelize.addHook('beforeDefine', (attributes, options) => {
   options.indexes.forEach((index) => {
     const newFields = [];
     index.fields.forEach((field) => {
-      newFields.push(attributes[field].field);
+      if (attributes[field]) {
+        newFields.push(attributes[field].field);
+      }
+      else {
+        newFields.push(_.snakeCase(field));
+      }
     });
     index.fields = newFields;
   });
