@@ -40,9 +40,13 @@ export const sequelize = new _Sequelize(
     operatorsAliases: Op,
     benchmark: true,
 
-    logging: (msg, duration) => {
+    logging: (sql, duration) => {
       if (duration >= settings.DB_MIN_QUERY_TIME_FOR_LOGGING) {
         logger.info(`SQL QUERY :: ${duration}ms execution time`);
+        let msg = sql;
+        if (msg.length > 500) {
+          msg = `${msg.substr(0, 500)} ... [TRUNCATED]`;
+        }
         logger.info(msg);
       }
     },
