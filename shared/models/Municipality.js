@@ -9,15 +9,22 @@ export default (sequelize, DataTypes) => {
       },
     },
 
+    code: {
+      type: DataTypes.TEXT,
+      validate: {
+        notEmpty: true,
+      },
+    },
+
     name: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       validate: {
         notEmpty: true,
       },
     },
 
     nameLowerCase: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       validate: {
         notEmpty: true,
       },
@@ -29,7 +36,7 @@ export default (sequelize, DataTypes) => {
     },
 
     dataSource: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
     },
   }, {

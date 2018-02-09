@@ -9,35 +9,39 @@ export default (sequelize, DataTypes) => {
     },
 
     name: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       validate: {
         notEmpty: true,
       },
     },
 
-    nameLowercase: {
-      type: DataTypes.STRING,
+    nameLowerCase: {
+      type: DataTypes.TEXT,
       validate: {
         notEmpty: true,
       },
     },
 
     language: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       validate: {
         notEmpty: true,
       },
     },
 
     dataSource: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
     },
   }, {
     timestamps: true,
     indexes: [
       {
-        fields: ['nameLowercase'],
+        fields: ['countyUuid', 'language'],
+        unique: true,
+      },
+      {
+        fields: ['nameLowerCase'],
       },
       {
         fields: ['dataSource'],
@@ -56,7 +60,7 @@ export default (sequelize, DataTypes) => {
   // HOOKS
 
   CountyTranslation.hook('beforeSave', (instance) => {
-    instance.nameLowercase = instance.name.toLowerCase();
+    instance.nameLowerCase = instance.name.toLowerCase();
   });
 
 
