@@ -57,38 +57,6 @@ export function printDone(m1 = 'a', m2 = 'b', clearMarks = true, comment) {
 
 
 /**
- * Prints Neo4j query statistics
- */
-export function printNeo4jStats(result) {
-  if (result.records && result.records.length) {
-    logger.info(`- ${result.records.length} rows returned`);
-  }
-
-  const stats = {
-    nodesCreated: result.summary.counters.nodesCreated(),
-    nodesDeleted: result.summary.counters.nodesDeleted(),
-    relationshipsCreated: result.summary.counters.relationshipsCreated(),
-    relationshipsDeleted: result.summary.counters.relationshipsDeleted(),
-    propertiesSet: result.summary.counters.propertiesSet(),
-    labelsAdded: result.summary.counters.labelsAdded(),
-    labelsRemoved: result.summary.counters.labelsRemoved(),
-    indexesAdded: result.summary.counters.indexesAdded(),
-    indexesRemoved: result.summary.counters.indexesRemoved(),
-    constraintsAdded: result.summary.counters.constraintsAdded(),
-    constraintsRemoved: result.summary.counters.constraintsRemoved(),
-  };
-
-  Object.keys(stats).forEach((key) => {
-    const stat = stats[key];
-    if (stat) {
-      const label = key.replace(/([A-Z])/g, ' $1').toLowerCase();
-      logger.info(`- ${stat} ${label}`);
-    }
-  });
-}
-
-
-/**
  * Start a duration timer and return the mark id
  */
 export function startDuration() {
