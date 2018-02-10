@@ -1,11 +1,15 @@
-'use strict';
+import GJV from 'geojson-validation';
 
-const GJV = require('geojson-validation');
-
-const helpers = require('./helpers');
+import helpers from './helpers';
 
 
-const verify = (obj, id, legacyStructure, log = {}, path = '') => {
+export default function verify(
+  obj,
+  id,
+  legacyStructure,
+  log = {},
+  path = ''
+) {
   let verified = true;
   if (log.verified === undefined) {
     log.verified = true;
@@ -122,7 +126,4 @@ const verify = (obj, id, legacyStructure, log = {}, path = '') => {
   }
 
   return log;
-};
-
-
-module.exports = verify;
+}
