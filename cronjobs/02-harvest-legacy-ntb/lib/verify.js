@@ -1,6 +1,6 @@
 import GJV from 'geojson-validation';
 
-import helpers from './helpers';
+import * as helpers from './helpers';
 
 
 export default function verify(
