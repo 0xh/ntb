@@ -61,6 +61,12 @@ export default (sequelize, DataTypes) => {
     models.County.hasMany(models.CountyTranslation, {
       as: 'Translation',
     });
+
+    models.County.belongsToMany(models.Area, {
+      as: 'Areas',
+      through: models.AreaToCounty,
+      foreignKey: 'countyUuid',
+    });
   };
 
 

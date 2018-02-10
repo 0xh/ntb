@@ -63,6 +63,12 @@ export default (sequelize, DataTypes) => {
     models.Municipality.hasMany(models.MunicipalityTranslation, {
       as: 'Translation',
     });
+
+    models.Municipality.belongsToMany(models.Area, {
+      as: 'Areas',
+      through: models.AreaToMunicipality,
+      foreignKey: 'municipalityUuid',
+    });
   };
 
 
