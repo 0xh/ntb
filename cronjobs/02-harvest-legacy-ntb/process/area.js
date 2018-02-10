@@ -1,300 +1,489 @@
-// @flow
+import moment from 'moment';
 
-import { performance } from 'perf_hooks'; // eslint-disable-line
+import db from '@turistforeningen/ntb-shared-models';
+import { createLogger, startDuration, endDuration } from
+  '@turistforeningen/ntb-shared-utils';
 
-import {
-  createLogger,
-  startDuration,
-  endDuration,
-} from '@turistforeningen/ntb-shared-utils';
-import { run } from '@turistforeningen/ntb-shared-neo4j-utils';
-
-import type { handlerObj } from '../lib/flow-types';
-import legacy from '../legacy-structure/legacy';
+import * as legacy from '../legacy-structure/';
 
 
 const logger = createLogger();
+const DATASOURCE_NAME = 'legacy-ntb';
 
 
-function mapData(handler): void {
-  const areas = handler.documents['områder'].map((d) => {
-    return legacy.områder.mapping(d, handler);
+/**
+ * Create temporary tables that will hold the processed data harvested from
+ * legacy-ntb
+ */
+async function createTempTables(handler) {
+  const date = moment().format('YYYYMMDDHHmmssSSS');
+  const baseTableName = `_temp_legacy_ntb_harvest_${date}`;
+
+  handler.areas.TempAreaModel = db.sequelize.define(`${baseTableName}_a`, {
+    uuid: { type: db.Sequelize.UUID, primaryKey: true },
+    idLegacyNtb: { type: db.Sequelize.TEXT },
+    name: { type: db.Sequelize.TEXT },
+    nameLowerCase: { type: db.Sequelize.TEXT },
+    description: { type: db.Sequelize.TEXT, allowNull: true },
+    descriptionPlain: { type: db.Sequelize.TEXT, allowNull: true },
+    descriptionWords: {
+      type: db.Sequelize.ARRAY(db.Sequelize.TEXT),
+      allowNull: true,
+    },
+    descriptionWordsStemmed: {
+      type: db.Sequelize.ARRAY(db.Sequelize.TEXT),
+      allowNull: true,
+    },
+    map: { type: db.Sequelize.TEXT, allowNull: true },
+    url: { type: db.Sequelize.TEXT, allowNull: true },
+    license: { type: db.Sequelize.TEXT, allowNull: true },
+    provider: { type: db.Sequelize.TEXT, allowNull: true },
+    status: { type: db.Sequelize.TEXT },
+    dataSource: { type: db.Sequelize.TEXT },
+    updatedAt: { type: db.Sequelize.DATE },
+  }, {
+    timestamps: false,
+    tableName: `${baseTableName}_a`,
   });
+  await handler.areas.TempAreaModel.sync();
 
-  handler.areas = areas;
+  handler.areas.TempAreaAreaModel = db.sequelize.define(
+    `${baseTableName}_aa`, {
+      parentLegacyId: { type: db.Sequelize.TEXT },
+      parentUuid: { type: db.Sequelize.UUID, allowNull: true },
+      childLegacyId: { type: db.Sequelize.TEXT },
+      childUuid: { type: db.Sequelize.UUID, allowNull: true },
+    }, {
+      timestamps: false,
+      tableName: `${baseTableName}_aa`,
+    }
+  );
+  await handler.areas.TempAreaAreaModel.sync();
+
+  handler.areas.TempAreaCountyModel = db.sequelize.define(
+    `${baseTableName}_ac`, {
+      areaLegacyId: { type: db.Sequelize.TEXT },
+      areaUuid: { type: db.Sequelize.UUID, allowNull: true },
+      countyUuid: { type: db.Sequelize.UUID },
+    }, {
+      timestamps: false,
+      tableName: `${baseTableName}_ac`,
+    }
+  );
+  await handler.areas.TempAreaCountyModel.sync();
+
+  handler.areas.TempAreaMunicipalityModel = db.sequelize.define(
+    `${baseTableName}_am`, {
+      areaLegacyId: { type: db.Sequelize.TEXT },
+      areaUuid: { type: db.Sequelize.UUID, allowNull: true },
+      municipalityUuid: { type: db.Sequelize.UUID },
+    }, {
+      timestamps: false,
+      tableName: `${baseTableName}_am`,
+    }
+  );
+  await handler.areas.TempAreaMunicipalityModel.sync();
 }
 
-
-async function findAreaIdsToDelete(handler: handlerObj): Promise<string[]> {
-  logger.info('Fetching current areas');
-
+/**
+ * Drop the temporary tables
+ */
+async function dropTempTables(handler) {
+  logger.info('Dropping temporary tables');
   const durationId = startDuration();
-  const query = 'MATCH (a:Area) RETURN a.id_legacy_ntb';
-  const { session } = handler;
-  const result = await run(session, query);
+
+  await handler.areas.TempAreaModel.drop();
+  await handler.areas.TempAreaAreaModel.drop();
+  await handler.areas.TempAreaCountyModel.drop();
+  await handler.areas.TempAreaMunicipalityModel.drop();
 
   endDuration(durationId);
-
-  const idsToDelete = [];
-  if (result.records.length) {
-    const existingIds = handler.areas.map((a) => a.area.id_legacy_ntb);
-    result.records.forEach((r) => {
-      const id = r.get(0);
-      if (!existingIds.includes(id)) {
-        idsToDelete.push(id);
-      }
-    });
-  }
-
-  logger.info(`Found ${idsToDelete.length} unknown areas`);
-
-  return idsToDelete;
 }
 
 
-async function deleteUnknownAreas(handler): Promise<void> {
-  logger.info('Identifying unknown areas in Neo4j');
-  const idsToDelete = await findAreaIdsToDelete(handler);
+/**
+ * Send legacy ntb data through a mapper that converts old structure to new
+ */
+async function mapData(handler) {
+  logger.info('Mapping legacy data to new structure');
+  const durationId = startDuration();
+  const areas = [];
 
-  if (idsToDelete.length) {
-    logger.info('Delete old areas');
-    const query = [
-      'MATCH (a:Area)',
-      'WHERE a.id_legacy_ntb IN $ids',
-      'DETACH DELETE a',
-    ].join('\n');
+  await Promise.all(handler.documents['områder'].map(async (d) => {
+    const m = await legacy.områder.mapping(d, handler);
+    areas.push(m);
+  }));
+  endDuration(durationId);
 
-    await run(handler.session, query, { ids: idsToDelete });
-  }
+  handler.areas.processed = areas;
 }
 
 
-async function mergeAreas(handler): Promise<void> {
-  logger.info('Adding/updating areas');
-  const query = [
-    'UNWIND $items as item',
-    'MERGE (a:Area {id_legacy_ntb:item.area.id_legacy_ntb})',
-    'ON CREATE SET a = item.area',
-    'ON MATCH SET a = item.area',
-  ].join('\n');
+/**
+ * Populate temporary tables with the processed legacy ntb data
+ */
+async function populateTempTables(handler) {
+  let durationId;
 
-  await run(handler.session, query, { items: handler.areas });
-}
+  logger.info('Inserting areas to temporary table');
+  durationId = startDuration();
+  const areas = handler.areas.processed.map((p) => p.area);
+  await handler.areas.TempAreaModel.bulkCreate(areas);
+  endDuration(durationId);
 
-
-async function findCountyRelationsToDelete(handler): Promise<string[]> {
-  logger.info('Fetching current (Area)-->(County) relations');
-  const query = [
-    'MATCH (a:Area)-[:LOCATED_IN]->(c:County)',
-    'RETURN a.id_legacy_ntb, c.uuid',
-  ].join('\n');
-
-  const result = await run(handler.session, query);
-
-  // Identify existing relations that should be deleted
-  const relationsToDelete = [];
-  if (result.records.length) {
-    result.records.forEach((r) => {
-      const id = r.get(0);
-      const uuid = r.get(1);
-      const area = handler.areas.filter((a) => a.area.id_legacy_ntb === id);
-      if (area.length) {
-        if (!area[0].counties || !area[0].counties.includes(uuid)) {
-          relationsToDelete.push({ id_legacy_ntb: id, uuid });
-        }
-      }
-    });
-  }
-
-  logger.info(`Found ${relationsToDelete.length} unknown relations`);
-
-  return relationsToDelete;
-}
-
-
-const deleteUnkownCountyRelations = async (handler) => {
-  logger.info('Identifying unknown (Area)-->(County) relations');
-  const relationsToDelete = await findCountyRelationsToDelete(handler);
-
-  if (relationsToDelete.length) {
-    logger.info('Delete old (Area)-->(County) relations ');
-    const query = [
-      'UNWIND $items as item',
-      'MATCH (a:Area)-[r:LOCATED_IN]->(c:County)',
-      'WHERE a.id_legacy_ntb = item.id_legacy_ntb',
-      '      AND c.uuid = item.uuid',
-      'DELETE r',
-    ].join('\n');
-
-    await run(handler.session, query, { items: relationsToDelete });
-  }
-};
-
-
-const mergeCountyRelations = async (handler) => {
-  logger.info('Adding/updating (Area)-->(County) relations');
-  const query = [
-    'UNWIND $items as item',
-    'MATCH (a:Area {id_legacy_ntb:item.area.id_legacy_ntb})',
-    'WITH a, item',
-    'UNWIND item.counties AS uuid',
-    'MATCH (c:County {uuid:uuid})',
-    'MERGE (a)-[:LOCATED_IN]->(c)',
-  ].join('\n');
-
-  await run(handler.session, query, {
-    items: handler.areas.filter((a) => a.counties.length),
+  // Process data for counties, minucipalities and area relations
+  const areaArea = [];
+  const areaCounty = [];
+  const areaMunicipality = [];
+  handler.areas.processed.forEach((p) => {
+    p.counties.forEach((countyUuid) => areaCounty.push({
+      areaLegacyId: p.area.idLegacyNtb,
+      countyUuid,
+    }));
+    p.municipalities.forEach((municipalityUuid) => areaMunicipality.push({
+      areaLegacyId: p.area.idLegacyNtb,
+      municipalityUuid,
+    }));
+    p.areaRelations.forEach((parentLegacyId) => areaArea.push({
+      parentLegacyId,
+      childLegacyId: p.area.idLegacyNtb,
+    }));
   });
-};
+
+  // Insert temp data for AreaCounty
+  logger.info('Inserting area county to temporary table');
+  durationId = startDuration();
+  await handler.areas.TempAreaCountyModel.bulkCreate(areaCounty);
+  endDuration(durationId);
+
+  // Insert temp data for AreaMunicipality
+  logger.info('Inserting area municipality to temporary table');
+  durationId = startDuration();
+  await handler.areas.TempAreaMunicipalityModel.bulkCreate(areaMunicipality);
+  endDuration(durationId);
+
+  // Insert temp data for AreaArea
+  logger.info('Inserting area<>area to temporary table');
+  durationId = startDuration();
+  await handler.areas.TempAreaAreaModel.bulkCreate(areaArea);
+  endDuration(durationId);
+}
 
 
-const findMunicipalityRelationsToDelete = async (handler) => {logger.info
-  logger.info('Fetching current (Area)-->(Municipality) relations');
-  const query = [
-    'MATCH (a:Area)-[:LOCATED_IN]->(m:Municipality)',
-    'RETURN a.id_legacy_ntb, m.uuid',
+/**
+ * Insert into `area`-table or update if it already exists
+ */
+async function mergeAreas(handler) {
+  const sql = [
+    'INSERT INTO area (',
+    '  uuid, id_legacy_ntb, name, name_lower_case, description,',
+    '  description_plain, description_words, description_words_stemmed,',
+    '  map, url, license, provider, status, data_source, created_at,',
+    '  updated_at',
+    ')',
+    'SELECT',
+    '  uuid, id_legacy_ntb, name, name_lower_case, description,',
+    '  description_plain, description_words, description_words_stemmed,',
+    '  map, url, license, provider, status::enum_area_status, data_source,',
+    '  updated_at, updated_at',
+    `FROM public.${handler.areas.TempAreaModel.tableName}`,
+    'ON CONFLICT (id_legacy_ntb) DO UPDATE',
+    'SET',
+    '  name = EXCLUDED.name,',
+    '  name_lower_case = EXCLUDED.name_lower_case,',
+    '  description = EXCLUDED.description,',
+    '  description_plain = EXCLUDED.description_plain,',
+    '  description_words = EXCLUDED.description_words,',
+    '  description_words_stemmed = EXCLUDED.description_words_stemmed,',
+    '  map = EXCLUDED.map,',
+    '  url = EXCLUDED.url,',
+    '  license = EXCLUDED.license,',
+    '  provider = EXCLUDED.provider,',
+    '  status = EXCLUDED.status,',
+    '  updated_at = EXCLUDED.updated_at',
   ].join('\n');
 
-  const result = await run(handler.session, query);
-
-  // Identify existing relations that should be deleted
-  const relationsToDelete = [];
-  if (result.records.length) {
-    result.records.forEach((r) => {
-      const id = r.get(0);
-      const uuid = r.get(1);
-      const area = handler.areas.filter((a) => a.area.id_legacy_ntb === id);
-      if (area.length) {
-        const { municipalities } = area[0];
-        if (!municipalities || !municipalities.includes(uuid)) {
-          relationsToDelete.push({ id_legacy_ntb: id, uuid });
-        }
-      }
-    });
-  }
-
-  logger.info(`Found ${relationsToDelete.length} unknown relations`);
-
-  return relationsToDelete;
-};
+  logger.info('Creating or updating areas');
+  const durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+}
 
 
-const deleteUnkownMunicipalityRelations = async (handler) => {
-  logger.info('Identifying unknown (Area)-->(Municipality) relations');
-  const relationsToDelete = await findMunicipalityRelationsToDelete(handler);
+/**
+ * Insert into `area_to_area`-table or update if it already exists
+ */
+async function mergeAreaToArea(handler) {
+  let sql;
+  let durationId;
 
-  if (relationsToDelete.length) {
-    logger.info('Delete old (Area)-->(Municipality) relations ');
-    const query = [
-      'UNWIND $items as item',
-      'MATCH (a:Area)-[r:LOCATED_IN]->(m:Municipality)',
-      'WHERE a.id_legacy_ntb = item.id_legacy_ntb',
-      '      AND m.uuid = item.uuid',
-      'DELETE r',
-    ].join('\n');
-
-    await run(handler.session, query, { items: relationsToDelete });
-  }
-};
-
-
-const mergeMunicipalityRelations = async (handler) => {
-  logger.info('Adding/updating (Area)-->(Municipality) relations');
-  const query = [
-    'UNWIND $items as item',
-    'MATCH (a:Area {id_legacy_ntb:item.area.id_legacy_ntb})',
-    'WITH a, item',
-    'UNWIND item.municipalities AS uuid',
-    'MATCH (m:Municipality {uuid:uuid})',
-    'MERGE (a)-[:LOCATED_IN]->(m)',
+  // Set UUIDs on areaToArea temp data
+  sql = [
+    `UPDATE public.${handler.areas.TempAreaAreaModel.tableName} a1 SET`,
+    '  child_uuid = a_child.uuid,',
+    '  parent_uuid = a_parent.uuid',
+    `FROM public.${handler.areas.TempAreaAreaModel.tableName} a2`,
+    'INNER JOIN public.area a_parent ON',
+    '  a_parent.id_legacy_ntb = a2.parent_legacy_id',
+    'INNER JOIN public.area a_child ON',
+    '  a_child.id_legacy_ntb = a2.child_legacy_id',
+    'WHERE',
+    '  a1.child_legacy_id = a2.child_legacy_id AND',
+    '  a1.parent_legacy_id = a2.parent_legacy_id',
   ].join('\n');
 
-  await run(handler.session, query, {
-    items: handler.areas.filter((a) => a.municipalities.length),
+  logger.info('Update uuids on area-to-area temp data');
+  durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+
+  // Merge into prod table
+  sql = [
+    'INSERT INTO area_to_area (',
+    '  parent_uuid, child_uuid, data_source, created_at, updated_at',
+    ')',
+    'SELECT',
+    '  parent_uuid, child_uuid, :data_source, now(), now()',
+    `FROM public.${handler.areas.TempAreaAreaModel.tableName}`,
+    'ON CONFLICT (parent_uuid, child_uuid) DO NOTHING',
+  ].join('\n');
+
+  logger.info('Creating or updating area to area relations');
+  durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
   });
-};
+  endDuration(durationId);
+}
 
 
-const findAreaToAreaRelationsToDelete = async (handler) => {
-  logger.info('Fetching current (Area)-->(Area) relations');
-  const query = [
-    'MATCH (a1:Area)-[:LOCATED_IN]->(a2:Area)',
-    'RETURN a1.id_legacy_ntb, a2.id_legacy_ntb',
+/**
+ * Remove area to area relations that no longer exist in legacy-ntb
+ */
+async function removeDepreactedAreaToArea(handler) {
+  const sql = [
+    'DELETE FROM public.area_to_area',
+    'USING public.area_to_area a2a',
+    `LEFT JOIN public.${handler.areas.TempAreaAreaModel.tableName} te ON`,
+    '  a2a.parent_uuid = te.parent_uuid AND',
+    '  a2a.child_uuid = te.child_uuid',
+    'WHERE',
+    '  te.child_uuid IS NULL AND',
+    '  a2a.data_source = :data_source AND',
+    '  public.area_to_area.parent_uuid = a2a.parent_uuid AND',
+    '  public.area_to_area.child_uuid = a2a.child_uuid',
   ].join('\n');
 
-  const result = await run(handler.session, query);
-
-  // Identify existing relations that should be deleted
-  const relationsToDelete = [];
-  if (result.records.length) {
-    result.records.forEach((r) => {
-      const a1 = r.get(0);
-      const a2 = r.get(1);
-      const area = handler.areas.filter((a) => a.area.id_legacy_ntb === a1);
-      if (area.length) {
-        const { areaRelations } = area[0];
-        if (!areaRelations || !areaRelations.includes(a2)) {
-          relationsToDelete.push({ a1, a2 });
-        }
-      }
-    });
-  }
-
-  logger.info(`Found ${relationsToDelete.length} unknown relations`);
-
-  return relationsToDelete;
-};
-
-
-const deleteUnkownAreaToAreaRelations = async (handler) => {logger.info
-  logger.info('Identifying unknown (Area)-->(Area) relations');
-  const relationsToDelete = await findAreaToAreaRelationsToDelete(handler);
-
-  if (relationsToDelete.length) {
-    logger.info('Delete old (Area)-->(Area) relations ');
-    const query = [
-      'UNWIND $items as item',
-      'MATCH (a1:Area)-[r:LOCATED_IN]->(a2:Area)',
-      'WHERE a1.id_legacy_ntb = item.a1',
-      '      AND a2.id_legacy_ntb = item.a2',
-      'DELETE r',
-    ].join('\n');
-
-    await run(handler.session, query, { items: relationsToDelete });
-  }
-};
-
-
-const mergeAreaToAreaRelations = async (handler) => {
-  logger.info('Adding/updating (Area)-->(Area) relations');
-  const query = [
-    'UNWIND $items as item',
-    'MATCH (a1:Area {id_legacy_ntb:item.area.id_legacy_ntb})',
-    'WITH a1, item',
-    'UNWIND item.areaRelations AS id_legacy_ntb',
-    'MATCH (a2:Area {id_legacy_ntb:id_legacy_ntb})',
-    'MERGE (a1)-[:LOCATED_IN]->(a2)',
-  ].join('\n');
-
-  await run(handler.session, query, {
-    items: handler.areas.filter((a) => a.areaRelations.length),
+  logger.info('Deleting deprecated area to area relations');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
   });
-};
+  endDuration(durationId);
+}
+
+/**
+ * Insert into `area_to_county`-table or update if it already exists
+ */
+async function mergeAreaToCounty(handler) {
+  let sql;
+  let durationId;
+
+  // Set UUIDs on areaToArea temp data
+  sql = [
+    `UPDATE public.${handler.areas.TempAreaCountyModel.tableName} a1 SET`,
+    '  area_uuid = a.uuid',
+    `FROM public.${handler.areas.TempAreaCountyModel.tableName} a2`,
+    'INNER JOIN public.area a ON',
+    '  a.id_legacy_ntb = a2.area_legacy_id',
+    'WHERE',
+    '  a1.area_legacy_id = a2.area_legacy_id AND',
+    '  a1.county_uuid = a2.county_uuid',
+  ].join('\n');
+
+  logger.info('Update uuids on area-to-county temp data');
+  durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+
+  // Merge into prod table
+  sql = [
+    'INSERT INTO area_to_county (',
+    '  area_uuid, county_uuid, data_source, created_at, updated_at',
+    ')',
+    'SELECT',
+    '  area_uuid, county_uuid, :data_source, now(), now()',
+    `FROM public.${handler.areas.TempAreaCountyModel.tableName}`,
+    'ON CONFLICT (area_uuid, county_uuid) DO NOTHING',
+  ].join('\n');
+
+  logger.info('Creating or updating area to county relations');
+  durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+/**
+ * Remove area to county relations that no longer exist in legacy-ntb
+ */
+async function removeDepreactedAreaToCounty(handler) {
+  const sql = [
+    'DELETE FROM public.area_to_county',
+    'USING public.area_to_county a2c',
+    `LEFT JOIN public.${handler.areas.TempAreaCountyModel.tableName} te ON`,
+    '  a2c.area_uuid = te.area_uuid AND',
+    '  a2c.county_uuid = te.county_uuid',
+    'WHERE',
+    '  te.area_uuid IS NULL AND',
+    '  a2c.data_source = :data_source AND',
+    '  public.area_to_county.area_uuid = a2c.area_uuid AND',
+    '  public.area_to_county.county_uuid = a2c.county_uuid',
+  ].join('\n');
+
+  logger.info('Deleting deprecated area to county relations');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+/**
+ * Insert into `area_to_municipality`-table or update if it already exists
+ */
+async function mergeAreaToMunicipality(handler) {
+  let sql;
+  let durationId;
+  const { tableName } = handler.areas.TempAreaMunicipalityModel;
+
+  // Set UUIDs on areaToArea temp data
+  sql = [
+    `UPDATE public.${tableName} a1 SET`,
+    '  area_uuid = a.uuid',
+    `FROM public.${tableName} a2`,
+    'INNER JOIN public.area a ON',
+    '  a.id_legacy_ntb = a2.area_legacy_id',
+    'WHERE',
+    '  a1.area_legacy_id = a2.area_legacy_id AND',
+    '  a1.municipality_uuid = a2.municipality_uuid',
+  ].join('\n');
+
+  logger.info('Update uuids on area-to-municipality temp data');
+  durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+
+  // Merge into prod table
+  sql = [
+    'INSERT INTO area_to_municipality (',
+    '  area_uuid, municipality_uuid, data_source, created_at, updated_at',
+    ')',
+    'SELECT',
+    '  area_uuid, municipality_uuid, :data_source, now(), now()',
+    `FROM public.${tableName}`,
+    'ON CONFLICT (area_uuid, municipality_uuid) DO NOTHING',
+  ].join('\n');
+
+  logger.info('Creating or updating area to municipality relations');
+  durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+/**
+ * Remove area to municipality relations that no longer exist in legacy-ntb
+ */
+async function removeDepreactedAreaToMunicipality(handler) {
+  const { tableName } = handler.areas.TempAreaMunicipalityModel;
+  const sql = [
+    'DELETE FROM public.area_to_municipality',
+    'USING public.area_to_municipality a2m',
+    `LEFT JOIN public.${tableName} te ON`,
+    '  a2m.area_uuid = te.area_uuid AND',
+    '  a2m.municipality_uuid = te.municipality_uuid',
+    'WHERE',
+    '  te.area_uuid IS NULL AND',
+    '  a2m.data_source = :data_source AND',
+    '  public.area_to_municipality.area_uuid = a2m.area_uuid AND',
+    '  public.area_to_municipality.municipality_uuid = a2m.municipality_uuid',
+  ].join('\n');
+
+  logger.info('Deleting deprecated area to municipality relations');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
 
 
-const process = async (handler: handlerObj) => {
+/**
+ * Mark areas that no longer exist in legacy-ntb as deleted
+ */
+async function removeDepreactedArea(handler) {
+  const { tableName } = handler.areas.TempAreaModel;
+  const sql = [
+    'UPDATE public.area a1 SET',
+    '  status = :status',
+    'FROM public.area a2',
+    `LEFT JOIN public.${tableName} t ON`,
+    '  t.id_legacy_ntb = a2.id_legacy_ntb',
+    'WHERE',
+    '  t.id_legacy_ntb IS NULL AND',
+    '  a1.uuid = a2.uuid AND',
+    '  a2.data_source = :data_source AND',
+    '  a2.status != :status',
+  ].join('\n');
+
+  logger.info('Marking deprecated areas as deleted');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+      status: 'deleted',
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Process legacy area data and merge it into the postgres database
+ */
+const process = async (handler) => {
   logger.info('Processing areas');
+  handler.areas = {};
 
-  mapData(handler);
-  await deleteUnknownAreas(handler);
+
+  await mapData(handler);
+  await createTempTables(handler);
+  await populateTempTables(handler);
   await mergeAreas(handler);
-  await deleteUnkownCountyRelations(handler);
-  await mergeCountyRelations(handler);
-  await deleteUnkownMunicipalityRelations(handler);
-  await mergeMunicipalityRelations(handler);
-  await deleteUnkownAreaToAreaRelations(handler);
-  await mergeAreaToAreaRelations(handler);
+  await mergeAreaToArea(handler);
+  await removeDepreactedAreaToArea(handler);
+  await mergeAreaToCounty(handler);
+  await removeDepreactedAreaToCounty(handler);
+  await mergeAreaToMunicipality(handler);
+  await removeDepreactedAreaToMunicipality(handler);
+  await removeDepreactedArea(handler);
+  await dropTempTables(handler);
 };
 
 
-module.exports = process;
+export default process;

@@ -1,6 +1,4 @@
-'use strict';
-
-module.exports = (legacyStatus) => {
+export default (legacyStatus) => {
   const status = legacyStatus.toLowerCase();
 
   switch (status) {
@@ -9,7 +7,7 @@ module.exports = (legacyStatus) => {
     case 'offentlig':
       return 'public';
     case 'Slettet':
-      return 'public';
+      return 'deleted';
     // Set as private. This will include the actual 'Privat' status from the
     // legacy api
     default:

@@ -1,28 +1,14 @@
-// @flow
-
-import { performance } from 'perf_hooks'; // eslint-disable-line
 import { MongoClient } from 'mongodb';
-import type { Db } from 'mongodb';
 
-import settings from '@turistforeningen/ntb-shared-settings';
-import {
-  createDriver,
-  createSession,
-} from '@turistforeningen/ntb-shared-neo4j-utils';
+import * as settings from '@turistforeningen/ntb-shared-settings';
 import {
   createLogger,
   startDuration,
   endDuration,
 } from '@turistforeningen/ntb-shared-utils';
-import { County, Municipality } from '@turistforeningen/ntb-shared-models';
+import db from '@turistforeningen/ntb-shared-models';
 
-import type {
-  legacyTypes,
-  handlerObj,
-  legacyDocuments,
-} from './lib/flow-types';
-
-import legacy from './legacy-structure/legacy';
+import * as legacy from './legacy-structure';
 import verify from './lib/verify';
 import processArea from './process/area';
 
@@ -31,19 +17,11 @@ const logger = createLogger();
 
 
 // ######################################
-// Flow types
-// ######################################
-
-
-type MongoDb = Db;
-
-
-// ######################################
 // Configuration
 // ######################################
 
 
-const LEGACY_TYPES: legacyTypes[] = [
+const LEGACY_TYPES = [
   'områder',
   // 'lister',
   'grupper',
@@ -61,10 +39,10 @@ const LEGACY_TYPES: legacyTypes[] = [
 /**
  * Get all documents from the specified collection from legacy-ntb MongoDB
  */
-function getCollectionDocuments(db: MongoDb, collectionName: string) {
+function getCollectionDocuments(mongoDb, collectionName) {
   return new Promise((resolve) => {
     const durationId = startDuration();
-    const collection = db.collection(collectionName);
+    const collection = mongoDb.collection(collectionName);
 
     collection.find({ status: { $ne: 'Slettet' } }).toArray((err, items) => {
       endDuration(
@@ -80,22 +58,29 @@ function getCollectionDocuments(db: MongoDb, collectionName: string) {
 /**
  * Get all documents for all collections from legacy-ntb MongoDb
  */
-async function getAllDocuments(
-  db: MongoDb,
-  handler: handlerObj
-): Promise<void> {
+async function getAllDocuments(handler) {
   logger.info('Fetching all documents from mongodb (async)');
   const durationId = startDuration();
-  const documents: legacyDocuments = {};
+  const documents = {};
+
+  const mongoClient = await MongoClient.connect(settings.LEGACY_MONGO_DB_URI)
+    .catch((err) => {
+      logger.error('ERROR - some mongodb error occured');
+      throw err;
+    });
+
+  const mongoDb = mongoClient.db(settings.LEGACY_MONGO_DB_NAME);
 
   await Promise.all(
     LEGACY_TYPES.map(async (type) => {
-      documents[type] = await getCollectionDocuments(db, type);
+      documents[type] = await getCollectionDocuments(mongoDb, type);
       documents[type].forEach((document) => {
         document._id = document._id.toString();
       });
     })
   );
+
+  mongoClient.close();
 
   handler.documents = documents;
   endDuration(durationId, 'Fetching all documents from mongodb done in');
@@ -105,7 +90,7 @@ async function getAllDocuments(
 /**
  * Verify structure of documents from legacy-ntb towards the defined structure.
  */
-function verifyAllDocuments(handler: handlerObj): boolean {
+function verifyAllDocuments(handler) {
   let verified = true;
 
   if (!handler.documents) {
@@ -137,37 +122,35 @@ function verifyAllDocuments(handler: handlerObj): boolean {
 /**
  * Get all Counties and Municipalities
  */
-async function getAllCM(handler: handlerObj): Promise<void> {
-  if (handler.session) {
-    const { session } = handler;
+async function getAllCM(handler) {
+  let durationId;
 
-    logger.info('Fetching all counties from Neo4j');
-    handler.counties = await County.findAll(session);
+  logger.info('Fetching all counties from postgres');
+  durationId = startDuration();
+  handler.counties = await db.County.findAll();
+  endDuration(durationId);
 
-    logger.info('Fetching all municipalities from Neo4j');
-    handler.municipalities = await Municipality.findAll(session);
-  }
+  logger.info('Fetching all municipalities from postgres');
+  durationId = startDuration();
+  handler.municipalities = await db.Municipality.findAll();
+  endDuration(durationId);
 }
 
 
 /**
  * Harvest data from legacy-ntb through it's MongoDB, verify the structure of
- * the data towards the defined legacy structure and map the data to Neo4j
- * nodes and relations.
+ * the data towards the defined legacy structure and map the data to the
+ * database models
  */
-async function main(db: MongoDb): Promise<void> {
+async function main() {
   const durationId = startDuration();
-  const handler: handlerObj = {};
+  const handler = {};
 
-  await getAllDocuments(db, handler);
+  await getAllDocuments(handler);
 
   if (!verifyAllDocuments(handler)) {
     throw new Error('Document verification failed.');
   }
-
-  const driver = createDriver();
-  const session = createSession(driver);
-  handler.session = session;
 
   await getAllCM(handler);
 
@@ -175,20 +158,13 @@ async function main(db: MongoDb): Promise<void> {
 
   logger.info('Harvesting complete');
   endDuration(durationId);
-  session.close();
-  driver.close();
 }
 
 
-MongoClient.connect(settings.LEGACY_MONGO_DB_URI)
-  .then(async (client) => {
-    const db: MongoDb = client.db(settings.LEGACY_MONGO_DB_NAME);
-    await main(db);
-    client.close();
-    process.exit(0);
-  })
+main()
+  .then(() => process.exit(0))
   .catch((err) => {
-    logger.error('ERROR - some error occured');
+    logger.error('UNCAUGHT ERROR');
     logger.error(err);
     logger.error(err.stack);
     process.exit(1);
