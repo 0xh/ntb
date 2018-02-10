@@ -1,7 +1,5 @@
 
 build/
-neo4j/data/*
-postgres
 
 settings-dev.json
 
