@@ -49,6 +49,11 @@ export default (sequelize, DataTypes) => {
       allowNull: true,
     },
 
+    geojson: {
+      type: DataTypes.GEOMETRY,
+      allowNull: true,
+    },
+
     map: {
       type: DataTypes.TEXT,
       allowNull: true,

@@ -1,8 +1,8 @@
 import uuid4 from 'uuid/v4';
 
-import statusMapper from '../lib/statusMapper';
-
 import { cleanWord, stemAll } from '@turistforeningen/ntb-shared-hunspell';
+
+import statusMapper from '../lib/statusMapper';
 
 
 // TODO(Roar):
@@ -79,6 +79,8 @@ async function mapping(obj, handler) {
     descriptionPlain: description.plain || null,
     descriptionWords: description.words || null,
     descriptionWordsStemmed: description.stemmed || null,
+
+    geojson: obj.geojson,
 
     map: obj.kart,
     url: obj.url,
