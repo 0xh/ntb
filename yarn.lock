@@ -3244,6 +3244,10 @@ node-pre-gyp@^0.6.39:
     tar "^2.2.1"
     tar-pack "^3.4.0"
 
+nodehun@^2.0.11:
+  version "2.0.11"
+  resolved "https://registry.yarnpkg.com/nodehun/-/nodehun-2.0.11.tgz#cbba5595720f325fb247fb0e7e2018a56f7ed188"
+
 nodemon@^1.14.11:
   version "1.14.12"
   resolved "https://registry.yarnpkg.com/nodemon/-/nodemon-1.14.12.tgz#fe059424b15ebdb107696287a558d9cf53a63999"
