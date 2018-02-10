@@ -3,7 +3,6 @@ import moment from 'moment';
 import uuid4 from 'uuid/v4';
 
 import {
-  printDone,
   logError,
   createLogger,
   startDuration,
@@ -416,6 +415,7 @@ async function processCountyData(data, temp) {
     'WHERE',
     '  te.uuid IS NULL AND',
     '  c.data_source = :data_source AND',
+    '  c.status != :status AND',
     '  public.county.uuid = c.uuid',
   ].join('\n');
 
