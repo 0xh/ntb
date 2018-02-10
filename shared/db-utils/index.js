@@ -84,4 +84,12 @@ sequelize.addHook('beforeDefine', (attributes, options) => {
     });
     index.fields = newFields;
   });
+
+  // Set snace case on through-tables fields
+  if (options.foreignKey) {
+    options.foreignKey = _.snakeCase(options.foreignKey);
+  }
+  if (options.otherKey) {
+    options.otherKey = _.snakeCase(options.otherKey);
+  }
 });
