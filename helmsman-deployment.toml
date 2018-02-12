@@ -1,0 +1,83 @@
+# metadata -- add as many key/value pairs as you want
+[metadata]
+org = "DNT"
+maintainer = "Roar Skår  & Sami Alajrami (sami@praqma.com)"
+
+# paths to the certificate for connecting to the cluster
+# You can skip this if you use Helmsman on a machine with kubectl already connected to your k8s cluster.
+[certificates]
+caCrt    = "$K8S_CA_CERT"
+caKey    = "$K8S_CA_KEY"
+caClient = "$K8S_CA_CLIENT"
+
+[settings]
+kubeContext = "dnt" # will try connect to this context first, if it does not exist, it will be created using the details below
+username = "admin"
+password = "$K8S_PASSWORD" # admin user password
+clusterURI = "$K8S_URI" # cluster API
+
+
+# define your environments and thier k8s namespaces
+# syntax: environment_name = "k8s_namespace"
+[namespaces]
+default = "default"
+staging = "staging"
+kube-system = "kube-system"
+
+
+# define any private/public helm charts repos you would like to get charts from
+# syntax: repo_name = "repo_url"
+[helmRepos]
+stable = "https://kubernetes-charts.storage.googleapis.com"
+incubator = "http://storage.googleapis.com/kubernetes-charts-incubator"
+dnt = "gs://dnt-helm-repo"
+
+# define the desired state of your applications helm charts
+# each contains the following:
+
+[apps]
+
+    # [apps.traefik]
+    # name = "traefik" # should be unique across all apps
+    # description = "traefik ingress controller."
+    # namespace = "kube-system" # maps to the namespace as defined in environmetns above
+    # enabled = true # change to false if you want to delete this app release [empty = flase]
+    # chart = "stable/traefik" # changing the chart name means delete and recreate this chart
+    # version = "1.14.2"
+    # valuesFile = "" # leaving it empty uses the default chart values
+    # purge = false # will only be considered when there is a delete operation
+    # test = false # run the tests whenever this release is installed
+    # [apps.traefik.set]
+    # "ssl.defaultCert"= "$TRAEFIK_SSL_CERT"
+    # "ssl.defaultKey"= "$TRAEFIK_SSL_KEY"
+
+    # [apps.kubernetes-dashboard]
+    # name = "kubernetes-dashboard" # should be unique across all apps
+    # description = "stable/kubernetes-dashboard"
+    # namespace = "kube-system" # maps to the namespace as defined in environmetns above
+    # enabled = true # change to false if you want to delete this app release [empty = flase]
+    # chart = "stable/kubernetes-dashboard" # changing the chart name means delete and recreate this chart
+    # version = "0.4.4"
+    # valuesFile = "applications/production/k8s-dashboard-values_production.yaml"  # leaving it empty uses the default chart values
+    # purge = false # will only be considered when there is a delete operation
+    # test = false # run the tests whenever this release is installed
+
+    [apps.ntb-staging]
+    name = "ntb-staging" # should be unique across all apps
+    description = "Latest NTB app version test in the staging namespace"
+    namespace = "staging" # maps to the namespace as defined in environmetns above
+    enabled = true # change to false if you want to delete this app release [empty/undefined = false]
+    chart = "dnt/ntb" # don't change the chart name if you want to use a new chart, create a new release in the apps section instead
+    version = "0.1.0"
+    valuesFile = "" # leaving it empty uses the default chart values
+    purge = false # will only be considered when there is a delete operation
+    test = false # run helm tests whenever this release is installed
+    [apps.ntb-staging.set]
+    Image.Tag="760a4b2f2"
+    EnvVars.LEGACY_MONGO_DB_URI= "$LEGACY_MONGO_DB_URI"
+    EnvVars.LEGACY_MONGO_DB_NAME= "$LEGACY_MONGO_DB_NAME"
+    EnvVars.DB_HOST="$DB_HOST"
+    EnvVars.DB_PORT="$DB_PORT"
+    EnvVars.DB_USER="$DB_USER"
+    EnvVars.DB_PASSWORD="$DB_PASSWORD"
+    EnvVars.DB_NAME="$DB_NAME"
