@@ -73,7 +73,7 @@ dnt = "gs://dnt-helm-repo"
     purge = false # will only be considered when there is a delete operation
     test = false # run helm tests whenever this release is installed
     [apps.ntb-staging.set]
-    "Image.Tag"="760a4b2f2"
+    "Image.Tag"="$IMAGE"
     # "EnvVars.LEGACY_MONGO_DB_URI"= "$LEGACY_MONGO_DB_URI"
     # "EnvVars.LEGACY_MONGO_DB_NAME"= "$LEGACY_MONGO_DB_NAME"
     # "EnvVars.DB_HOST"="$DB_HOST"
