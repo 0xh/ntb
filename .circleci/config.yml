@@ -40,7 +40,11 @@ jobs:
   deploy-to-k8s:
     docker:
       - image: praqma/helmsman:latest
-    steps: helmsman -debug -f helmsman-deployment.toml
+    steps:
+      - checkout
+      - run:
+          name: run helmsman
+          command: helmsman -debug -f helmsman-deployment.toml
 
 workflows:
   version: 2
