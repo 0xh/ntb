@@ -44,7 +44,7 @@ jobs:
       - checkout
       - run:
           name: run helmsman
-          command: helmsman -debug -f helmsman-deployment.toml
+          command: helmsman -debug -apply -f helmsman-deployment.toml
 
 workflows:
   version: 2
