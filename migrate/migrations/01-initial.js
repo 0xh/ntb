@@ -35,9 +35,16 @@ const up = async (db) => {
 
 const down = async (db) => {
   logger.info('Unset all the things');
-  db.sequelize.query(
-    'DROP SCHEMA public CASCADE; ' +
-    'CREATE SCHEMA public;'
+  const sqls = [];
+  Object.keys(db.sequelize.models).forEach((modelName) => {
+    const { tableName } = db.sequelize.models[modelName];
+    sqls.push(
+      `DROP TABLE IF EXISTS "${tableName}" CASCADE;`,
+    );
+  });
+
+  await db.sequelize.query(
+    sqls.join('\n')
   );
   logger.info('Done!');
 };
