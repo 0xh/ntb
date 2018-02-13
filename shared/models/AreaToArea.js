@@ -3,10 +3,16 @@ export default (sequelize, DataTypes) => {
     parentUuid: {
       type: DataTypes.UUID,
       primaryKey: true,
+      validate: {
+        isUUID: 4,
+      },
     },
     childUuid: {
       type: DataTypes.UUID,
       primaryKey: true,
+      validate: {
+        isUUID: 4,
+      },
     },
     dataSource: {
       type: DataTypes.TEXT,

@@ -3,10 +3,16 @@ export default (sequelize, DataTypes) => {
     areaUuid: {
       type: DataTypes.UUID,
       primaryKey: true,
+      validate: {
+        isUUID: 4,
+      },
     },
     municipalityUuid: {
       type: DataTypes.UUID,
       primaryKey: true,
+      validate: {
+        isUUID: 4,
+      },
     },
     dataSource: {
       type: DataTypes.TEXT,

@@ -109,6 +109,13 @@ export default (sequelize, DataTypes) => {
       otherKey: 'childUuid',
     });
 
+    models.Area.belongsToMany(models.Area, {
+      as: 'Parents',
+      through: models.AreaToArea,
+      foreignKey: 'childUuid',
+      otherKey: 'parentUuid',
+    });
+
     models.Area.belongsToMany(models.County, {
       as: 'Counties',
       through: models.AreaToCounty,
