@@ -59,7 +59,7 @@ export default (sequelize, DataTypes) => {
 
   County.associate = (models) => {
     models.County.hasMany(models.CountyTranslation, {
-      as: 'Translation',
+      as: 'Translations',
     });
 
     models.County.belongsToMany(models.Area, {

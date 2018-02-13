@@ -61,7 +61,7 @@ export default (sequelize, DataTypes) => {
     models.Municipality.belongsTo(models.County);
 
     models.Municipality.hasMany(models.MunicipalityTranslation, {
-      as: 'Translation',
+      as: 'Translations',
     });
 
     models.Municipality.belongsToMany(models.Area, {
