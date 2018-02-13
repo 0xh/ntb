@@ -3,9 +3,10 @@
   "name": "@turistforeningen/ntb-shared-models",
   "version": "0.0.0",
   "dependencies": {
-    "@turistforeningen/ntb-shared-settings": "*",
     "@turistforeningen/ntb-shared-db-utils": "*",
+    "@turistforeningen/ntb-shared-settings": "*",
     "@turistforeningen/ntb-shared-utils": "*",
-    "uuid": "^3.2.1"
+    "uuid": "^3.2.1",
+    "validator": "^9.4.0"
   }
 }
