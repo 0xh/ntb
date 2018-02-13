@@ -16,6 +16,9 @@ const DATASOURCE_NAME = 'legacy-ntb';
  * legacy-ntb
  */
 async function createTempTables(handler) {
+  logger.info('Creating temporary tables');
+  const durationId = startDuration();
+
   const date = moment().format('YYYYMMDDHHmmssSSS');
   const baseTableName = `_temp_legacy_ntb_harvest_${date}`;
 
@@ -84,6 +87,8 @@ async function createTempTables(handler) {
     }
   );
   await handler.areas.TempAreaMunicipalityModel.sync();
+
+  endDuration(durationId);
 }
 
 /**

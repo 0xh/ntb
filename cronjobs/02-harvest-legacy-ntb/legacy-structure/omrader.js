@@ -1,13 +1,16 @@
 import uuid4 from 'uuid/v4';
 
 import { cleanWord, stemAll } from '@turistforeningen/ntb-shared-hunspell';
+import { createLogger } from '@turistforeningen/ntb-shared-utils';
 
 import statusMapper from '../lib/statusMapper';
 
 
 // TODO(Roar):
 // - bilder
-// - geojson
+
+
+const logger = createLogger();
 
 
 function mapCounties(obj, res, handler) {
@@ -20,6 +23,12 @@ function mapCounties(obj, res, handler) {
         if (match.length === 1) {
           return match[0].uuid;
         }
+
+        logger.error(
+          'Unable to find a county for name ' +
+          `"${f}" - area.id_legacy_ntb=${obj._id}`
+        );
+
         return null;
       })
       .filter((c) => c !== null);
@@ -38,11 +47,17 @@ function mapMunicipalities(obj, res, handler) {
           return match[0].uuid;
         }
         else if (match.length > 1) {
-          console.log(
-            '  - ERR: Found multiple municipalities for name ' +
-            `"${f} - area.id_legacy_ntb=${obj._id}`
+          logger.error(
+            'Found multiple municipalities for name ' +
+            `"${f}" - area.id_legacy_ntb=${obj._id}`
           );
         }
+
+        logger.error(
+          'Unable to find a municipality for name ' +
+          `"${f}" - area.id_legacy_ntb=${obj._id}`
+        );
+
         return null;
       })
       .filter((c) => c !== null);

@@ -11,6 +11,7 @@ import db from '@turistforeningen/ntb-shared-models';
 import * as legacy from './legacy-structure';
 import verify from './lib/verify';
 import processArea from './process/area';
+import processGroup from './process/group';
 
 
 const logger = createLogger();
@@ -22,7 +23,7 @@ const logger = createLogger();
 
 
 const LEGACY_TYPES = [
-  'områder',
+  // 'områder',
   // 'lister',
   'grupper',
   // 'steder',
@@ -125,14 +126,18 @@ function verifyAllDocuments(handler) {
 async function getAllCM(handler) {
   let durationId;
 
+  const where = {
+    status: 'public',
+  };
+
   logger.info('Fetching all counties from postgres');
   durationId = startDuration();
-  handler.counties = await db.County.findAll();
+  handler.counties = await db.County.findAll({ where });
   endDuration(durationId);
 
   logger.info('Fetching all municipalities from postgres');
   durationId = startDuration();
-  handler.municipalities = await db.Municipality.findAll();
+  handler.municipalities = await db.Municipality.findAll({ where });
   endDuration(durationId);
 }
 
@@ -154,7 +159,8 @@ async function main() {
 
   await getAllCM(handler);
 
-  await processArea(handler);
+  // await processArea(handler);
+  await processGroup(handler);
 
   logger.info('Harvesting complete');
   endDuration(durationId);
