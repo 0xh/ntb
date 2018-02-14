@@ -140,6 +140,13 @@ function setLinks(obj, res, handler) {
 }
 
 
+function setTags(obj, res, handler) {
+  res.tags = obj.tags && obj.tags.length > 1
+    ? obj.tags.splice(1)
+    : [];
+}
+
+
 async function mapping(obj, handler) {
   const res = {};
   const description = {};
@@ -213,6 +220,9 @@ async function mapping(obj, handler) {
 
   // Set links
   setLinks(obj, res, handler);
+
+  // Set tags
+  setTags(obj, res, handler);
 
   return res;
 }
