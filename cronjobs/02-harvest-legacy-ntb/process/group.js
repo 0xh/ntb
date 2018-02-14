@@ -103,7 +103,7 @@ async function dropTempTables(handler) {
 
   await handler.groups.TempGroupModel.drop();
   await handler.groups.TempGroupLinkModel.drop();
-  // await handler.groups.TempGroupTagModel.drop();
+  await handler.groups.TempGroupTagModel.drop();
 
   endDuration(durationId);
 }
