@@ -12,6 +12,34 @@ const up = async (db) => {
   logger.info('Sync database');
   await db.sequelize.sync();
 
+  const queryInterface = db.sequelize.getQueryInterface();
+
+  // Create composite primary keys
+  queryInterface.sequelize.query([
+    'ALTER TABLE "tag_relation"',
+    'ADD CONSTRAINT "tag_relation_primary" PRIMARY KEY (',
+    '  "tag_name", "tagged_type", "tagged_uuid"',
+    ')',
+  ].join('\n'));
+  queryInterface.sequelize.query([
+    'ALTER TABLE "area_to_area"',
+    'ADD CONSTRAINT "area_to_area_primary" PRIMARY KEY (',
+    '  "parent_uuid", "child_uuid"',
+    ')',
+  ].join('\n'));
+  queryInterface.sequelize.query([
+    'ALTER TABLE "area_to_county"',
+    'ADD CONSTRAINT "area_to_county_primary" PRIMARY KEY (',
+    '  "area_uuid", "county_uuid"',
+    ')',
+  ].join('\n'));
+  queryInterface.sequelize.query([
+    'ALTER TABLE "area_to_municipality"',
+    'ADD CONSTRAINT "area_to_municipality_primary" PRIMARY KEY (',
+    '  "area_uuid", "municipality_uuid"',
+    ')',
+  ].join('\n'));
+
   // Harvest counties and municipalities from kartverket
   await CMharvest()
     .then((status) => {
