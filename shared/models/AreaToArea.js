@@ -2,14 +2,14 @@ export default (sequelize, DataTypes) => {
   const AreaToArea = sequelize.define('AreaToArea', {
     parentUuid: {
       type: DataTypes.UUID,
-      primaryKey: true,
+      // Composite primaryKey defined in migration 01
       validate: {
         isUUID: 4,
       },
     },
     childUuid: {
       type: DataTypes.UUID,
-      primaryKey: true,
+      // Composite primaryKey defined in migration 01
       validate: {
         isUUID: 4,
       },
@@ -21,6 +21,9 @@ export default (sequelize, DataTypes) => {
   }, {
     timestamps: true,
   });
+
+  // Primary key for this table is created manually in migration 01
+  AreaToArea.removeAttribute('id');
 
 
   // Associations

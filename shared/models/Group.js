@@ -137,6 +137,18 @@ export default (sequelize, DataTypes) => {
 
   Group.associate = (models) => {
     models.Group.belongsTo(models.Municipality);
+
+    models.Group.belongsToMany(models.Tag, {
+      through: {
+        model: models.TagRelation,
+        unique: false,
+        scope: {
+          taggedType: 'group',
+        },
+      },
+      foreignKey: 'tagged_uuid',
+      constraints: false,
+    });
   };
 
   return Group;

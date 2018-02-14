@@ -2,14 +2,14 @@ export default (sequelize, DataTypes) => {
   const AreaToMunicipality = sequelize.define('AreaToMunicipality', {
     areaUuid: {
       type: DataTypes.UUID,
-      primaryKey: true,
+      // Composite primaryKey defined in migration 01
       validate: {
         isUUID: 4,
       },
     },
     municipalityUuid: {
       type: DataTypes.UUID,
-      primaryKey: true,
+      // Composite primaryKey defined in migration 01
       validate: {
         isUUID: 4,
       },
@@ -21,6 +21,9 @@ export default (sequelize, DataTypes) => {
   }, {
     timestamps: true,
   });
+
+  // Primary key for this table is created manually in migration 01
+  AreaToMunicipality.removeAttribute('id');
 
 
   // Associations

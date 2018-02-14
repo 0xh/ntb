@@ -85,17 +85,6 @@ export default (sequelize, DataTypes) => {
     },
   }, {
     timestamps: true,
-    indexes: [
-      {
-        fields: ['nameLowerCase'],
-      },
-      {
-        fields: ['status'],
-      },
-      {
-        fields: ['dataSource'],
-      },
-    ],
   });
 
 

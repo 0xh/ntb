@@ -8,6 +8,11 @@ export default (sequelize, DataTypes) => {
       },
     },
 
+    municipalityUuid: {
+      type: DataTypes.UUID,
+      unique: 'municipality_language',
+    },
+
     name: {
       type: DataTypes.TEXT,
       validate: {
@@ -24,6 +29,7 @@ export default (sequelize, DataTypes) => {
 
     language: {
       type: DataTypes.TEXT,
+      unique: 'municipality_language',
       validate: {
         notEmpty: true,
       },
@@ -35,18 +41,6 @@ export default (sequelize, DataTypes) => {
     },
   }, {
     timestamps: true,
-    indexes: [
-      {
-        fields: ['municipalityUuid', 'language'],
-        unique: true,
-      },
-      {
-        fields: ['nameLowerCase'],
-      },
-      {
-        fields: ['dataSource'],
-      },
-    ],
   });
 
 

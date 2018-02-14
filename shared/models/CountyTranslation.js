@@ -8,6 +8,11 @@ export default (sequelize, DataTypes) => {
       },
     },
 
+    countyUuid: {
+      type: DataTypes.UUID,
+      unique: 'county_language',
+    },
+
     name: {
       type: DataTypes.TEXT,
       validate: {
@@ -24,6 +29,7 @@ export default (sequelize, DataTypes) => {
 
     language: {
       type: DataTypes.TEXT,
+      unique: 'county_language',
       validate: {
         notEmpty: true,
       },
@@ -35,18 +41,6 @@ export default (sequelize, DataTypes) => {
     },
   }, {
     timestamps: true,
-    indexes: [
-      {
-        fields: ['countyUuid', 'language'],
-        unique: true,
-      },
-      {
-        fields: ['nameLowerCase'],
-      },
-      {
-        fields: ['dataSource'],
-      },
-    ],
   });
 
 
