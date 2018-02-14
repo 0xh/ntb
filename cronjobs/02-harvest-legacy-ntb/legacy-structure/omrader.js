@@ -18,15 +18,23 @@ function mapCounties(obj, res, handler) {
   if (obj.fylker) {
     res.counties = obj.fylker
       .map((f) => {
+        let name = f.trim().toLowerCase();
+        if (name === 'finnmark  finnmárku') {
+          name = 'finnmark';
+        }
+        else if (name.endsWith('trøndelag')) {
+          name = 'trøndelag';
+        }
+
         const match = handler.counties
-          .filter((c) => c.nameLowerCase === f.trim().toLowerCase());
+          .filter((c) => c.nameLowerCase === name);
         if (match.length === 1) {
           return match[0].uuid;
         }
 
         logger.error(
           'Unable to find a county for name ' +
-          `"${f}" - area.id_legacy_ntb=${obj._id}`
+          `"${name}" - area.id_legacy_ntb=${obj._id}`
         );
 
         return null;
