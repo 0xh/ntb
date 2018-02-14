@@ -5,7 +5,6 @@ import { createLogger, startDuration, endDuration } from
   '@turistforeningen/ntb-shared-utils';
 
 import * as legacy from '../legacy-structure/';
-import { toASCII } from 'punycode';
 
 
 const logger = createLogger();
