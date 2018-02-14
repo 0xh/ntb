@@ -245,7 +245,65 @@ async function mergeGroupLinks(handler) {
 
 
 /**
- * Process legacy area data and merge it into the postgres database
+ * Remove group links that no longer exist in legacy-ntb
+ */
+async function removeDepreactedGroupLinks(handler) {
+  const sql = [
+    'DELETE FROM public.group_link',
+    'USING public.group_link gl',
+    `LEFT JOIN public.${handler.groups.TempGroupLinkModel.tableName} te ON`,
+    '  gl.id_group_legacy_ntb = te.id_group_legacy_ntb AND',
+    '  gl.idx_group_legacy_ntb = te.idx_group_legacy_ntb',
+    'WHERE',
+    '  te.id_group_legacy_ntb IS NULL AND',
+    '  gl.data_source = :data_source AND',
+    '  public.group_link.id_group_legacy_ntb = gl.id_group_legacy_ntb AND',
+    '  public.group_link.idx_group_legacy_ntb = gl.idx_group_legacy_ntb',
+  ].join('\n');
+
+  logger.info('Deleting deprecated group links');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Mark groups that no longer exist in legacy-ntb as deleted
+ */
+async function removeDepreactedGroups(handler) {
+  const { tableName } = handler.groups.TempGroupModel;
+  const sql = [
+    'UPDATE public.group g1 SET',
+    '  status = :status',
+    'FROM public.group g2',
+    `LEFT JOIN public.${tableName} t ON`,
+    '  t.id_legacy_ntb = g2.id_legacy_ntb',
+    'WHERE',
+    '  t.id_legacy_ntb IS NULL AND',
+    '  g1.uuid = g2.uuid AND',
+    '  g2.data_source = :data_source AND',
+    '  g2.status != :status',
+  ].join('\n');
+
+  logger.info('Marking deprecated groups as deleted');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+      status: 'deleted',
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Process legacy group data and merge it into the postgres database
  */
 const process = async (handler) => {
   logger.info('Processing groups');
@@ -257,13 +315,9 @@ const process = async (handler) => {
   await populateTempTables(handler);
   await mergeGroups(handler);
   await mergeGroupLinks(handler);
-  // await removeDepreactedAreaToArea(handler);
-  // await mergeAreaToCounty(handler);
-  // await removeDepreactedAreaToCounty(handler);
-  // await mergeAreaToMunicipality(handler);
-  // await removeDepreactedAreaToMunicipality(handler);
-  // await removeDepreactedArea(handler);
-  // await dropTempTables(handler);
+  await removeDepreactedGroupLinks(handler);
+  await removeDepreactedGroups(handler);
+  await dropTempTables(handler);
 };
 
 

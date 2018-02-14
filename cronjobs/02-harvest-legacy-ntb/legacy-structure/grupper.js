@@ -43,6 +43,52 @@ function setMunicipalityUuid(res, handler) {
 }
 
 
+function mapGroupType(tags, res) {
+  const tag = tags && tags.length
+    ? tags[0].toLowerCase()
+    : '';
+
+  switch (tag) {
+    case 'bedrift':
+      return 'business';
+    case 'destinasjonsselskap':
+      return 'destination company';
+    case 'dnt':
+      return 'dnt';
+    case 'fotballag':
+      return 'football team';
+    case 'fylkeskommune':
+      return 'county council';
+    case 'idrettslag':
+      return 'sports team';
+    case 'interesseorganisasjon':
+      return 'interest group';
+    case 'kommune':
+      return 'municipality';
+    case 'nasjonalpark':
+      return 'national park';
+    case 'orienteringslag':
+      return 'orienteering team';
+    case 'skole':
+      return 'school';
+    case 'speidergruppe':
+      return 'scout group';
+    case 'turistinformasjon':
+      return 'tourist information';
+    case 'turlag':
+      return 'outdoor group';
+    default:
+      if (tag.length) {
+        logger.error(
+          `Unknown group type "${tag}" on ` +
+          `group.id_legacy_ntb=${res.group.idLegacyNtb}`
+        );
+      }
+      return 'other';
+  }
+}
+
+
 function mapLinkType(type, res) {
   switch ((type || '').toLowerCase()) {
     case 'hjemmeside':
@@ -116,7 +162,6 @@ async function mapping(obj, handler) {
   res.group = {
     uuid: uuid4(),
     idLegacyNtb: obj._id,
-    type: obj.tags && obj.tags.length ? obj.tags[0].toLowerCase() : null,
     name: obj.navn,
     nameLowerCase: obj.navn.toLowerCase(),
 
@@ -137,6 +182,9 @@ async function mapping(obj, handler) {
 
     dataSource: 'legacy-ntb',
   };
+
+  // Group type
+  res.group.type = mapGroupType(obj.tags, res);
 
   // Contact info
   if (obj.kontaktinfo && obj.kontaktinfo.length) {

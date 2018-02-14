@@ -23,9 +23,9 @@ const logger = createLogger();
 
 
 const LEGACY_TYPES = [
-  // 'områder',
-  // 'lister',
   'grupper',
+  'områder',
+  // 'lister',
   // 'steder',
   // 'turer',
   // 'bilder',
@@ -159,7 +159,7 @@ async function main() {
 
   await getAllCM(handler);
 
-  // await processArea(handler);
+  await processArea(handler);
   await processGroup(handler);
 
   logger.info('Harvesting complete');
