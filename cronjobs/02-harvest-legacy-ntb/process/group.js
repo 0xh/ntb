@@ -61,8 +61,26 @@ async function createTempTables(handler) {
   });
   await handler.groups.TempGroupModel.sync();
 
+  handler.groups.TempGroupLinkModel =
+    db.sequelize.define(`${baseTableName}_gl`, {
+      uuid: { type: db.Sequelize.UUID, primaryKey: true },
+      type: { type: db.Sequelize.TEXT },
+      title: { type: db.Sequelize.TEXT, allowNull: true },
+      url: { type: db.Sequelize.TEXT },
+      groupUuid: { type: db.Sequelize.UUID, allowNull: true },
+      idGroupLegacyNtb: { type: db.Sequelize.TEXT },
+      idxGroupLegacyNtb: { type: db.Sequelize.INTEGER },
+      dataSource: { type: db.Sequelize.TEXT },
+      updatedAt: { type: db.Sequelize.DATE },
+    }, {
+      timestamps: false,
+      tableName: `${baseTableName}_gl`,
+    });
+  await handler.groups.TempGroupLinkModel.sync();
+
   endDuration(durationId);
 }
+
 
 /**
  * Drop the temporary tables
@@ -72,6 +90,7 @@ async function dropTempTables(handler) {
   const durationId = startDuration();
 
   await handler.groups.TempGroupModel.drop();
+  await handler.groups.TempGroupLinkModel.drop();
 
   endDuration(durationId);
 }
@@ -105,6 +124,18 @@ async function populateTempTables(handler) {
   durationId = startDuration();
   const groups = handler.groups.processed.map((p) => p.group);
   await handler.groups.TempGroupModel.bulkCreate(groups);
+  endDuration(durationId);
+
+  // Process data for links
+  const links = [];
+  handler.groups.processed.forEach((p) => {
+    p.links.forEach((link) => links.push(link));
+  });
+
+  // Insert temp data for GroupLink
+  logger.info('Inserting group links to temporary table');
+  durationId = startDuration();
+  await handler.groups.TempGroupLinkModel.bulkCreate(links);
   endDuration(durationId);
 }
 
@@ -161,6 +192,57 @@ async function mergeGroups(handler) {
   endDuration(durationId);
 }
 
+/**
+ * Insert into `group_link`-table or update if it already exists
+ */
+async function mergeGroupLinks(handler) {
+  let sql;
+  let durationId;
+
+  // Set UUIDs on groupLink temp data
+  sql = [
+    `UPDATE public.${handler.groups.TempGroupLinkModel.tableName} gl1 SET`,
+    '  group_uuid = g.uuid',
+    `FROM public.${handler.groups.TempGroupLinkModel.tableName} gl2`,
+    'INNER JOIN public.group g ON',
+    '  g.id_legacy_ntb = gl2.id_group_legacy_ntb',
+    'WHERE',
+    '  gl1.id_group_legacy_ntb = gl2.id_group_legacy_ntb AND',
+    '  gl1.idx_group_legacy_ntb = gl2.idx_group_legacy_ntb',
+  ].join('\n');
+
+  logger.info('Update uuids on area-to-area temp data');
+  durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+
+  // Merge into prod table
+  sql = [
+    'INSERT INTO group_link (',
+    '  uuid, group_uuid, type, title, url, id_group_legacy_ntb,',
+    '  idx_group_legacy_ntb, data_source, created_at, updated_at',
+    ')',
+    'SELECT',
+    '  uuid, group_uuid, type, title, url, id_group_legacy_ntb,',
+    '  idx_group_legacy_ntb, :data_source, now(), now()',
+    `FROM public.${handler.groups.TempGroupLinkModel.tableName}`,
+    'ON CONFLICT (id_group_legacy_ntb, idx_group_legacy_ntb) DO UPDATE',
+    'SET',
+    '  type = EXCLUDED.type,',
+    '  title = EXCLUDED.title,',
+    '  url = EXCLUDED.url',
+  ].join('\n');
+
+  logger.info('Creating or updating group links');
+  durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
 
 /**
  * Process legacy area data and merge it into the postgres database
@@ -174,7 +256,7 @@ const process = async (handler) => {
   await createTempTables(handler);
   await populateTempTables(handler);
   await mergeGroups(handler);
-  // await mergeAreaToArea(handler);
+  await mergeGroupLinks(handler);
   // await removeDepreactedAreaToArea(handler);
   // await mergeAreaToCounty(handler);
   // await removeDepreactedAreaToCounty(handler);

@@ -6,11 +6,10 @@ import { createLogger } from '@turistforeningen/ntb-shared-utils';
 import statusMapper from '../lib/statusMapper';
 
 // TODO(Roar):
+// - translate group type like we do with link type
 // - Ignore Sherpa-associations and fetch them seperatly from Sherpa?
 // -- This would prevent us from having the correct id_legacy_ntb!
 // -- We should do some kind of combination of both...?
-// - Contact info
-// - Links
 // - Private.[endret_av|opprettet_av|registrert_av] - do we need this?
 // - privat.[brukere|invitasjoner] < we need to handle this
 
@@ -40,6 +39,57 @@ function setMunicipalityUuid(res, handler) {
       'Unable to find a municipality for name ' +
       `"${cleanName}" - group.id_legacy_ntb=${res.group.idLegacyNtb}`
     );
+  }
+}
+
+
+function mapLinkType(type, res) {
+  switch ((type || '').toLowerCase()) {
+    case 'hjemmeside':
+      return 'homepage';
+    case 'facebook':
+      return 'facebook';
+    case 'twitter':
+      return 'twitter';
+    case 'instagram':
+      return 'instagram';
+    case 'youtube':
+      return 'youtube';
+    case 'vilkår':
+      return 'terms';
+    case 'risikovurdering':
+      return 'risk assessment';
+    case 'kontaktinfo':
+      return 'contact info';
+    case 'kart':
+      return 'map';
+    case 'annet':
+      return 'other';
+    default:
+      logger.error(
+        `Missing or unknown link type "${type}" on ` +
+        `group.id_legacy_ntb=${res.group.idLegacyNtb}`
+      );
+      return 'other';
+  }
+}
+
+
+function setLinks(obj, res, handler) {
+  res.links = [];
+
+  if (obj.lenker && obj.lenker.length) {
+    obj.lenker.forEach((link, idx) => {
+      res.links.push({
+        uuid: uuid4(),
+        type: mapLinkType(link.type, res),
+        title: link.tittel,
+        url: link.url,
+        idGroupLegacyNtb: obj._id,
+        idxGroupLegacyNtb: idx,
+        dataSource: 'legacy-ntb',
+      });
+    });
   }
 }
 
@@ -112,6 +162,9 @@ async function mapping(obj, handler) {
   if (res.group.type === 'kommune') {
     setMunicipalityUuid(res, handler);
   }
+
+  // Set links
+  setLinks(obj, res, handler);
 
   return res;
 }
