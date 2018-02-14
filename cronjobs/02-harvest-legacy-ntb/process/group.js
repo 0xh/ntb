@@ -41,6 +41,14 @@ async function createTempTables(handler) {
     logo: { type: db.Sequelize.TEXT, allowNull: true },
     organizationNumber: { type: db.Sequelize.TEXT, allowNull: true },
     url: { type: db.Sequelize.TEXT, allowNull: true },
+    email: { type: db.Sequelize.TEXT, allowNull: true },
+    phone: { type: db.Sequelize.TEXT, allowNull: true },
+    mobile: { type: db.Sequelize.TEXT, allowNull: true },
+    fax: { type: db.Sequelize.TEXT, allowNull: true },
+    address1: { type: db.Sequelize.TEXT, allowNull: true },
+    address2: { type: db.Sequelize.TEXT, allowNull: true },
+    postalCode: { type: db.Sequelize.TEXT, allowNull: true },
+    postalName: { type: db.Sequelize.TEXT, allowNull: true },
     license: { type: db.Sequelize.TEXT, allowNull: true },
     provider: { type: db.Sequelize.TEXT, allowNull: true },
     status: { type: db.Sequelize.TEXT },
@@ -100,7 +108,6 @@ async function populateTempTables(handler) {
   endDuration(durationId);
 }
 
-
 /**
  * Insert into `group`-table or update if it already exists
  */
@@ -109,13 +116,15 @@ async function mergeGroups(handler) {
     'INSERT INTO public.group (',
     '  uuid, id_legacy_ntb, type, name, name_lower_case, description,',
     '  description_plain, description_words, description_words_stemmed,',
-    '  logo, organization_number, url, license, provider, status,',
-    '  data_source, created_at, updated_at, municipality_uuid',
+    '  logo, organization_number, url, email, phone, mobile, fax,',
+    '  address_1, address_2, postal_code, postal_name, license, provider,',
+    '  status, data_source, created_at, updated_at, municipality_uuid',
     ')',
     'SELECT',
     '  uuid, id_legacy_ntb, type, name, name_lower_case, description,',
     '  description_plain, description_words, description_words_stemmed,',
-    '  logo, organization_number, url, license, provider,',
+    '  logo, organization_number, url, email, phone, mobile, fax,',
+    '  address_1, address_2, postal_code, postal_name, license, provider,',
     '  status::enum_group_status, data_source, updated_at, updated_at,',
     '  municipality_uuid',
     `FROM public.${handler.groups.TempGroupModel.tableName}`,
@@ -131,6 +140,14 @@ async function mergeGroups(handler) {
     '  logo = EXCLUDED.logo,',
     '  organization_number = EXCLUDED.organization_number,',
     '  url = EXCLUDED.url,',
+    '  email = EXCLUDED.email,',
+    '  phone = EXCLUDED.phone,',
+    '  mobile = EXCLUDED.mobile,',
+    '  fax = EXCLUDED.fax,',
+    '  address_1 = EXCLUDED.address_1,',
+    '  address_2 = EXCLUDED.address_2,',
+    '  postal_code = EXCLUDED.postal_code,',
+    '  postal_name = EXCLUDED.postal_name,',
     '  license = EXCLUDED.license,',
     '  provider = EXCLUDED.provider,',
     '  status = EXCLUDED.status,',
@@ -164,7 +181,7 @@ const process = async (handler) => {
   // await mergeAreaToMunicipality(handler);
   // await removeDepreactedAreaToMunicipality(handler);
   // await removeDepreactedArea(handler);
-  await dropTempTables(handler);
+  // await dropTempTables(handler);
 };
 
 

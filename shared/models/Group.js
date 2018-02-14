@@ -69,6 +69,46 @@ export default (sequelize, DataTypes) => {
       allowNull: true,
     },
 
+    email: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+
+    phone: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+
+    mobile: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+
+    fax: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+
+    address1: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+
+    address2: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+
+    postalCode: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+
+    postalName: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+
     license: {
       type: DataTypes.TEXT,
       allowNull: true,

@@ -9,8 +9,6 @@ import statusMapper from '../lib/statusMapper';
 // - Ignore Sherpa-associations and fetch them seperatly from Sherpa?
 // -- This would prevent us from having the correct id_legacy_ntb!
 // -- We should do some kind of combination of both...?
-// - type
-// -- 'kommune' should link to Municipalilty?
 // - Contact info
 // - Links
 // - Private.[endret_av|opprettet_av|registrert_av] - do we need this?
@@ -90,6 +88,27 @@ async function mapping(obj, handler) {
     dataSource: 'legacy-ntb',
   };
 
+  // Contact info
+  if (obj.kontaktinfo && obj.kontaktinfo.length) {
+    if (obj.kontaktinfo.length > 1) {
+      logger.error(
+        `${obj.kontaktinfo.length} contact info sets found for ` +
+        `"${res.group.name}" - group.id_legacy_ntb=${res.group.idLegacyNtb}`
+      );
+    }
+
+    const c = obj.kontaktinfo[0];
+    res.group.email = c.epost;
+    res.group.phone = c.telefon;
+    res.group.mobile = c.mobil;
+    res.group.fax = c.fax;
+    res.group.address1 = c.adresse1;
+    res.group.address2 = c.adresse2;
+    res.group.postalCode = c.postnummer;
+    res.group.postalName = c.poststed;
+  }
+
+  // Set municipality relation
   if (res.group.type === 'kommune') {
     setMunicipalityUuid(res, handler);
   }
