@@ -4,7 +4,7 @@
 #
 version: 2
 jobs:
-  build:
+  build-image:
     docker:
       # specify the version you desire here
       - image: circleci/node:7.10.0
@@ -32,9 +32,11 @@ jobs:
           command: |
             TAG=${CIRCLE_SHA1:0:9}
             docker build -t ntb .
+            docker tag ntb eu.gcr.io/dnt-docker-registry-public/ntb:latest
             docker tag ntb eu.gcr.io/dnt-docker-registry-public/ntb:$TAG
             chmod +x .circleci/gcloud-auth.sh
             .circleci/gcloud-auth.sh
+            gcloud docker -- push eu.gcr.io/dnt-docker-registry-public/ntb:latest
             gcloud docker -- push eu.gcr.io/dnt-docker-registry-public/ntb:$TAG
 
   deploy-to-k8s:
@@ -44,11 +46,13 @@ jobs:
       - checkout
       - run:
           name: run helmsman
-          command: helmsman -debug -apply -f helmsman-deployment.toml
+          command: helmsman -debug -apply -f .circleci/helmsman-deployment.toml
 
 workflows:
   version: 2
   build-and-publish:
     jobs:
-      # - build
-      - deploy-to-k8s
+      - build-image
+      - deploy-to-k8s:
+          requires:
+            - build-image

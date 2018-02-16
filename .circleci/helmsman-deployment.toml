@@ -68,16 +68,13 @@ dnt = "gs://dnt-helm-repo"
     namespace = "staging" # maps to the namespace as defined in environmetns above
     enabled = true # change to false if you want to delete this app release [empty/undefined = false]
     chart = "dnt/ntb" # don't change the chart name if you want to use a new chart, create a new release in the apps section instead
-    version = "0.1.0"
+    version = "0.2.0"
     valuesFile = "" # leaving it empty uses the default chart values
     purge = false # will only be considered when there is a delete operation
     test = false # run helm tests whenever this release is installed
     [apps.ntb-staging.set]
-    "Image.Tag"="$IMAGE"
-    # "EnvVars.LEGACY_MONGO_DB_URI"= "$LEGACY_MONGO_DB_URI"
-    # "EnvVars.LEGACY_MONGO_DB_NAME"= "$LEGACY_MONGO_DB_NAME"
-    # "EnvVars.DB_HOST"="$DB_HOST"
-    # "EnvVars.DB_PORT"="$DB_PORT"
-    # "EnvVars.DB_USER"="$DB_USER"
-    # "EnvVars.DB_PASSWORD"="$DB_PASSWORD"
-    # "EnvVars.DB_NAME"="$DB_NAME"
+    "EnvVars.LEGACY_MONGO_DB_URI"= "$LEGACY_MONGO_DB_URI"
+    "EnvVars.LEGACY_MONGO_DB_NAME"= "$LEGACY_MONGO_DB_NAME"
+    "DB.USER"="$PG_DB_USER"
+    "DB.PASSWORD"="$PG_DB_PASSWORD"
+    "DB.NAME"="$PG_DB_NAME"
