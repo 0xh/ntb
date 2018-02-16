@@ -37,31 +37,6 @@ dnt = "gs://dnt-helm-repo"
 
 [apps]
 
-    # [apps.traefik]
-    # name = "traefik" # should be unique across all apps
-    # description = "traefik ingress controller."
-    # namespace = "kube-system" # maps to the namespace as defined in environmetns above
-    # enabled = true # change to false if you want to delete this app release [empty = flase]
-    # chart = "stable/traefik" # changing the chart name means delete and recreate this chart
-    # version = "1.14.2"
-    # valuesFile = "" # leaving it empty uses the default chart values
-    # purge = false # will only be considered when there is a delete operation
-    # test = false # run the tests whenever this release is installed
-    # [apps.traefik.set]
-    # "ssl.defaultCert"= "$TRAEFIK_SSL_CERT"
-    # "ssl.defaultKey"= "$TRAEFIK_SSL_KEY"
-
-    # [apps.kubernetes-dashboard]
-    # name = "kubernetes-dashboard" # should be unique across all apps
-    # description = "stable/kubernetes-dashboard"
-    # namespace = "kube-system" # maps to the namespace as defined in environmetns above
-    # enabled = true # change to false if you want to delete this app release [empty = flase]
-    # chart = "stable/kubernetes-dashboard" # changing the chart name means delete and recreate this chart
-    # version = "0.4.4"
-    # valuesFile = "applications/production/k8s-dashboard-values_production.yaml"  # leaving it empty uses the default chart values
-    # purge = false # will only be considered when there is a delete operation
-    # test = false # run the tests whenever this release is installed
-
     [apps.ntb-staging]
     name = "ntb-staging" # should be unique across all apps
     description = "Latest NTB app version test in the staging namespace"
@@ -69,7 +44,7 @@ dnt = "gs://dnt-helm-repo"
     enabled = true # change to false if you want to delete this app release [empty/undefined = false]
     chart = "dnt/ntb" # don't change the chart name if you want to use a new chart, create a new release in the apps section instead
     version = "0.2.0"
-    valuesFile = "ntb-staging-values.yaml" # leaving it empty uses the default chart values
+    valuesFile = ".circleci/ntb-staging-values.yaml" # leaving it empty uses the default chart values
     purge = false # will only be considered when there is a delete operation
     test = false # run helm tests whenever this release is installed
     [apps.ntb-staging.set]

@@ -35,7 +35,7 @@ DB:
 
 DB_Proxy:
   cloudsql_credentials: ""
-  instance_connection_name: "dnt-platform:europe-west1:dnt-dev-postgresql-e613"
+  instance_connection_name: "dnt-platform:europe-west1:dnt-dev-postgresql-6f46"
 
 Service:
   Type: ClusterIP
