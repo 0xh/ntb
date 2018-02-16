@@ -1,8 +1,8 @@
 # populating the json credentials file from env variable
-if [ ! -z "${GCLOUD_CREDENTIALS}" ]; then
-  echo $GCLOUD_CREDENTIALS > /tmp/credentials.json
+if [ ! -z "${GCLOUD_DOCKER_CREDENTIALS}" ]; then
+  echo $GCLOUD_DOCKER_CREDENTIALS > /tmp/credentials.json
   if [ $? != 0 ]; then
-      echo "FAILED to write Google credentials into /tmp/credentials.json. Aborting!"
+      echo "FAILED to write Google Docker registry credentials into /tmp/credentials.json. Aborting!"
       exit 1
   else
     echo "Successfully populated /tmp/credentials.json"
