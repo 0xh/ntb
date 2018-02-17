@@ -1,5 +1,12 @@
 export function isString(value) {
-  return typeof value === 'string' || value instanceof String;
+  let v = value;
+
+  // Handle MongoDB relation
+  if (typeof value === 'object' && value._bsontype === 'ObjectID') {
+    v = value.toString();
+  }
+
+  return typeof v === 'string' || v instanceof String;
 }
 
 
