@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "name": "@turistforeningen/ntb-shared-process-content",
+  "version": "0.0.0",
+  "dependencies": {
+    "@turistforeningen/ntb-shared-hunspell": "*",
+    "sanitize-html": "^1.17.0"
+  }
+}
