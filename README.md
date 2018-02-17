@@ -35,9 +35,18 @@ Harvest counties and municipalities from Kartverket and update in Neo4j.
 
 ## 02-harvest-legacy-ntb
 Execute:
-`node cronjobs/01-harvest-counties-municipalities/index.js`
+`node cronjobs/02-harvest-legacy-ntb/index.js`
 
-Harvest counties and municipalities from Kartverket and update in Neo4j.
+Harvest documents from legacy-ntb mongo database and convert them to the new
+structure.
+
+#### For testing: MondoDB documents locally
+If you run `babel-node cronjobs/02-harvest-legacy-ntb/download-test-data.js`
+all documents will be fetched from the mongodb and stored in `.json` files inside a `test-files` folder.
+
+You can then run the cronjob with `testdata` parameter to use the files for fetching the documents.
+
+`babel-node cronjobs/02-harvest-legacy-ntb/index.js testdata`
 
 ----
 

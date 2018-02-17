@@ -1,6 +1,3 @@
-import { MongoClient } from 'mongodb';
-
-import * as settings from '@turistforeningen/ntb-shared-settings';
 import {
   createLogger,
   startDuration,
@@ -10,82 +7,13 @@ import db from '@turistforeningen/ntb-shared-models';
 
 import * as legacy from './legacy-structure';
 import verify from './lib/verify';
+import getAllDocuments from './lib/mongodb-collections';
 import processArea from './process/area';
 import processGroup from './process/group';
+import processCabin from './process/cabin';
 
 
 const logger = createLogger();
-
-
-// ######################################
-// Configuration
-// ######################################
-
-
-const LEGACY_TYPES = [
-  'grupper',
-  'områder',
-  // 'lister',
-  // 'steder',
-  // 'turer',
-  // 'bilder',
-];
-
-
-// ######################################
-// Harvest logic
-// ######################################
-
-
-/**
- * Get all documents from the specified collection from legacy-ntb MongoDB
- */
-function getCollectionDocuments(mongoDb, collectionName) {
-  return new Promise((resolve) => {
-    const durationId = startDuration();
-    const collection = mongoDb.collection(collectionName);
-
-    collection.find({ status: { $ne: 'Slettet' } }).toArray((err, items) => {
-      endDuration(
-        durationId,
-        `Fetching "${collectionName}" from mongodb done in`
-      );
-      resolve(items);
-    });
-  });
-}
-
-
-/**
- * Get all documents for all collections from legacy-ntb MongoDb
- */
-async function getAllDocuments(handler) {
-  logger.info('Fetching all documents from mongodb (async)');
-  const durationId = startDuration();
-  const documents = {};
-
-  const mongoClient = await MongoClient.connect(settings.LEGACY_MONGO_DB_URI)
-    .catch((err) => {
-      logger.error('ERROR - some mongodb error occured');
-      throw err;
-    });
-
-  const mongoDb = mongoClient.db(settings.LEGACY_MONGO_DB_NAME);
-
-  await Promise.all(
-    LEGACY_TYPES.map(async (type) => {
-      documents[type] = await getCollectionDocuments(mongoDb, type);
-      documents[type].forEach((document) => {
-        document._id = document._id.toString();
-      });
-    })
-  );
-
-  mongoClient.close();
-
-  handler.documents = documents;
-  endDuration(durationId, 'Fetching all documents from mongodb done in');
-}
 
 
 /**
@@ -99,12 +27,21 @@ function verifyAllDocuments(handler) {
   }
 
   Object.keys(handler.documents).forEach((type) => {
+    // remove any objects wit "err"
+    handler.documents[type] = handler.documents[type].filter((d) => !d.err);
+
     logger.info(`Verifying structure of <${type}>`);
     const { structure } = legacy[type];
+    const cabinStructure = legacy.hytter.structure;
 
     if (handler.documents && handler.documents[type]) {
       handler.documents[type].forEach((obj) => {
-        const status = verify(obj, obj._id, structure);
+        let s = structure;
+        if (type === 'steder' && obj.tags && obj.tags[0] === 'Hytte') {
+          s = cabinStructure;
+        }
+
+        const status = verify(obj, obj._id, s);
         if (!status.verified) {
           verified = false;
           status.errors.forEach((e) => logger.error(e));
@@ -151,7 +88,11 @@ async function main() {
   const durationId = startDuration();
   const handler = {};
 
-  await getAllDocuments(handler);
+  let useTestData = false;
+  if (process.argv.length > 2 && process.argv[2].trim() === 'testdata') {
+    useTestData = true;
+  }
+  await getAllDocuments(handler, useTestData);
 
   if (!verifyAllDocuments(handler)) {
     throw new Error('Document verification failed.');
@@ -161,6 +102,7 @@ async function main() {
 
   await processArea(handler);
   await processGroup(handler);
+  await processCabin(handler);
 
   logger.info('Harvesting complete');
   endDuration(durationId);
