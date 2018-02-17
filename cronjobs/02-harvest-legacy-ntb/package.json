@@ -3,15 +3,13 @@
   "name": "@turistforeningen/ntb-cronjobs-02",
   "version": "0.0.0",
   "dependencies": {
-    "@turistforeningen/ntb-shared-hunspell": "*",
+    "@turistforeningen/ntb-shared-process-content": "*",
     "@turistforeningen/ntb-shared-models": "*",
     "@turistforeningen/ntb-shared-settings": "*",
     "@turistforeningen/ntb-shared-utils": "*",
     "geojson-validation": "^0.2.0",
     "moment": "^2.20.1",
     "mongodb": "^3.0.1",
-    "performance-now": "^2.1.0",
-    "uuid": "^3.2.1",
-    "wellknown": "^0.5.0"
+    "uuid": "^3.2.1"
   }
 }

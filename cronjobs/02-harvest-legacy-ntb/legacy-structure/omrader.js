@@ -1,6 +1,6 @@
 import uuid4 from 'uuid/v4';
 
-import { cleanWord, stemAll } from '@turistforeningen/ntb-shared-hunspell';
+import { processContent } from '@turistforeningen/ntb-shared-process-content';
 import { createLogger } from '@turistforeningen/ntb-shared-utils';
 
 import statusMapper from '../lib/statusMapper';
@@ -75,21 +75,10 @@ function mapMunicipalities(obj, res, handler) {
 
 async function mapping(obj, handler) {
   const res = {};
-  const description = {};
+  let description = {};
 
   if (obj.beskrivelse) {
-    description.original = obj.beskrivelse.trim();
-    description.plain = description.original
-      .replace(/<{1}[^<>]{1,}>{1}/g, ' ') // replace html-tags
-      .replace(/\u00a0/g, ' ') // replace nbsp-character
-      .trim();
-    description.words = Array.from(new Set(
-      description.plain
-        .split(' ')
-        .map((w) => cleanWord(w.toLowerCase()))
-        .filter((w) => w)
-    ));
-    description.stemmed = await stemAll('nb', description.words);
+    description = await processContent(obj.beskrivelse);
   }
 
   res.area = {
@@ -98,7 +87,7 @@ async function mapping(obj, handler) {
     name: obj.navn,
     nameLowerCase: obj.navn.toLowerCase(),
 
-    description: description.original || null,
+    description: description.sanitized || null,
     descriptionPlain: description.plain || null,
     descriptionWords: description.words || null,
     descriptionWordsStemmed: description.stemmed || null,
