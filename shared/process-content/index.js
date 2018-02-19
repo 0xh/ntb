@@ -8,7 +8,7 @@ export function sanitizeHtml(html) {
 }
 
 
-export async function processContent(html) {
+export async function processContent(html, language = 'nb') {
   const res = {};
 
   if (!html) {
@@ -26,7 +26,7 @@ export async function processContent(html) {
       .map((w) => cleanWord(w.toLowerCase()))
       .filter((w) => w)
   ));
-  res.stemmed = await stemAll('nb', res.words);
+  res.stemmed = await stemAll(language, res.words);
 
   return res;
 }
