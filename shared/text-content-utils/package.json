@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "name": "@turistforeningen/ntb-shared-text-content-utils",
+  "version": "0.0.0",
+  "dependencies": {
+    "normalize-url": "^2.0.1",
+    "sanitize-html": "^1.17.0"
+  }
+}
