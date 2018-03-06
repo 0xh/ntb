@@ -1,6 +1,9 @@
 import uuid4 from 'uuid/v4';
 
-import { processContent } from '@turistforeningen/ntb-shared-process-content';
+import {
+  sanitizeHtml,
+  stripHtml,
+} from '@turistforeningen/ntb-shared-text-content-utils';
 import { createLogger } from '@turistforeningen/ntb-shared-utils';
 
 import statusMapper from '../lib/statusMapper';
@@ -270,7 +273,6 @@ function setBooking(obj, res, handler) {
   res.cabin.bookingEnabled = false;
   res.cabin.bookingOnly = false;
   res.cabin.bookingUrl = null;
-  res.cabin.bookingComment = null;
 
   if (obj.lenker) {
     obj.lenker.forEach((link) => {
@@ -296,12 +298,9 @@ async function setEnglishTranslation(obj, res, handler) {
   res.english = null;
 
   if (obj.description) {
-    const processed = await processContent(obj.description);
     res.english = {
-      description: processed.sanitized || null,
-      descriptionPlain: processed.plain || null,
-      descriptionWords: processed.words || null,
-      descriptionWordsStemmed: processed.stemmed || null,
+      description: sanitizeHtml(obj.description),
+      descriptionPlain: stripHtml(obj.description),
     };
   }
 }
@@ -309,7 +308,6 @@ async function setEnglishTranslation(obj, res, handler) {
 
 async function mapping(obj, handler) {
   const res = {};
-  const description = await processContent(obj.beskrivelse);
 
   if (!obj.privat) {
     obj.privat = {};
@@ -334,10 +332,8 @@ async function mapping(obj, handler) {
       ? obj.navn_alt.map((n) => n.toLowerCase)
       : null,
 
-    description: description.sanitized || null,
-    descriptionPlain: description.plain || null,
-    descriptionWords: description.words || null,
-    descriptionWordsStemmed: description.stemmed || null,
+    description: obj.beskrivelse ? sanitizeHtml(obj.beskrivelse) : null,
+    descriptionPlain: obj.beskrivelse ? stripHtml(obj.beskrivelse) : null,
 
     url: obj.url,
     yearOfConstruction: obj.byggeår,
