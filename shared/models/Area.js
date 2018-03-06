@@ -9,14 +9,11 @@ export default (sequelize, DataTypes) => {
       },
     },
 
-    idLegacyNtb: {
-      type: DataTypes.TEXT,
-      unique: true,
-      allowNull: true,
-    },
+    idLegacyNtb: { type: DataTypes.TEXT, unique: true },
 
     name: {
       type: DataTypes.TEXT,
+      allowNull: false,
       validate: {
         notEmpty: true,
       },
@@ -24,65 +21,28 @@ export default (sequelize, DataTypes) => {
 
     nameLowerCase: {
       type: DataTypes.TEXT,
+      allowNull: false,
       validate: {
         notEmpty: true,
       },
     },
 
-    description: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
+    description: { type: DataTypes.TEXT },
+    descriptionPlain: { type: DataTypes.TEXT },
 
-    descriptionPlain: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
+    geojson: { type: DataTypes.GEOMETRY },
+    map: { type: DataTypes.TEXT },
+    url: { type: DataTypes.TEXT },
 
-    descriptionWords: {
-      type: DataTypes.ARRAY(DataTypes.TEXT),
-      allowNull: true,
-    },
-
-    descriptionWordsStemmed: {
-      type: DataTypes.ARRAY(DataTypes.TEXT),
-      allowNull: true,
-    },
-
-    geojson: {
-      type: DataTypes.GEOMETRY,
-      allowNull: true,
-    },
-
-    map: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-
-    url: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-
-    license: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-
-    provider: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
+    license: { type: DataTypes.TEXT },
+    provider: { type: DataTypes.TEXT, allowNull: false },
 
     status: {
       type: DataTypes.ENUM,
       values: ['draft', 'public', 'deleted', 'private'],
     },
 
-    dataSource: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
+    dataSource: { type: DataTypes.TEXT },
   }, {
     timestamps: true,
   });
