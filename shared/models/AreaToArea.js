@@ -2,22 +2,23 @@ export default (sequelize, DataTypes) => {
   const AreaToArea = sequelize.define('AreaToArea', {
     parentUuid: {
       type: DataTypes.UUID,
+      allowNull: false,
       // Composite primaryKey defined in migration 01
       validate: {
         isUUID: 4,
       },
     },
+
     childUuid: {
       type: DataTypes.UUID,
+      allowNull: false,
       // Composite primaryKey defined in migration 01
       validate: {
         isUUID: 4,
       },
     },
-    dataSource: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
+
+    dataSource: { type: DataTypes.TEXT },
   }, {
     timestamps: true,
   });

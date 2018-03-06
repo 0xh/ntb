@@ -10,11 +10,13 @@ export default (sequelize, DataTypes) => {
 
     countyUuid: {
       type: DataTypes.UUID,
+      allowNull: false,
       unique: 'county_language',
     },
 
     name: {
       type: DataTypes.TEXT,
+      allowNull: false,
       validate: {
         notEmpty: true,
       },
@@ -22,6 +24,7 @@ export default (sequelize, DataTypes) => {
 
     nameLowerCase: {
       type: DataTypes.TEXT,
+      allowNull: false,
       validate: {
         notEmpty: true,
       },
@@ -29,16 +32,14 @@ export default (sequelize, DataTypes) => {
 
     language: {
       type: DataTypes.TEXT,
+      allowNull: false,
       unique: 'county_language',
       validate: {
         notEmpty: true,
       },
     },
 
-    dataSource: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
+    dataSource: { type: DataTypes.TEXT },
   }, {
     timestamps: true,
   });

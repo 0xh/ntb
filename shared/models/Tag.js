@@ -6,6 +6,7 @@ export default (sequelize, DataTypes) => {
     },
     name: {
       type: DataTypes.TEXT,
+      allowNull: false,
     },
   }, {
     timestamps: false,

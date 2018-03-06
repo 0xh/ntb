@@ -39,6 +39,7 @@ export default (sequelize, DataTypes) => {
 
     status: {
       type: DataTypes.ENUM,
+      allowNull: false,
       values: ['draft', 'public', 'deleted', 'private'],
     },
 

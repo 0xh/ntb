@@ -11,6 +11,7 @@ export default (sequelize, DataTypes) => {
 
     code: {
       type: DataTypes.TEXT,
+      allowNull: false,
       validate: {
         notEmpty: true,
       },
@@ -18,6 +19,7 @@ export default (sequelize, DataTypes) => {
 
     name: {
       type: DataTypes.TEXT,
+      allowNull: false,
       validate: {
         notEmpty: true,
       },
@@ -25,6 +27,7 @@ export default (sequelize, DataTypes) => {
 
     nameLowerCase: {
       type: DataTypes.TEXT,
+      allowNull: false,
       validate: {
         notEmpty: true,
       },
@@ -32,13 +35,11 @@ export default (sequelize, DataTypes) => {
 
     status: {
       type: DataTypes.ENUM,
+      allowNull: false,
       values: ['draft', 'public', 'deleted', 'private'],
     },
 
-    dataSource: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
+    dataSource: { type: DataTypes.TEXT },
   }, {
     timestamps: true,
   });

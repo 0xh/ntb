@@ -9,19 +9,13 @@ export default (sequelize, DataTypes) => {
       },
     },
 
-    idLegacyNtb: {
-      type: DataTypes.TEXT,
-      unique: true,
-      allowNull: true,
-    },
+    idLegacyNtb: { type: DataTypes.TEXT, unique: true },
 
-    type: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
+    type: { type: DataTypes.TEXT },
 
     name: {
       type: DataTypes.TEXT,
+      allowNull: false,
       validate: {
         notEmpty: true,
       },
@@ -29,105 +23,38 @@ export default (sequelize, DataTypes) => {
 
     nameLowerCase: {
       type: DataTypes.TEXT,
+      allowNull: false,
       validate: {
         notEmpty: true,
       },
     },
 
-    description: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
+    description: { type: DataTypes.TEXT },
+    descriptionPlain: { type: DataTypes.TEXT },
 
-    descriptionPlain: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
+    logo: { type: DataTypes.TEXT },
+    organizationNumber: { type: DataTypes.TEXT },
+    url: { type: DataTypes.TEXT },
+    email: { type: DataTypes.TEXT },
+    phone: { type: DataTypes.TEXT },
+    mobile: { type: DataTypes.TEXT },
+    fax: { type: DataTypes.TEXT },
+    address1: { type: DataTypes.TEXT },
+    address2: { type: DataTypes.TEXT },
+    postalCode: { type: DataTypes.TEXT },
+    postalName: { type: DataTypes.TEXT },
 
-    descriptionWords: {
-      type: DataTypes.ARRAY(DataTypes.TEXT),
-      allowNull: true,
-    },
+    license: { type: DataTypes.TEXT },
 
-    descriptionWordsStemmed: {
-      type: DataTypes.ARRAY(DataTypes.TEXT),
-      allowNull: true,
-    },
-
-    logo: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-
-    organizationNumber: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-
-    url: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-
-    email: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-
-    phone: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-
-    mobile: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-
-    fax: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-
-    address1: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-
-    address2: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-
-    postalCode: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-
-    postalName: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-
-    license: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-
-    provider: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
+    provider: { type: DataTypes.TEXT },
 
     status: {
       type: DataTypes.ENUM,
+      allowNull: false,
       values: ['draft', 'public', 'deleted', 'private'],
     },
 
-    dataSource: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
+    dataSource: { type: DataTypes.TEXT },
   }, {
     timestamps: true,
   });
