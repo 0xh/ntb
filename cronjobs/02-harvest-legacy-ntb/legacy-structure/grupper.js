@@ -60,6 +60,8 @@ function mapGroupType(tags, res) {
       return 'dnt';
     case 'fotballag':
       return 'football team';
+    case 'friluftsråd':
+      return 'outdoor recreation council';
     case 'fylkeskommune':
       return 'county council';
     case 'idrettslag':
