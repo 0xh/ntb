@@ -1,6 +1,9 @@
 import uuid4 from 'uuid/v4';
 
-import { processContent } from '@turistforeningen/ntb-shared-process-content';
+import {
+  sanitizeHtml,
+  stripHtml,
+} from '@turistforeningen/ntb-shared-text-content-utils';
 import { createLogger } from '@turistforeningen/ntb-shared-utils';
 
 import statusMapper from '../lib/statusMapper';
@@ -75,11 +78,6 @@ function mapMunicipalities(obj, res, handler) {
 
 async function mapping(obj, handler) {
   const res = {};
-  let description = {};
-
-  if (obj.beskrivelse) {
-    description = await processContent(obj.beskrivelse);
-  }
 
   res.area = {
     uuid: uuid4(),
@@ -87,10 +85,8 @@ async function mapping(obj, handler) {
     name: obj.navn,
     nameLowerCase: obj.navn.toLowerCase(),
 
-    description: description.sanitized || null,
-    descriptionPlain: description.plain || null,
-    descriptionWords: description.words || null,
-    descriptionWordsStemmed: description.stemmed || null,
+    description: obj.beskrivelse ? sanitizeHtml(obj.beskrivelse) : null,
+    descriptionPlain: obj.beskrivelse ? stripHtml(obj.beskrivelse) : null,
 
     geojson: obj.geojson,
 
