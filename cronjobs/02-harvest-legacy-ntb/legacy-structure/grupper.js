@@ -84,7 +84,7 @@ function mapGroupType(tags, res) {
       return 'outdoor group';
     default:
       if (tag.length) {
-        logger.error(
+        logger.warn(
           `Unknown group type "${tag}" on ` +
           `group.id_legacy_ntb=${res.group.idLegacyNtb}`
         );
@@ -117,7 +117,7 @@ function mapLinkType(type, res) {
     case 'annet':
       return 'other';
     default:
-      logger.error(
+      logger.warn(
         `Missing or unknown link type "${type}" on ` +
         `group.id_legacy_ntb=${res.group.idLegacyNtb}`
       );
