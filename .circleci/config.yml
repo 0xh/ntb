@@ -41,7 +41,7 @@ jobs:
 
   deploy-to-k8s:
     docker:
-      - image: praqma/helmsman:latest
+      - image: praqma/helmsman:v1.0.1
     steps:
       - checkout
       - run:
