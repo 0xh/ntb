@@ -52,7 +52,13 @@ workflows:
   version: 2
   build-and-publish:
     jobs:
-      - build-image
+      - build-image:
+          filters:
+            branches:
+              only: master
       - deploy-to-k8s:
           requires:
             - build-image
+          filters:
+            branches:
+              only: master
