@@ -1,3 +1,9 @@
+import { createLogger } from '@turistforeningen/ntb-shared-utils';
+
+
+const logger = createLogger();
+
+
 export default (sequelize, DataTypes) => {
   const Area = sequelize.define('Area', {
     uuid: {
@@ -44,6 +50,12 @@ export default (sequelize, DataTypes) => {
     },
 
     dataSource: { type: DataTypes.TEXT },
+
+    searchDocumentBoost: {
+      type: DataTypes.FLOAT,
+      default: 1,
+      allowNull: false,
+    },
   }, {
     timestamps: true,
   });
