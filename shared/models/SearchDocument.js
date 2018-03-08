@@ -59,6 +59,11 @@ export default (sequelize, DataTypes) => {
       },
     },
 
+    status: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+    },
+
     // * Fields created in migration 01
     // search_nb
     // search_gb
