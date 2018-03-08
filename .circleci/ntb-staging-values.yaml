@@ -1,0 +1,47 @@
+# Default values for the NTB Helm Chart.
+# This is a YAML-formatted file.
+
+# Declare variables with default values to be passed into your templates.
+# To override them, you need to (a) either adjust this file, or (b) provide your own values file,
+# which overrides the values found here.
+
+Replicas: 1
+ContainerName: ntb
+
+Image:
+  Name: "eu.gcr.io/dnt-docker-registry-public/ntb"
+  Tag: "latest"
+  ImagePullPolicy: "Always"
+
+ContainerPort: 3000
+
+EnvVars:
+  LEGACY_MONGO_DB_URI: ""
+  LEGACY_MONGO_DB_NAME: ""
+
+DB:
+  HOST: "127.0.0.1"
+  PORT: "5432"
+  USER: ""
+  PASSWORD: ""
+  NAME: ""
+  POOL_MIN: 0
+  POOL_MAX: 5
+  POOL_IDLE: 10000
+  POOL_ACQUIRE: 10000
+  POOL_EVICT: 10000
+  MIN_QUERY_TIME_FOR_LOGGING: 30
+
+
+DB_Proxy:
+  cloudsql_credentials: ""
+  instance_connection_name: "dnt-platform:europe-west1:dnt-dev-postgresql-6f46"
+
+Service:
+  Type: ClusterIP
+  Port: 3000
+  Protocol: TCP
+
+Ingress:
+  Host: new-ntb-dev.nasjonalturbase.no
+  ServicePort: 3000
