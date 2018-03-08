@@ -55,6 +55,12 @@ export default (sequelize, DataTypes) => {
     },
 
     dataSource: { type: DataTypes.TEXT },
+
+    searchDocumentBoost: {
+      type: DataTypes.FLOAT,
+      default: 1,
+      allowNull: false,
+    },
   }, {
     timestamps: true,
   });
