@@ -13,9 +13,10 @@ async function modifySearchBoostConfig(queryInterface) {
   await queryInterface.sequelize.query([
     'INSERT INTO "search_boost_config" (name, boost) VALUES',
     '  (\'search_document__area\', 1.1),',
+    '  (\'search_document__group\', 1),',
     '  (\'search_document__cabin\', 1.5),',
     '  (\'search_document__county\', 1),',
-    '  (\'search_document__municipality\', 1),',
+    '  (\'search_document__municipality\', 1)',
   ].join('\n'));
 }
 
@@ -168,14 +169,94 @@ async function modifyArea(queryInterface) {
   // Use tsvector trigger before each insert or update
   await queryInterface.sequelize.query([
     'CREATE TRIGGER area_tsvector_update BEFORE INSERT OR UPDATE',
-    'ON area FOR EACH ROW EXECUTE PROCEDURE area_tsvector_trigger();',
+    'ON "area" FOR EACH ROW EXECUTE PROCEDURE area_tsvector_trigger();',
   ].join('\n'));
 
   // Use search document trigger after each insert or update
   await queryInterface.sequelize.query([
     'CREATE TRIGGER area_search_document_update AFTER INSERT OR UPDATE',
-    'ON area',
+    'ON "area"',
     'FOR EACH ROW EXECUTE PROCEDURE area_search_document_trigger();',
+  ].join('\n'));
+}
+
+
+async function modifyGroup(queryInterface) {
+  const vectorName = 'search';
+
+  // Add tsvector field
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "group"',
+    `ADD COLUMN "${vectorName}" TSVECTOR;`,
+  ].join('\n'));
+
+  // Add index to tsvector field
+  await queryInterface.sequelize.query([
+    'CREATE INDEX group_search_idx ON "group"',
+    `USING gin("${vectorName}");`,
+  ].join('\n'));
+
+  // Create tsvector trigger procedure for Area
+  await queryInterface.sequelize.query([
+    'CREATE FUNCTION group_tsvector_trigger() RETURNS trigger AS $$',
+    'BEGIN',
+    `  NEW.${vectorName} :=`,
+    '    setweight(to_tsvector(',
+    '      \'pg_catalog.norwegian\',',
+    '       coalesce(NEW.name_lower_case, \'\')',
+    '    ), \'A\') ||',
+    '    setweight(to_tsvector(',
+    '      \'pg_catalog.norwegian\',',
+    '       coalesce(NEW.description_plain, \'\')',
+    '    ), \'D\');',
+    '  RETURN NEW;',
+    'END',
+    '$$ LANGUAGE plpgsql;',
+  ].join('\n'));
+
+  // Create search document trigger procedure for Area
+  await queryInterface.sequelize.query([
+    'CREATE FUNCTION group_search_document_trigger() RETURNS trigger AS $$',
+    'DECLARE',
+    '  boost FLOAT;',
+    'BEGIN',
+
+    '  SELECT sbc.boost INTO boost',
+    '  FROM search_boost_config AS sbc',
+    '  WHERE sbc.name = \'search_document__group\';',
+
+    '  INSERT INTO search_document (',
+    '    uuid, group_uuid, search_nb, search_document_boost,',
+    '    search_document_type_boost, created_at, updated_at',
+    '  )',
+    '  VALUES (',
+    `    uuid_generate_v4(), NEW.uuid, NEW.${vectorName},`,
+    '    NEW.search_document_boost, boost, NEW.created_at, NEW.updated_at',
+    '  )',
+    '  ON CONFLICT ("group_uuid")',
+    '  DO UPDATE',
+    '  SET',
+    '    search_nb = EXCLUDED.search_nb,',
+    '    search_document_type_boost = boost,',
+    '    created_at = EXCLUDED.created_at,',
+    '    updated_at = EXCLUDED.updated_at;',
+
+    '  RETURN NEW;',
+    'END',
+    '$$ LANGUAGE plpgsql;',
+  ].join('\n'));
+
+  // Use tsvector trigger before each insert or update
+  await queryInterface.sequelize.query([
+    'CREATE TRIGGER group_tsvector_update BEFORE INSERT OR UPDATE',
+    'ON "group" FOR EACH ROW EXECUTE PROCEDURE group_tsvector_trigger();',
+  ].join('\n'));
+
+  // Use search document trigger after each insert or update
+  await queryInterface.sequelize.query([
+    'CREATE TRIGGER group_search_document_update AFTER INSERT OR UPDATE',
+    'ON "group"',
+    'FOR EACH ROW EXECUTE PROCEDURE group_search_document_trigger();',
   ].join('\n'));
 }
 
@@ -213,6 +294,7 @@ const up = async (db) => {
   await modifyAreaToCounty(queryInterface);
   await modifyAreaToMunicipality(queryInterface);
   await modifyArea(queryInterface);
+  await modifyGroup(queryInterface);
 
   // Harvest counties and municipalities from kartverket
   await harvestCountiesAndMunicipalities();
@@ -233,8 +315,13 @@ const down = async (db) => {
 
   sqls.push('DROP FUNCTION IF EXISTS area_tsvector_trigger();');
   sqls.push('DROP FUNCTION IF EXISTS area_search_document_trigger();');
-  sqls.push('DROP TRIGGER IF EXISTS area_tsvector_update ON area;');
-  sqls.push('DROP TRIGGER IF EXISTS area_search_document_update ON area;');
+  sqls.push('DROP TRIGGER IF EXISTS area_tsvector_update ON "area";');
+  sqls.push('DROP TRIGGER IF EXISTS area_search_document_update ON "area";');
+
+  sqls.push('DROP FUNCTION IF EXISTS group_tsvector_trigger();');
+  sqls.push('DROP FUNCTION IF EXISTS group_search_document_trigger();');
+  sqls.push('DROP TRIGGER IF EXISTS group_tsvector_update ON "group";');
+  sqls.push('DROP TRIGGER IF EXISTS group_search_document_update ON "group";');
 
   await db.sequelize.query(
     sqls.join('\n')
