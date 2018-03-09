@@ -2,11 +2,19 @@ import _sanitizeHtml from 'sanitize-html';
 import he from 'he';
 
 
+/**
+ * Sanetize html string. Remove unnecessary and unallowed html formatting
+ * @param {string} html  html string to sanetize
+ */
 export function sanitizeHtml(html) {
   return _sanitizeHtml(html);
 }
 
 
+/**
+ * Strips all html-tags and converts any htmlentities from string
+ * @param {string} html   html string to strip
+ */
 export function stripHtml(html) {
   let res = html
     .replace(/<{1}[^<>]{1,}>{1}/g, ' '); // replace html-tags
