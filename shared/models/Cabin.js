@@ -9,14 +9,13 @@ export default (sequelize, DataTypes) => {
       },
     },
 
-    idLegacyNtb: { type: DataTypes.TEXT },
+    idLegacyNtb: { type: DataTypes.TEXT, unique: true },
 
     dntCabin: { type: DataTypes.BOOLEAN, default: false, allowNull: false },
     dntDiscount: { type: DataTypes.BOOLEAN, default: false, allowNull: false },
 
     maintainerGroupUuid: {
       type: DataTypes.UUID,
-      allowNull: false,
       validate: {
         isUUID: 4,
       },
@@ -24,7 +23,6 @@ export default (sequelize, DataTypes) => {
 
     ownerGroupUuid: {
       type: DataTypes.UUID,
-      allowNull: false,
       validate: {
         isUUID: 4,
       },
@@ -32,7 +30,6 @@ export default (sequelize, DataTypes) => {
 
     contactGroupUuid: {
       type: DataTypes.UUID,
-      allowNull: false,
       validate: {
         isUUID: 4,
       },
@@ -54,8 +51,8 @@ export default (sequelize, DataTypes) => {
       },
     },
 
-    nameAlt: { type: DataTypes.TEXT },
-    nameAltLowerCase: { type: DataTypes.TEXT },
+    nameAlt: { type: DataTypes.ARRAY(DataTypes.TEXT) },
+    nameAltLowerCase: { type: DataTypes.ARRAY(DataTypes.TEXT) },
 
     description: { type: DataTypes.TEXT },
     descriptionPlain: { type: DataTypes.TEXT },
@@ -92,7 +89,6 @@ export default (sequelize, DataTypes) => {
 
     serviceLevel: {
       type: DataTypes.ENUM,
-      allowNull: false,
       values: [
         'self service',
         'serviced',
@@ -104,14 +100,22 @@ export default (sequelize, DataTypes) => {
       ],
     },
 
-    bedsExtra: { type: DataTypes.INTEGER },
-    bedsServiced: { type: DataTypes.INTEGER },
-    bedsSelfService: { type: DataTypes.INTEGER },
-    bedsUnmanned: { type: DataTypes.INTEGER },
-    bedsWinter: { type: DataTypes.INTEGER },
+    bedsExtra: { type: DataTypes.INTEGER, allowNull: false, default: 0 },
+    bedsServiced: { type: DataTypes.INTEGER, allowNull: false, default: 0 },
+    bedsSelfService: { type: DataTypes.INTEGER, allowNull: false, default: 0 },
+    bedsUnmanned: { type: DataTypes.INTEGER, allowNull: false, default: 0 },
+    bedsWinter: { type: DataTypes.INTEGER, allowNull: false, default: 0 },
 
-    bookingEnabled: { type: DataTypes.BOOLEAN },
-    bookingOnly: { type: DataTypes.BOOLEAN },
+    bookingEnabled: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      default: false,
+    },
+    bookingOnly: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      default: false,
+    },
     bookingUrl: { type: DataTypes.TEXT },
 
     htgtWinter: { type: DataTypes.TEXT },
@@ -132,6 +136,12 @@ export default (sequelize, DataTypes) => {
     },
 
     dataSource: { type: DataTypes.TEXT },
+
+    searchDocumentBoost: {
+      type: DataTypes.FLOAT,
+      default: 1,
+      allowNull: false,
+    },
   }, {
     timestamps: true,
   });
