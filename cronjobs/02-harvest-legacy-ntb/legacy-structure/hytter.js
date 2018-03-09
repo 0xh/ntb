@@ -325,11 +325,13 @@ async function mapping(obj, handler) {
       : null,
     contactIdGroupLegacyNtb: null, // updated below
 
-    name: obj.navn || null,
-    nameLowerCase: obj.navn ? obj.navn.toLowerCase() : null,
-    nameAlt: obj.navn_alt || null, // array
+    name: obj.navn || 'mangler navn',
+    nameLowerCase: obj.navn ? obj.navn.toLowerCase() : 'mangler navn',
+    nameAlt: obj.navn_alt
+      ? obj.navn_alt.map((n) => n.trim()).filter((n) => n)
+      : null,
     nameAltLowerCase: obj.navn_alt
-      ? obj.navn_alt.map((n) => n.toLowerCase)
+      ? obj.navn_alt.map((n) => n.toLowerCase().trim()).filter((n) => n)
       : null,
 
     description: obj.beskrivelse ? sanitizeHtml(obj.beskrivelse) : null,
@@ -342,21 +344,41 @@ async function mapping(obj, handler) {
 
     serviceLevel: mapServiceLevel(obj.betjeningsgrad, obj),
 
-    bedsExtra: obj.senger ? obj.senger.ekstra : null,
-    bedsServiced: obj.senger ? obj.senger.betjent : null,
-    bedsSelfService: obj.senger ? obj.senger.selvbetjent : null,
-    bedsUnmanned: obj.senger ? obj.senger.ubetjent : null,
-    bedsWinter: obj.senger ? obj.senger.vinter : null,
+    bedsExtra: obj.senger && obj.senger.ekstra
+      ? obj.senger.ekstra
+      : 0,
+    bedsServiced: obj.senger && obj.senger.betjent
+      ? obj.senger.betjent
+      : 0,
+    bedsSelfService: obj.senger && obj.senger.selvbetjent
+      ? obj.senger.selvbetjent
+      : 0,
+    bedsUnmanned: obj.senger && obj.senger.ubetjent
+      ? obj.senger.ubetjent
+      : 0,
+    bedsWinter: obj.senger && obj.senger.vinter
+      ? obj.senger.vinter
+      : 0,
 
-    htgtWinter: obj.adkomst ? obj.adkomst.vinter : null,
-    htgtSummer: obj.adkomst ? obj.adkomst.sommer : null,
+    htgtWinter: obj.adkomst && obj.adkomst.vinter
+      ? sanitizeHtml(obj.adkomst.vinter)
+      : null,
+    htgtSummer: obj.adkomst && obj.adkomst.sommer
+      ? sanitizeHtml(obj.adkomst.sommer)
+      : null,
     htgtOtherWinter:
-      obj.tilkomst && obj.tilkomst.privat ? obj.tilkomst.privat.vinter : null,
+      obj.tilkomst && obj.tilkomst.privat && obj.tilkomst.privat.vinter
+        ? sanitizeHtml(obj.tilkomst.privat.vinter)
+        : null,
     htgtOtherSummer:
-      obj.tilkomst && obj.tilkomst.privat ? obj.tilkomst.privat.sommer : null,
+      obj.tilkomst && obj.tilkomst.privat && obj.tilkomst.privat.sommer
+        ? sanitizeHtml(obj.tilkomst.privat.sommer)
+        : null,
 
     map: obj.kart,
-    mapAlt: obj.turkart, // array
+    mapAlt: obj.turkart
+      ? obj.turkart.map((n) => n.trim()).filter((n) => n)
+      : null,
 
     license: obj.lisens,
 
@@ -366,6 +388,13 @@ async function mapping(obj, handler) {
 
     dataSource: 'legacy-ntb',
   };
+
+  // Reset empty arrays to null
+  ['nameAlt', 'nameAltLowerCase', 'mapAlt'].forEach((key) => {
+    if (!res.cabin[key]) {
+      res.cabin[key] = null;
+    }
+  });
 
   // Contact info
   // use either 'sesong' or 'utenom_sesong' depending on ig the section
