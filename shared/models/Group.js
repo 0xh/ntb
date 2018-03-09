@@ -84,5 +84,21 @@ export default (sequelize, DataTypes) => {
     });
   };
 
+  // Class methods :: Search
+
+  Group.search = (query) => {
+    const escapedQuery = sequelize.getQueryInterface().escape(query);
+
+    return sequelize
+      .query(
+        [
+          `SELECT * FROM "${Group.tableName}"`,
+          'WHERE',
+          `  "search" @@ to_tsquery('norwegian', ${escapedQuery})`,
+        ].join('\n'),
+        Group
+      );
+  };
+
   return Group;
 };
