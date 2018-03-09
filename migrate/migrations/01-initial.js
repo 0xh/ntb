@@ -415,6 +415,86 @@ async function modifyMunicipality(queryInterface) {
 }
 
 
+async function modifyCabin(queryInterface) {
+  const vectorName = 'search';
+
+  // Add tsvector field
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "cabin"',
+    `ADD COLUMN "${vectorName}" TSVECTOR;`,
+  ].join('\n'));
+
+  // Add index to tsvector field
+  await queryInterface.sequelize.query([
+    'CREATE INDEX cabin_search_idx ON "cabin"',
+    `USING gin("${vectorName}");`,
+  ].join('\n'));
+
+  // Create tsvector trigger procedure for Area
+  await queryInterface.sequelize.query([
+    'CREATE FUNCTION cabin_tsvector_trigger() RETURNS trigger AS $$',
+    'BEGIN',
+    `  NEW.${vectorName} :=`,
+    '    setweight(to_tsvector(',
+    '      \'pg_catalog.norwegian\',',
+    '       coalesce(NEW.name_lower_case, \'\')',
+    '    ), \'A\') ||',
+    '    setweight(to_tsvector(',
+    '      \'pg_catalog.norwegian\',',
+    '       coalesce(NEW.description_plain, \'\')',
+    '    ), \'D\');',
+    '  RETURN NEW;',
+    'END',
+    '$$ LANGUAGE plpgsql;',
+  ].join('\n'));
+
+  // Create search document trigger procedure for Area
+  await queryInterface.sequelize.query([
+    'CREATE FUNCTION cabin_search_document_trigger() RETURNS trigger AS $$',
+    'DECLARE',
+    '  boost FLOAT;',
+    'BEGIN',
+
+    '  SELECT sbc.boost INTO boost',
+    '  FROM search_boost_config AS sbc',
+    '  WHERE sbc.name = \'search_document__cabin\';',
+
+    '  INSERT INTO search_document (',
+    '    uuid, cabin_uuid, status, search_nb, search_document_boost,',
+    '    search_document_type_boost, created_at, updated_at',
+    '  )',
+    '  VALUES (',
+    `    uuid_generate_v4(), NEW.uuid, NEW.status, NEW.${vectorName},`,
+    '    NEW.search_document_boost, boost, NEW.created_at, NEW.updated_at',
+    '  )',
+    '  ON CONFLICT ("cabin_uuid")',
+    '  DO UPDATE',
+    '  SET',
+    '    search_nb = EXCLUDED.search_nb,',
+    '    search_document_type_boost = boost,',
+    '    created_at = EXCLUDED.created_at,',
+    '    updated_at = EXCLUDED.updated_at;',
+
+    '  RETURN NEW;',
+    'END',
+    '$$ LANGUAGE plpgsql;',
+  ].join('\n'));
+
+  // Use tsvector trigger before each insert or update
+  await queryInterface.sequelize.query([
+    'CREATE TRIGGER cabin_tsvector_update BEFORE INSERT OR UPDATE',
+    'ON "cabin" FOR EACH ROW EXECUTE PROCEDURE cabin_tsvector_trigger();',
+  ].join('\n'));
+
+  // Use search document trigger after each insert or update
+  await queryInterface.sequelize.query([
+    'CREATE TRIGGER cabin_search_document_update AFTER INSERT OR UPDATE',
+    'ON "cabin"',
+    'FOR EACH ROW EXECUTE PROCEDURE cabin_search_document_trigger();',
+  ].join('\n'));
+}
+
+
 async function harvestCountiesAndMunicipalities() {
   // Harvest counties and municipalities from kartverket
   await CMharvest()
@@ -451,6 +531,7 @@ const up = async (db) => {
   await modifyGroup(queryInterface);
   await modifyCounty(queryInterface);
   await modifyMunicipality(queryInterface);
+  await modifyCabin(queryInterface);
 
   // Harvest counties and municipalities from kartverket
   await harvestCountiesAndMunicipalities();
