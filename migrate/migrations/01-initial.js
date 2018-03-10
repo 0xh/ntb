@@ -11,12 +11,20 @@ const logger = createLogger();
 async function modifySearchBoostConfig(queryInterface, transaction) {
   // Set initial data
   await queryInterface.sequelize.query([
-    'INSERT INTO "search_boost_config" (name, boost) VALUES',
-    '  (\'search_document__area\', 1.1),',
-    '  (\'search_document__group\', 1),',
-    '  (\'search_document__cabin\', 1.5),',
-    '  (\'search_document__county\', 1),',
-    '  (\'search_document__municipality\', 1)',
+    'INSERT INTO "search_boost_config" (name, boost, weight) VALUES',
+    '  (\'search_document__area\', 1.1, NULL),',
+    '  (\'search_document__group\', 1, NULL),',
+    '  (\'search_document__cabin\', 1.5, NULL),',
+    '  (\'search_document__county\', 1, NULL),',
+    '  (\'search_document__municipality\', 1, NULL),',
+    '  (\'area__field__name\', NULL, \'A\'),',
+    '  (\'area__field__description\', NULL, \'D\'),',
+    '  (\'cabin__field__name\', NULL, \'A\'),',
+    '  (\'cabin__field__description\', NULL, \'D\'),',
+    '  (\'group__field__name\', NULL, \'A\'),',
+    '  (\'group__field__description\', NULL, \'D\'),',
+    '  (\'county__field__name\', NULL, \'A\'),',
+    '  (\'municipality__field__name\', NULL, \'A\');',
   ].join('\n'), { transaction });
 }
 
@@ -108,16 +116,27 @@ async function modifyArea(queryInterface, transaction) {
   // Create tsvector trigger procedure for Area
   await queryInterface.sequelize.query([
     'CREATE FUNCTION area_tsvector_trigger() RETURNS trigger AS $$',
+    'DECLARE',
+    '  name_weight CHAR;',
+    '  description_weight CHAR;',
     'BEGIN',
+    '  SELECT sbc."weight" INTO name_weight',
+    '  FROM "search_boost_config" AS sbc',
+    '  WHERE sbc.name = \'area__field__name\';',
+    '',
+    '  SELECT sbc."weight" INTO description_weight',
+    '  FROM "search_boost_config" AS sbc',
+    '  WHERE sbc.name = \'area__field__description\';',
+    '',
     '  NEW.search_nb :=',
     '    setweight(to_tsvector(',
     '      \'pg_catalog.norwegian\',',
     '       coalesce(NEW.name_lower_case, \'\')',
-    '    ), \'A\') ||',
+    '    ), name_weight::"char") ||',
     '    setweight(to_tsvector(',
     '      \'pg_catalog.norwegian\',',
     '       coalesce(NEW.description_plain, \'\')',
-    '    ), \'D\');',
+    '    ), description_weight::"char");',
     '  RETURN NEW;',
     'END',
     '$$ LANGUAGE plpgsql;',
@@ -186,16 +205,27 @@ async function modifyGroup(queryInterface, transaction) {
   // Create tsvector trigger procedure for Area
   await queryInterface.sequelize.query([
     'CREATE FUNCTION group_tsvector_trigger() RETURNS trigger AS $$',
+    'DECLARE',
+    '  name_weight CHAR;',
+    '  description_weight CHAR;',
     'BEGIN',
+    '  SELECT sbc."weight" INTO name_weight',
+    '  FROM "search_boost_config" AS sbc',
+    '  WHERE sbc.name = \'group__field__name\';',
+    '',
+    '  SELECT sbc."weight" INTO description_weight',
+    '  FROM "search_boost_config" AS sbc',
+    '  WHERE sbc.name = \'group__field__description\';',
+    '',
     '  NEW.search_nb :=',
     '    setweight(to_tsvector(',
     '      \'pg_catalog.norwegian\',',
     '       coalesce(NEW.name_lower_case, \'\')',
-    '    ), \'A\') ||',
+    '    ), name_weight::"char") ||',
     '    setweight(to_tsvector(',
     '      \'pg_catalog.norwegian\',',
     '       coalesce(NEW.description_plain, \'\')',
-    '    ), \'D\');',
+    '    ), description_weight::"char");',
     '  RETURN NEW;',
     'END',
     '$$ LANGUAGE plpgsql;',
@@ -253,19 +283,24 @@ async function modifyCounty(queryInterface, transaction) {
   await queryInterface.sequelize.query([
     'CREATE FUNCTION county_search_document_trigger() RETURNS trigger AS $$',
     'DECLARE',
+    '  name_weight CHAR;',
     '  boost FLOAT;',
     '  vector TSVECTOR;',
     'BEGIN',
 
+    '  SELECT sbc."weight" INTO name_weight',
+    '  FROM "search_boost_config" AS sbc',
+    '  WHERE sbc."name" = \'county__field__name\';',
+
     '  SELECT sbc.boost INTO boost',
-    '  FROM search_boost_config AS sbc',
-    '  WHERE sbc.name = \'search_document__county\';',
+    '  FROM "search_boost_config" AS sbc',
+    '  WHERE sbc."name" = \'search_document__county\';',
 
     '  vector :=',
     '    setweight(to_tsvector(',
     '      \'pg_catalog.norwegian\',',
     '       coalesce(NEW.name_lower_case, \'\')',
-    '    ), \'A\');',
+    '    ), name_weight::"char");',
 
     '  INSERT INTO search_document (',
     '    uuid, county_uuid, status, search_nb, search_document_boost,',
@@ -303,9 +338,14 @@ async function modifyMunicipality(queryInterface, transaction) {
     'CREATE FUNCTION municipality_search_document_trigger()',
     'RETURNS trigger AS $$',
     'DECLARE',
+    '  name_weight CHAR;',
     '  boost FLOAT;',
     '  vector TSVECTOR;',
     'BEGIN',
+
+    '  SELECT sbc."weight" INTO name_weight',
+    '  FROM "search_boost_config" AS sbc',
+    '  WHERE sbc."name" = \'municipality__field__name\';',
 
     '  SELECT sbc.boost INTO boost',
     '  FROM search_boost_config AS sbc',
@@ -315,7 +355,7 @@ async function modifyMunicipality(queryInterface, transaction) {
     '    setweight(to_tsvector(',
     '      \'pg_catalog.norwegian\',',
     '       coalesce(NEW.name_lower_case, \'\')',
-    '    ), \'A\');',
+    '    ), name_weight::"char");',
 
     '  INSERT INTO search_document (',
     '    uuid, municipality_uuid, status, search_nb, search_document_boost,',
@@ -348,39 +388,47 @@ async function modifyMunicipality(queryInterface, transaction) {
 
 
 async function modifyCabin(queryInterface, transaction) {
-  const vectorNameNb = 'search_nb';
-  const vectorNameEn = 'search_en';
-
   // Add tsvector field for norwegian
   await queryInterface.sequelize.query([
     'ALTER TABLE "cabin"',
-    `ADD COLUMN "${vectorNameNb}" TSVECTOR,`,
-    `ADD COLUMN "${vectorNameEn}" TSVECTOR;`,
+    'ADD COLUMN "search_nb" TSVECTOR,',
+    'ADD COLUMN "search_en" TSVECTOR;',
   ].join('\n'), { transaction });
 
   // Add index to tsvector field
   await queryInterface.sequelize.query([
     'CREATE INDEX cabin_search_nb_idx ON "cabin"',
-    `USING gin("${vectorNameNb}");`,
+    'USING gin("search_nb");',
   ].join('\n'), { transaction });
   await queryInterface.sequelize.query([
     'CREATE INDEX cabin_search_en_idx ON "cabin"',
-    `USING gin("${vectorNameEn}");`,
+    'USING gin("search_en");',
   ].join('\n'), { transaction });
 
   // Create tsvector trigger procedure for updating the norwegian vector
   await queryInterface.sequelize.query([
     'CREATE FUNCTION cabin_tsvector_trigger() RETURNS trigger AS $$',
+    'DECLARE',
+    '  name_weight CHAR;',
+    '  description_weight CHAR;',
     'BEGIN',
-    `  NEW.${vectorNameNb} :=`,
+    '  SELECT sbc."weight" INTO name_weight',
+    '  FROM "search_boost_config" AS sbc',
+    '  WHERE sbc.name = \'cabin__field__name\';',
+    '',
+    '  SELECT sbc."weight" INTO description_weight',
+    '  FROM "search_boost_config" AS sbc',
+    '  WHERE sbc.name = \'cabin__field__description\';',
+    '',
+    '  NEW.search_nb :=',
     '    setweight(to_tsvector(',
     '      \'pg_catalog.norwegian\',',
     '       coalesce(NEW.name_lower_case, \'\')',
-    '    ), \'A\') ||',
+    '    ), name_weight::"char") ||',
     '    setweight(to_tsvector(',
     '      \'pg_catalog.norwegian\',',
     '       coalesce(NEW.description_plain, \'\')',
-    '    ), \'D\');',
+    '    ), description_weight::"char");',
     '  RETURN NEW;',
     'END',
     '$$ LANGUAGE plpgsql;',
@@ -402,7 +450,7 @@ async function modifyCabin(queryInterface, transaction) {
     '    search_document_type_boost, created_at, updated_at',
     '  )',
     '  VALUES (',
-    `    uuid_generate_v4(), NEW.uuid, NEW.status, NEW.${vectorNameNb},`,
+    '    uuid_generate_v4(), NEW.uuid, NEW.status, NEW.search_nb,',
     '    NEW.search_document_boost, boost, NEW.created_at, NEW.updated_at',
     '  )',
     '  ON CONFLICT ("cabin_uuid")',
@@ -434,34 +482,42 @@ async function modifyCabin(queryInterface, transaction) {
 
 
 async function modifyCabinTranslation(queryInterface, transaction) {
-  const vectorNameEn = 'search_en';
-
   // Update search document and cabin trigger procedure for update
   await queryInterface.sequelize.query([
     'CREATE FUNCTION cabin_translation_on_insert_or_update()',
     'RETURNS trigger AS $$',
     'DECLARE',
+    '  name_weight CHAR;',
+    '  description_weight CHAR;',
     '  vector TSVECTOR;',
     'BEGIN',
 
     '  IF NEW.language = \'en\' THEN',
+    '    SELECT sbc."weight" INTO name_weight',
+    '    FROM "search_boost_config" AS sbc',
+    '    WHERE sbc.name = \'cabin__field__name\';',
+    '',
+    '    SELECT sbc."weight" INTO description_weight',
+    '    FROM "search_boost_config" AS sbc',
+    '    WHERE sbc.name = \'cabin__field__description\';',
+    '',
     '    vector :=',
     '      setweight(to_tsvector(',
     '        \'pg_catalog.english\',',
     '         coalesce(NEW.name_lower_case, \'\')',
-    '      ), \'A\') ||',
+    '      ), name_weight::"char") ||',
     '      setweight(to_tsvector(',
     '        \'pg_catalog.english\',',
     '         coalesce(NEW.description_plain, \'\')',
-    '      ), \'D\');',
+    '      ), description_weight::"char");',
 
     '    UPDATE "search_document" SET',
-    `      "${vectorNameEn}" = vector`,
+    '      "search_en" = vector',
     '    WHERE',
     '      "cabin_uuid" = NEW.cabin_uuid;',
 
     '    UPDATE "cabin" SET',
-    `      "${vectorNameEn}" = vector`,
+    '      "search_en" = vector',
     '    WHERE',
     '      "uuid" = NEW.cabin_uuid;',
     '  END IF;',
@@ -479,12 +535,12 @@ async function modifyCabinTranslation(queryInterface, transaction) {
 
     '  IF OLD.language = \'en\' THEN',
     '    UPDATE "search_document" SET',
-    `      "${vectorNameEn}" = NULL`,
+    '      "search_en" = NULL',
     '    WHERE',
     '      "cabin_uuid" = OLD.cabin_uuid;',
 
     '    UPDATE "cabin" SET',
-    `      "${vectorNameEn}" = NULL`,
+    '      "search_en" = NULL',
     '    WHERE',
     '      "uuid" = OLD.cabin_uuid;',
     '  END IF;',
