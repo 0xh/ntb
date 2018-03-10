@@ -66,8 +66,7 @@ export default (sequelize, DataTypes) => {
 
     // * Fields created in migration 01
     // search_nb
-    // search_gb
-    // search_sme
+    // search_en
 
     searchDocumentBoost: {
       type: DataTypes.FLOAT,
