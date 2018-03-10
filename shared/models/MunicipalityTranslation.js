@@ -2,6 +2,7 @@ export default (sequelize, DataTypes) => {
   const MunicipalityTranslation = sequelize.define('MunicipalityTranslation', {
     uuid: {
       type: DataTypes.UUID,
+      primaryKey: true,
       defaultValue: DataTypes.UUIDV4,
       validate: {
         isUUID: 4,
