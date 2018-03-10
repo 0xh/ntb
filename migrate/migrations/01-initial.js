@@ -8,10 +8,10 @@ import { createLogger } from '@turistforeningen/ntb-shared-utils';
 const logger = createLogger();
 
 
-async function modifySearchBoostConfig(queryInterface, transaction) {
+async function modifySearchConfig(queryInterface, transaction) {
   // Set initial data
   await queryInterface.sequelize.query([
-    'INSERT INTO "search_boost_config" (name, boost, weight) VALUES',
+    'INSERT INTO "search_config" (name, boost, weight) VALUES',
     '  (\'search_document__area\', 1.1, NULL),',
     '  (\'search_document__group\', 1, NULL),',
     '  (\'search_document__cabin\', 1.5, NULL),',
@@ -121,11 +121,11 @@ async function modifyArea(queryInterface, transaction) {
     '  description_weight CHAR;',
     'BEGIN',
     '  SELECT sbc."weight" INTO name_weight',
-    '  FROM "search_boost_config" AS sbc',
+    '  FROM "search_config" AS sbc',
     '  WHERE sbc.name = \'area__field__name\';',
     '',
     '  SELECT sbc."weight" INTO description_weight',
-    '  FROM "search_boost_config" AS sbc',
+    '  FROM "search_config" AS sbc',
     '  WHERE sbc.name = \'area__field__description\';',
     '',
     '  NEW.search_nb :=',
@@ -150,7 +150,7 @@ async function modifyArea(queryInterface, transaction) {
     'BEGIN',
 
     '  SELECT sbc.boost INTO boost',
-    '  FROM search_boost_config AS sbc',
+    '  FROM search_config AS sbc',
     '  WHERE sbc.name = \'search_document__area\';',
 
     '  INSERT INTO search_document (',
@@ -210,11 +210,11 @@ async function modifyGroup(queryInterface, transaction) {
     '  description_weight CHAR;',
     'BEGIN',
     '  SELECT sbc."weight" INTO name_weight',
-    '  FROM "search_boost_config" AS sbc',
+    '  FROM "search_config" AS sbc',
     '  WHERE sbc.name = \'group__field__name\';',
     '',
     '  SELECT sbc."weight" INTO description_weight',
-    '  FROM "search_boost_config" AS sbc',
+    '  FROM "search_config" AS sbc',
     '  WHERE sbc.name = \'group__field__description\';',
     '',
     '  NEW.search_nb :=',
@@ -239,7 +239,7 @@ async function modifyGroup(queryInterface, transaction) {
     'BEGIN',
 
     '  SELECT sbc.boost INTO boost',
-    '  FROM search_boost_config AS sbc',
+    '  FROM search_config AS sbc',
     '  WHERE sbc.name = \'search_document__group\';',
 
     '  INSERT INTO search_document (',
@@ -289,11 +289,11 @@ async function modifyCounty(queryInterface, transaction) {
     'BEGIN',
 
     '  SELECT sbc."weight" INTO name_weight',
-    '  FROM "search_boost_config" AS sbc',
+    '  FROM "search_config" AS sbc',
     '  WHERE sbc."name" = \'county__field__name\';',
 
     '  SELECT sbc.boost INTO boost',
-    '  FROM "search_boost_config" AS sbc',
+    '  FROM "search_config" AS sbc',
     '  WHERE sbc."name" = \'search_document__county\';',
 
     '  vector :=',
@@ -344,11 +344,11 @@ async function modifyMunicipality(queryInterface, transaction) {
     'BEGIN',
 
     '  SELECT sbc."weight" INTO name_weight',
-    '  FROM "search_boost_config" AS sbc',
+    '  FROM "search_config" AS sbc',
     '  WHERE sbc."name" = \'municipality__field__name\';',
 
     '  SELECT sbc.boost INTO boost',
-    '  FROM search_boost_config AS sbc',
+    '  FROM search_config AS sbc',
     '  WHERE sbc.name = \'search_document__municipality\';',
 
     '  vector :=',
@@ -413,11 +413,11 @@ async function modifyCabin(queryInterface, transaction) {
     '  description_weight CHAR;',
     'BEGIN',
     '  SELECT sbc."weight" INTO name_weight',
-    '  FROM "search_boost_config" AS sbc',
+    '  FROM "search_config" AS sbc',
     '  WHERE sbc.name = \'cabin__field__name\';',
     '',
     '  SELECT sbc."weight" INTO description_weight',
-    '  FROM "search_boost_config" AS sbc',
+    '  FROM "search_config" AS sbc',
     '  WHERE sbc.name = \'cabin__field__description\';',
     '',
     '  NEW.search_nb :=',
@@ -442,7 +442,7 @@ async function modifyCabin(queryInterface, transaction) {
     'BEGIN',
 
     '  SELECT sbc.boost INTO boost',
-    '  FROM search_boost_config AS sbc',
+    '  FROM search_config AS sbc',
     '  WHERE sbc.name = \'search_document__cabin\';',
 
     '  INSERT INTO search_document (',
@@ -494,11 +494,11 @@ async function modifyCabinTranslation(queryInterface, transaction) {
 
     '  IF NEW.language = \'en\' THEN',
     '    SELECT sbc."weight" INTO name_weight',
-    '    FROM "search_boost_config" AS sbc',
+    '    FROM "search_config" AS sbc',
     '    WHERE sbc.name = \'cabin__field__name\';',
     '',
     '    SELECT sbc."weight" INTO description_weight',
-    '    FROM "search_boost_config" AS sbc',
+    '    FROM "search_config" AS sbc',
     '    WHERE sbc.name = \'cabin__field__description\';',
     '',
     '    vector :=',
@@ -653,7 +653,7 @@ const up = async (db) => {
   const queryInterface = db.sequelize.getQueryInterface();
 
   await queryInterface.sequelize.transaction(async (transaction) => {
-    await modifySearchBoostConfig(queryInterface, transaction);
+    await modifySearchConfig(queryInterface, transaction);
     await modifySearchDocument(queryInterface, transaction);
     await modifyTagRelation(queryInterface, transaction);
     await modifyAreaToArea(queryInterface, transaction);
