@@ -7,3 +7,5 @@ node_modules
 .vscode
 lerna-debug.log
 yarn-error.log
+
+shared/private-debug
