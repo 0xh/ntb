@@ -1,5 +1,5 @@
 export default (sequelize, DataTypes) => {
-  const SearchBoostConfig = sequelize.define('SearchBoostConfig', {
+  const SearchConfig = sequelize.define('SearchConfig', {
     name: {
       type: DataTypes.TEXT,
       primaryKey: true,
@@ -8,7 +8,7 @@ export default (sequelize, DataTypes) => {
       },
     },
 
-    // Numeric boost - field used for ducument type boost
+    // Numeric boost - field used for document type boost
     boost: {
       type: DataTypes.FLOAT,
     },
@@ -23,5 +23,5 @@ export default (sequelize, DataTypes) => {
     timestamps: false,
   });
 
-  return SearchBoostConfig;
+  return SearchConfig;
 };
