@@ -8,10 +8,16 @@ export default (sequelize, DataTypes) => {
       },
     },
 
-    // Foreign key to Area
+    // Numeric boost - field used for ducument type boost
     boost: {
       type: DataTypes.FLOAT,
-      allowNull: false,
+    },
+
+    // field used for defining different weight for different fields for
+    // each document type
+    weight: {
+      type: DataTypes.ENUM,
+      values: ['A', 'B', 'C', 'D'],
     },
   }, {
     timestamps: false,
