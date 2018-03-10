@@ -90,19 +90,21 @@ async function createTempTables(handler) {
   });
   await handler.cabins.TempCabinModel.sync();
 
-  tableName = `${baseTableName}_cabin2`;
-  // handler.cabins.TempCABINModel = db.sequelize.define(
-  //   `${baseTableName}_cabin`, {
-  //     parentLegacyId: { type: db.Sequelize.TEXT },
-  //     parentUuid: { type: db.Sequelize.UUID, allowNull: true },
-  //     childLegacyId: { type: db.Sequelize.TEXT },
-  //     childUuid: { type: db.Sequelize.UUID, allowNull: true },
-  //   }, {
-  //     timestamps: false,
-  //     tableName: `${baseTableName}_cabin`,
-  //   }
-  // );
-  // await handler.cabins.TempCABINModel.sync();
+  tableName = `${baseTableName}_cabin_translation`;
+  handler.cabins.TempTranslationModel = db.sequelize.define(tableName, {
+    uuid: { type: db.Sequelize.UUID, primaryKey: true },
+    cabinUuid: { type: db.Sequelize.UUID },
+    cabinIdLegacyNtb: { type: db.Sequelize.TEXT },
+    name: { type: db.Sequelize.TEXT },
+    nameLowerCase: { type: db.Sequelize.TEXT },
+    description: { type: db.Sequelize.TEXT },
+    descriptionPlain: { type: db.Sequelize.TEXT },
+    language: { type: db.Sequelize.TEXT },
+  }, {
+    timestamps: false,
+    tableName,
+  });
+  await handler.cabins.TempTranslationModel.sync();
 
   endDuration(durationId);
 }
@@ -115,6 +117,7 @@ async function dropTempTables(handler) {
   const durationId = startDuration();
 
   await handler.cabins.TempCabinModel.drop();
+  await handler.cabins.TempTranslationModel.drop();
 
   endDuration(durationId);
 }
@@ -154,42 +157,19 @@ async function populateTempTables(handler) {
   await handler.cabins.TempCabinModel.bulkCreate(cabins);
   endDuration(durationId);
 
-  // // Process data for counties, minucipalities and area relations
-  // const areaArea = [];
-  // const areaCounty = [];
-  // const areaMunicipality = [];
-  // handler.cabins.processed.forEach((p) => {
-  //   p.counties.forEach((countyUuid) => areaCounty.push({
-  //     areaLegacyId: p.area.idLegacyNtb,
-  //     countyUuid,
-  //   }));
-  //   p.municipalities.forEach((municipalityUuid) => areaMunicipality.push({
-  //     areaLegacyId: p.area.idLegacyNtb,
-  //     municipalityUuid,
-  //   }));
-  //   p.areaRelations.forEach((parentLegacyId) => areaArea.push({
-  //     parentLegacyId,
-  //     childLegacyId: p.area.idLegacyNtb,
-  //   }));
-  // });
 
-  // // Insert temp data for AreaCounty
-  // logger.info('Inserting area county to temporary table');
-  // durationId = startDuration();
-  // await handler.areas.TempAreaCountyModel.bulkCreate(areaCounty);
-  // endDuration(durationId);
+  const translations = [];
+  handler.cabins.processed.forEach((p) => {
+    if (p.english) {
+      translations.push(p.english);
+    }
+  });
 
-  // // Insert temp data for AreaMunicipality
-  // logger.info('Inserting area municipality to temporary table');
-  // durationId = startDuration();
-  // await handler.areas.TempAreaMunicipalityModel.bulkCreate(areaMunicipality);
-  // endDuration(durationId);
-
-  // // Insert temp data for AreaArea
-  // logger.info('Inserting area<>area to temporary table');
-  // durationId = startDuration();
-  // await handler.areas.TempAreaAreaModel.bulkCreate(areaArea);
-  // endDuration(durationId);
+  // Insert temp data for CabinTranslation
+  logger.info('Inserting area county to temporary table');
+  durationId = startDuration();
+  await handler.cabins.TempTranslationModel.bulkCreate(translations);
+  endDuration(durationId);
 }
 
 
@@ -338,6 +318,60 @@ async function mergeCabin(handler) {
 
 
 /**
+ * Insert into `cabin_translation`-table or update if it already exists
+ */
+async function mergeCabinTranslation(handler) {
+  let sql;
+  let durationId;
+  const { tableName } = handler.cabins.TempTranslationModel;
+
+  // Set UUIDs on cabin in translation temp data
+  sql = [
+    `UPDATE public.${tableName} t1 SET`,
+    '  cabin_uuid = c.uuid',
+    `FROM public.${tableName} t2`,
+    'INNER JOIN "public"."cabin" c ON',
+    '  c.id_legacy_ntb = t2.cabin_id_legacy_ntb',
+    'WHERE',
+    '  t1.cabin_id_legacy_ntb = t2.cabin_id_legacy_ntb AND',
+    '  t1.language = t2.language',
+  ].join('\n');
+
+  logger.info('Update uuids on cabin in translation temp data');
+  durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+
+  // Merge into prod table
+  sql = [
+    'INSERT INTO cabin_translation (',
+    '  uuid, cabin_uuid, name, name_lower_case, description,',
+    '  description_plain, language, data_source, updated_at, created_at',
+    ')',
+    'SELECT',
+    '  uuid, cabin_uuid, name, name_lower_case, description,',
+    '  description_plain, language, :data_source, now(), now()',
+    `FROM public.${tableName}`,
+    'ON CONFLICT (cabin_uuid, language) DO UPDATE',
+    'SET',
+    '   name = EXCLUDED.name,',
+    '   name_lower_case = EXCLUDED.name_lower_case,',
+    '   description = EXCLUDED.description,',
+    '   description_plain = EXCLUDED.description_plain',
+  ].join('\n');
+
+  logger.info('Creating or updating cabins');
+  durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
  * Process legacy cabin data and merge it into the postgres database
  */
 const process = async (handler) => {
@@ -348,6 +382,7 @@ const process = async (handler) => {
   await createTempTables(handler);
   await populateTempTables(handler);
   await mergeCabin(handler);
+  await mergeCabinTranslation(handler);
   // await dropTempTables(handler);
 };
 

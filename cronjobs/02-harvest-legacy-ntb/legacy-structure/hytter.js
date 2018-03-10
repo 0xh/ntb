@@ -299,8 +299,13 @@ async function setEnglishTranslation(obj, res, handler) {
 
   if (obj.description) {
     res.english = {
+      uuid: uuid4(),
+      name: obj.navn || 'name missing',
+      nameLowerCase: obj.navn ? obj.navn.toLowerCase() : 'name missing',
+      cabinIdLegacyNtb: obj._id,
       description: sanitizeHtml(obj.description),
       descriptionPlain: stripHtml(obj.description),
+      language: 'en',
     };
   }
 }
