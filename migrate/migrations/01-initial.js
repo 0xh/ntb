@@ -93,25 +93,23 @@ async function modifyAreaToMunicipality(queryInterface, transaction) {
 
 
 async function modifyArea(queryInterface, transaction) {
-  const vectorName = 'search';
-
   // Add tsvector field
   await queryInterface.sequelize.query([
     'ALTER TABLE "area"',
-    `ADD COLUMN "${vectorName}" TSVECTOR;`,
+    'ADD COLUMN "search_nb" TSVECTOR;',
   ].join('\n'), { transaction });
 
   // Add index to tsvector field
   await queryInterface.sequelize.query([
     'CREATE INDEX area_search_idx ON "area"',
-    `USING gin("${vectorName}");`,
+    'USING gin("search_nb");',
   ].join('\n'), { transaction });
 
   // Create tsvector trigger procedure for Area
   await queryInterface.sequelize.query([
     'CREATE FUNCTION area_tsvector_trigger() RETURNS trigger AS $$',
     'BEGIN',
-    `  NEW.${vectorName} :=`,
+    '  NEW.search_nb :=',
     '    setweight(to_tsvector(',
     '      \'pg_catalog.norwegian\',',
     '       coalesce(NEW.name_lower_case, \'\')',
@@ -141,7 +139,7 @@ async function modifyArea(queryInterface, transaction) {
     '    search_document_type_boost, created_at, updated_at',
     '  )',
     '  VALUES (',
-    `    uuid_generate_v4(), NEW.uuid, NEW.status, NEW.${vectorName},`,
+    '    uuid_generate_v4(), NEW.uuid, NEW.status, NEW.search_nb,',
     '    NEW.search_document_boost, boost, NEW.created_at, NEW.updated_at',
     '  )',
     '  ON CONFLICT ("area_uuid")',
@@ -173,25 +171,23 @@ async function modifyArea(queryInterface, transaction) {
 
 
 async function modifyGroup(queryInterface, transaction) {
-  const vectorName = 'search';
-
   // Add tsvector field
   await queryInterface.sequelize.query([
     'ALTER TABLE "group"',
-    `ADD COLUMN "${vectorName}" TSVECTOR;`,
+    'ADD COLUMN "search_nb" TSVECTOR;',
   ].join('\n'), { transaction });
 
   // Add index to tsvector field
   await queryInterface.sequelize.query([
     'CREATE INDEX group_search_idx ON "group"',
-    `USING gin("${vectorName}");`,
+    'USING gin("search_nb");',
   ].join('\n'), { transaction });
 
   // Create tsvector trigger procedure for Area
   await queryInterface.sequelize.query([
     'CREATE FUNCTION group_tsvector_trigger() RETURNS trigger AS $$',
     'BEGIN',
-    `  NEW.${vectorName} :=`,
+    '  NEW.search_nb :=',
     '    setweight(to_tsvector(',
     '      \'pg_catalog.norwegian\',',
     '       coalesce(NEW.name_lower_case, \'\')',
@@ -221,7 +217,7 @@ async function modifyGroup(queryInterface, transaction) {
     '    search_document_type_boost, created_at, updated_at',
     '  )',
     '  VALUES (',
-    `    uuid_generate_v4(), NEW.uuid, NEW.status, NEW.${vectorName},`,
+    '    uuid_generate_v4(), NEW.uuid, NEW.status, NEW.search_nb,',
     '    NEW.search_document_boost, boost, NEW.created_at, NEW.updated_at',
     '  )',
     '  ON CONFLICT ("group_uuid")',
@@ -253,57 +249,36 @@ async function modifyGroup(queryInterface, transaction) {
 
 
 async function modifyCounty(queryInterface, transaction) {
-  const vectorName = 'search';
-
-  // Add tsvector field
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "county"',
-    `ADD COLUMN "${vectorName}" TSVECTOR;`,
-  ].join('\n'), { transaction });
-
-  // Add index to tsvector field
-  await queryInterface.sequelize.query([
-    'CREATE INDEX county_search_idx ON "county"',
-    `USING gin("${vectorName}");`,
-  ].join('\n'), { transaction });
-
-  // Create tsvector trigger procedure for Area
-  await queryInterface.sequelize.query([
-    'CREATE FUNCTION county_tsvector_trigger() RETURNS trigger AS $$',
-    'BEGIN',
-    `  NEW.${vectorName} :=`,
-    '    setweight(to_tsvector(',
-    '      \'pg_catalog.norwegian\',',
-    '       coalesce(NEW.name_lower_case, \'\')',
-    '    ), \'A\');',
-    '  RETURN NEW;',
-    'END',
-    '$$ LANGUAGE plpgsql;',
-  ].join('\n'), { transaction });
-
   // Create search document trigger procedure for Area
   await queryInterface.sequelize.query([
     'CREATE FUNCTION county_search_document_trigger() RETURNS trigger AS $$',
     'DECLARE',
     '  boost FLOAT;',
+    '  vector TSVECTOR;',
     'BEGIN',
 
     '  SELECT sbc.boost INTO boost',
     '  FROM search_boost_config AS sbc',
     '  WHERE sbc.name = \'search_document__county\';',
 
+    '  vector :=',
+    '    setweight(to_tsvector(',
+    '      \'pg_catalog.norwegian\',',
+    '       coalesce(NEW.name_lower_case, \'\')',
+    '    ), \'A\');',
+
     '  INSERT INTO search_document (',
     '    uuid, county_uuid, status, search_nb, search_document_boost,',
     '    search_document_type_boost, created_at, updated_at',
     '  )',
     '  VALUES (',
-    `    uuid_generate_v4(), NEW.uuid, NEW.status, NEW.${vectorName},`,
+    '    uuid_generate_v4(), NEW.uuid, NEW.status, vector,',
     '    1, boost, NEW.created_at, NEW.updated_at',
     '  )',
     '  ON CONFLICT ("county_uuid")',
     '  DO UPDATE',
     '  SET',
-    '    search_nb = EXCLUDED.search_nb,',
+    '    search_nb = vector,',
     '    search_document_type_boost = boost,',
     '    created_at = EXCLUDED.created_at,',
     '    updated_at = EXCLUDED.updated_at;',
@@ -311,12 +286,6 @@ async function modifyCounty(queryInterface, transaction) {
     '  RETURN NEW;',
     'END',
     '$$ LANGUAGE plpgsql;',
-  ].join('\n'), { transaction });
-
-  // Use tsvector trigger before each insert or update
-  await queryInterface.sequelize.query([
-    'CREATE TRIGGER county_tsvector_update BEFORE INSERT OR UPDATE',
-    'ON "county" FOR EACH ROW EXECUTE PROCEDURE county_tsvector_trigger();',
   ].join('\n'), { transaction });
 
   // Use search document trigger after each insert or update
@@ -329,58 +298,37 @@ async function modifyCounty(queryInterface, transaction) {
 
 
 async function modifyMunicipality(queryInterface, transaction) {
-  const vectorName = 'search';
-
-  // Add tsvector field
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "municipality"',
-    `ADD COLUMN "${vectorName}" TSVECTOR;`,
-  ].join('\n'), { transaction });
-
-  // Add index to tsvector field
-  await queryInterface.sequelize.query([
-    'CREATE INDEX municipality_search_idx ON "municipality"',
-    `USING gin("${vectorName}");`,
-  ].join('\n'), { transaction });
-
-  // Create tsvector trigger procedure for Area
-  await queryInterface.sequelize.query([
-    'CREATE FUNCTION municipality_tsvector_trigger() RETURNS trigger AS $$',
-    'BEGIN',
-    `  NEW.${vectorName} :=`,
-    '    setweight(to_tsvector(',
-    '      \'pg_catalog.norwegian\',',
-    '       coalesce(NEW.name_lower_case, \'\')',
-    '    ), \'A\');',
-    '  RETURN NEW;',
-    'END',
-    '$$ LANGUAGE plpgsql;',
-  ].join('\n'), { transaction });
-
   // Create search document trigger procedure for Area
   await queryInterface.sequelize.query([
     'CREATE FUNCTION municipality_search_document_trigger()',
     'RETURNS trigger AS $$',
     'DECLARE',
     '  boost FLOAT;',
+    '  vector TSVECTOR;',
     'BEGIN',
 
     '  SELECT sbc.boost INTO boost',
     '  FROM search_boost_config AS sbc',
     '  WHERE sbc.name = \'search_document__municipality\';',
 
+    '  vector :=',
+    '    setweight(to_tsvector(',
+    '      \'pg_catalog.norwegian\',',
+    '       coalesce(NEW.name_lower_case, \'\')',
+    '    ), \'A\');',
+
     '  INSERT INTO search_document (',
     '    uuid, municipality_uuid, status, search_nb, search_document_boost,',
     '    search_document_type_boost, created_at, updated_at',
     '  )',
     '  VALUES (',
-    `    uuid_generate_v4(), NEW.uuid, NEW.status, NEW.${vectorName},`,
+    '    uuid_generate_v4(), NEW.uuid, NEW.status, vector,',
     '    1, boost, NEW.created_at, NEW.updated_at',
     '  )',
     '  ON CONFLICT ("municipality_uuid")',
     '  DO UPDATE',
     '  SET',
-    '    search_nb = EXCLUDED.search_nb,',
+    '    search_nb = vector,',
     '    search_document_type_boost = boost,',
     '    created_at = EXCLUDED.created_at,',
     '    updated_at = EXCLUDED.updated_at;',
@@ -388,13 +336,6 @@ async function modifyMunicipality(queryInterface, transaction) {
     '  RETURN NEW;',
     'END',
     '$$ LANGUAGE plpgsql;',
-  ].join('\n'), { transaction });
-
-  // Use tsvector trigger before each insert or update
-  await queryInterface.sequelize.query([
-    'CREATE TRIGGER municipality_tsvector_update BEFORE INSERT OR UPDATE',
-    'ON "municipality" FOR EACH ROW EXECUTE PROCEDURE',
-    'municipality_tsvector_trigger();',
   ].join('\n'), { transaction });
 
   // Use search document trigger after each insert or update
@@ -613,21 +554,15 @@ const down = async (db) => {
   sqls.push('DROP FUNCTION IF EXISTS group_tsvector_trigger();');
   sqls.push('DROP FUNCTION IF EXISTS group_search_document_trigger();');
 
-  sqls.push('DROP TRIGGER IF EXISTS county_tsvector_update ON "county";');
   sqls.push(
     'DROP TRIGGER IF EXISTS county_search_document_update ON "county";'
   );
-  sqls.push('DROP FUNCTION IF EXISTS county_tsvector_trigger();');
   sqls.push('DROP FUNCTION IF EXISTS county_search_document_trigger();');
 
-  sqls.push(
-    'DROP TRIGGER IF EXISTS municipality_tsvector_update ON "municipality";'
-  );
   sqls.push(
     'DROP TRIGGER IF EXISTS municipality_search_document_update ' +
     'ON "municipality";'
   );
-  sqls.push('DROP FUNCTION IF EXISTS municipality_tsvector_trigger();');
   sqls.push('DROP FUNCTION IF EXISTS municipality_search_document_trigger();');
 
   sqls.push('DROP TRIGGER IF EXISTS cabin_tsvector_update ON "cabin";');
