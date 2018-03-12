@@ -196,7 +196,7 @@ async function createTempTables(handler) {
       key: { type: db.Sequelize.TEXT },
       cabinUuid: { type: db.Sequelize.UUID, allowNull: true },
       idCabinLegacyNtb: { type: db.Sequelize.TEXT },
-      idxCabinLegacyNtb: { type: db.Sequelize.INTEGER },
+      sortIndex: { type: db.Sequelize.INTEGER },
       dataSource: { type: db.Sequelize.TEXT },
       updatedAt: { type: db.Sequelize.DATE },
     }, {
@@ -953,7 +953,7 @@ async function mergeCabinOpeningHours(handler) {
     '  g.id_legacy_ntb = gl2.id_cabin_legacy_ntb',
     'WHERE',
     '  gl1.id_cabin_legacy_ntb = gl2.id_cabin_legacy_ntb AND',
-    '  gl1.idx_cabin_legacy_ntb = gl2.idx_cabin_legacy_ntb',
+    '  gl1.sort_index = gl2.sort_index',
   ].join('\n');
 
   logger.info('Update uuids on cabin opening hours temp data');
@@ -965,16 +965,15 @@ async function mergeCabinOpeningHours(handler) {
   sql = [
     'INSERT INTO cabin_opening_hours (',
     '  uuid, cabin_uuid, all_year, "from", "to", service_level, key,',
-    '  id_cabin_legacy_ntb, idx_cabin_legacy_ntb, data_source, created_at,',
-    '  updated_at',
+    '  sort_index, data_source, created_at, updated_at',
     ')',
     'SELECT',
     '  uuid, cabin_uuid, all_year, "from", "to",',
     '  service_level::enum_cabin_opening_hours_service_level,',
-    '  key::enum_cabin_opening_hours_key, id_cabin_legacy_ntb,',
-    '  idx_cabin_legacy_ntb, :data_source, now(), now()',
+    '  key::enum_cabin_opening_hours_key, sort_index, :data_source, now(),',
+    '  now()',
     `FROM public.${tableName}`,
-    'ON CONFLICT (id_cabin_legacy_ntb, idx_cabin_legacy_ntb) DO UPDATE',
+    'ON CONFLICT (cabin_uuid, sort_index) DO UPDATE',
     'SET',
     '  "all_year" = EXCLUDED."all_year",',
     '  "from" = EXCLUDED."from",',
@@ -1003,15 +1002,15 @@ async function removeDepreactedCabinOpeningHours(handler) {
     'DELETE FROM public.cabin_opening_hours',
     'USING public.cabin_opening_hours gl',
     `LEFT JOIN public.${tableName} te ON`,
-    '  gl.id_cabin_legacy_ntb = te.id_cabin_legacy_ntb AND',
-    '  gl.idx_cabin_legacy_ntb = te.idx_cabin_legacy_ntb',
+    '  gl.cabin_uuid = te.cabin_uuid AND',
+    '  gl.sort_index = te.sort_index',
     'WHERE',
-    '  te.id_cabin_legacy_ntb IS NULL AND',
+    '  te.cabin_uuid IS NULL AND',
     '  gl.data_source = :data_source AND',
-    '  public.cabin_opening_hours.id_cabin_legacy_ntb = ',
-    '    gl.id_cabin_legacy_ntb AND',
-    '  public.cabin_opening_hours.idx_cabin_legacy_ntb = ',
-    '    gl.idx_cabin_legacy_ntb',
+    '  public.cabin_opening_hours.cabin_uuid = ',
+    '    gl.cabin_uuid AND',
+    '  public.cabin_opening_hours.sort_index = ',
+    '    gl.sort_index',
   ].join('\n');
 
   logger.info('Deleting deprecated cabin opening hours');
