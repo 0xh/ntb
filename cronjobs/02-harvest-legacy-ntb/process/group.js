@@ -61,7 +61,7 @@ async function createTempTables(handler) {
       url: { type: db.Sequelize.TEXT },
       groupUuid: { type: db.Sequelize.UUID, allowNull: true },
       idGroupLegacyNtb: { type: db.Sequelize.TEXT },
-      idxGroupLegacyNtb: { type: db.Sequelize.INTEGER },
+      sortIndex: { type: db.Sequelize.INTEGER },
       dataSource: { type: db.Sequelize.TEXT },
       updatedAt: { type: db.Sequelize.DATE },
     }, {
@@ -223,7 +223,7 @@ async function mergeGroupLinks(handler) {
     '  g.id_legacy_ntb = gl2.id_group_legacy_ntb',
     'WHERE',
     '  gl1.id_group_legacy_ntb = gl2.id_group_legacy_ntb AND',
-    '  gl1.idx_group_legacy_ntb = gl2.idx_group_legacy_ntb',
+    '  gl1.sort_index = gl2.sort_index',
   ].join('\n');
 
   logger.info('Update uuids on group links temp data');
@@ -234,14 +234,14 @@ async function mergeGroupLinks(handler) {
   // Merge into prod table
   sql = [
     'INSERT INTO group_link (',
-    '  uuid, group_uuid, type, title, url, id_group_legacy_ntb,',
-    '  idx_group_legacy_ntb, data_source, created_at, updated_at',
+    '  uuid, group_uuid, type, title, url,',
+    '  sort_index, data_source, created_at, updated_at',
     ')',
     'SELECT',
-    '  uuid, group_uuid, type, title, url, id_group_legacy_ntb,',
-    '  idx_group_legacy_ntb, :data_source, now(), now()',
+    '  uuid, group_uuid, type, title, url,',
+    '  sort_index, :data_source, now(), now()',
     `FROM public.${handler.groups.TempGroupLinkModel.tableName}`,
-    'ON CONFLICT (id_group_legacy_ntb, idx_group_legacy_ntb) DO UPDATE',
+    'ON CONFLICT (group_uuid, sort_index) DO UPDATE',
     'SET',
     '  type = EXCLUDED.type,',
     '  title = EXCLUDED.title,',
@@ -267,13 +267,13 @@ async function removeDepreactedGroupLinks(handler) {
     'DELETE FROM public.group_link',
     'USING public.group_link gl',
     `LEFT JOIN public.${handler.groups.TempGroupLinkModel.tableName} te ON`,
-    '  gl.id_group_legacy_ntb = te.id_group_legacy_ntb AND',
-    '  gl.idx_group_legacy_ntb = te.idx_group_legacy_ntb',
+    '  gl.group_uuid = te.group_uuid AND',
+    '  gl.sort_index = te.sort_index',
     'WHERE',
-    '  te.id_group_legacy_ntb IS NULL AND',
+    '  te.group_uuid IS NULL AND',
     '  gl.data_source = :data_source AND',
-    '  public.group_link.id_group_legacy_ntb = gl.id_group_legacy_ntb AND',
-    '  public.group_link.idx_group_legacy_ntb = gl.idx_group_legacy_ntb',
+    '  public.group_link.group_uuid = gl.group_uuid AND',
+    '  public.group_link.sort_index = gl.sort_index',
   ].join('\n');
 
   logger.info('Deleting deprecated group links');
@@ -307,7 +307,7 @@ async function createTags(handler) {
 
 
 /**
- * Create new tags
+ * Create new tag relations
  */
 async function createTagRelations(handler) {
   let sql;
