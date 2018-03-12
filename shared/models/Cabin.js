@@ -10,6 +10,7 @@ export default (sequelize, DataTypes) => {
     },
 
     idLegacyNtb: { type: DataTypes.TEXT, unique: true },
+    idSsr: { type: DataTypes.TEXT },
 
     dntCabin: { type: DataTypes.BOOLEAN, default: false, allowNull: false },
     dntDiscount: { type: DataTypes.BOOLEAN, default: false, allowNull: false },
