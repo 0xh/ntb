@@ -83,6 +83,12 @@ export default (sequelize, DataTypes) => {
       through: models.AreaToMunicipality,
       foreignKey: 'areaUuid',
     });
+
+    models.Area.belongsToMany(models.Cabin, {
+      as: 'Cabins',
+      through: models.CabinToArea,
+      foreignKey: 'areaUuid',
+    });
   };
 
 
