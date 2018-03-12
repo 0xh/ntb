@@ -172,6 +172,23 @@ export default (sequelize, DataTypes) => {
     models.Cabin.belongsTo(models.Municipality, {
       foreignKey: 'municipalityUuid',
     });
+
+    models.Cabin.belongsToMany(models.Tag, {
+      through: {
+        model: models.TagRelation,
+        unique: false,
+        scope: {
+          taggedType: 'cabin',
+        },
+      },
+      foreignKey: 'tagged_uuid',
+      constraints: false,
+    });
+
+    models.Cabin.belongsToMany(models.Facility, {
+      through: { model: models.CabinFacility },
+      foreignKey: 'cabinUuid',
+    });
   };
 
 
