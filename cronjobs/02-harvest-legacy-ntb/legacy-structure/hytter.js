@@ -255,14 +255,17 @@ function setOpeningHours(obj, res, handler) {
   res.openingHours = [];
 
   if (obj.privat && obj.privat.åpningstider) {
-    obj.privat.åpningstider.forEach((o) => {
+    obj.privat.åpningstider.forEach((o, idx) => {
       res.openingHours.push({
-        allYear: o.helårs ? o.helårs.toLowerCase() === 'ja' : null,
+        uuid: uuid4(),
+        allYear: o.helårs ? o.helårs.toLowerCase() === 'ja' : false,
         from: o.fra, // date
         to: o.til, // date
         serviceLevel: mapOpeningHoursServiceLevel(o.betjeningsgrad, res),
         key: mapOpeningHoursKey(o.nøkkel, res),
         description: o.kommentar,
+        idCabinLegacyNtb: obj._id,
+        idxCabinLegacyNtb: idx,
       });
     });
   }
@@ -456,7 +459,7 @@ async function mapping(obj, handler) {
   // Set accessibility
   setAccessibility(obj, res, handler);
 
-  // Set accessibility
+  // Set opening hours
   setOpeningHours(obj, res, handler);
 
   // Set booking

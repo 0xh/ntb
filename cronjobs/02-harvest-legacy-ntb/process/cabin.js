@@ -185,6 +185,26 @@ async function createTempTables(handler) {
     });
   await handler.cabins.TempCabinAccessabilityModel.sync();
 
+  tableName = `${baseTableName}_cabin_opening_hours`;
+  handler.cabins.TempCabinOHoursModel =
+    db.sequelize.define(tableName, {
+      uuid: { type: db.Sequelize.UUID, primaryKey: true },
+      allYear: { type: db.Sequelize.BOOLEAN },
+      from: { type: db.Sequelize.DATE },
+      to: { type: db.Sequelize.DATE },
+      serviceLevel: { type: db.Sequelize.TEXT },
+      key: { type: db.Sequelize.TEXT },
+      cabinUuid: { type: db.Sequelize.UUID, allowNull: true },
+      idCabinLegacyNtb: { type: db.Sequelize.TEXT },
+      idxCabinLegacyNtb: { type: db.Sequelize.INTEGER },
+      dataSource: { type: db.Sequelize.TEXT },
+      updatedAt: { type: db.Sequelize.DATE },
+    }, {
+      timestamps: false,
+      tableName,
+    });
+  await handler.cabins.TempCabinOHoursModel.sync();
+
   endDuration(durationId);
 }
 
@@ -203,6 +223,7 @@ async function dropTempTables(handler) {
   await handler.cabins.TempCabinFacilityModel.drop();
   await handler.cabins.TempAccessabilityModel.drop();
   await handler.cabins.TempCabinAccessabilityModel.drop();
+  await handler.cabins.TempCabinOHoursModel.drop();
 
   endDuration(durationId);
 }
@@ -250,12 +271,15 @@ async function populateTempTables(handler) {
   const accessabilities = [];
   const cabinAccessabilities = [];
   let links = [];
+  let openingHours = [];
   handler.cabins.processed.forEach((p) => {
     if (p.english) {
       translations.push(p.english);
     }
 
     links = links.concat(p.links);
+
+    openingHours = openingHours.concat(p.openingHours);
 
     if (p.tags) {
       p.tags.forEach((tag) => tags.push({
@@ -304,6 +328,12 @@ async function populateTempTables(handler) {
   logger.info('Inserting cabin links to temporary table');
   durationId = startDuration();
   await handler.cabins.TempCabinLinkModel.bulkCreate(links);
+  endDuration(durationId);
+
+  // Insert temp data for CabinOpeningHours
+  logger.info('Inserting cabin opening hours to temporary table');
+  durationId = startDuration();
+  await handler.cabins.TempCabinOHoursModel.bulkCreate(openingHours);
   endDuration(durationId);
 
   // Insert temp data for CabinTag
@@ -907,6 +937,95 @@ async function removeDepreactedCabinAccessabilities(handler) {
 
 
 /**
+ * Insert into `CABIN_link`-table or update if it already exists
+ */
+async function mergeCabinOpeningHours(handler) {
+  let sql;
+  let durationId;
+  const { tableName } = handler.cabins.TempCabinOHoursModel;
+
+  // Set UUIDs on cabinLink temp data
+  sql = [
+    `UPDATE public.${tableName} gl1 SET`,
+    '  cabin_uuid = g.uuid',
+    `FROM public.${tableName} gl2`,
+    'INNER JOIN public.cabin g ON',
+    '  g.id_legacy_ntb = gl2.id_cabin_legacy_ntb',
+    'WHERE',
+    '  gl1.id_cabin_legacy_ntb = gl2.id_cabin_legacy_ntb AND',
+    '  gl1.idx_cabin_legacy_ntb = gl2.idx_cabin_legacy_ntb',
+  ].join('\n');
+
+  logger.info('Update uuids on cabin opening hours temp data');
+  durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+
+  // Merge into prod table
+  sql = [
+    'INSERT INTO cabin_opening_hours (',
+    '  uuid, cabin_uuid, all_year, "from", "to", service_level, key,',
+    '  id_cabin_legacy_ntb, idx_cabin_legacy_ntb, data_source, created_at,',
+    '  updated_at',
+    ')',
+    'SELECT',
+    '  uuid, cabin_uuid, all_year, "from", "to",',
+    '  service_level::enum_cabin_opening_hours_service_level,',
+    '  key::enum_cabin_opening_hours_key, id_cabin_legacy_ntb,',
+    '  idx_cabin_legacy_ntb, :data_source, now(), now()',
+    `FROM public.${tableName}`,
+    'ON CONFLICT (id_cabin_legacy_ntb, idx_cabin_legacy_ntb) DO UPDATE',
+    'SET',
+    '  "all_year" = EXCLUDED."all_year",',
+    '  "from" = EXCLUDED."from",',
+    '  "to" = EXCLUDED."to",',
+    '  "service_level" = EXCLUDED."service_level",',
+    '  "key" = EXCLUDED."key"',
+  ].join('\n');
+
+  logger.info('Creating or updating cabin opening hours');
+  durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Remove cabin opening hours that no longer exist in legacy-ntb
+ */
+async function removeDepreactedCabinOpeningHours(handler) {
+  const { tableName } = handler.cabins.TempCabinOHoursModel;
+  const sql = [
+    'DELETE FROM public.cabin_opening_hours',
+    'USING public.cabin_opening_hours gl',
+    `LEFT JOIN public.${tableName} te ON`,
+    '  gl.id_cabin_legacy_ntb = te.id_cabin_legacy_ntb AND',
+    '  gl.idx_cabin_legacy_ntb = te.idx_cabin_legacy_ntb',
+    'WHERE',
+    '  te.id_cabin_legacy_ntb IS NULL AND',
+    '  gl.data_source = :data_source AND',
+    '  public.cabin_opening_hours.id_cabin_legacy_ntb = ',
+    '    gl.id_cabin_legacy_ntb AND',
+    '  public.cabin_opening_hours.idx_cabin_legacy_ntb = ',
+    '    gl.idx_cabin_legacy_ntb',
+  ].join('\n');
+
+  logger.info('Deleting deprecated cabin opening hours');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
  * Process legacy cabin data and merge it into the postgres database
  */
 const process = async (handler) => {
@@ -929,6 +1048,8 @@ const process = async (handler) => {
   await createAccessabilities(handler);
   await createCabinAccessabilities(handler);
   await removeDepreactedCabinAccessabilities(handler);
+  await mergeCabinOpeningHours(handler);
+  await removeDepreactedCabinOpeningHours(handler);
   // await dropTempTables(handler);
 };
 
