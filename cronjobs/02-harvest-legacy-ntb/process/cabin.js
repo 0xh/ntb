@@ -206,6 +206,19 @@ async function createTempTables(handler) {
     });
   await handler.cabins.TempCabinOHoursModel.sync();
 
+  tableName = `${baseTableName}_cabin_to_area`;
+  handler.cabins.TempCabinToAreaModel =
+    db.sequelize.define(tableName, {
+      cabin_uuid: { type: db.Sequelize.UUID },
+      area_uuid: { type: db.Sequelize.UUID },
+      cabinLegacyId: { type: db.Sequelize.TEXT },
+      areaLegacyId: { type: db.Sequelize.TEXT },
+    }, {
+      timestamps: false,
+      tableName,
+    });
+  await handler.cabins.TempCabinToAreaModel.sync();
+
   endDuration(durationId);
 }
 
@@ -225,6 +238,7 @@ async function dropTempTables(handler) {
   await handler.cabins.TempAccessabilityModel.drop();
   await handler.cabins.TempCabinAccessabilityModel.drop();
   await handler.cabins.TempCabinOHoursModel.drop();
+  await handler.cabins.TempCabinToAreaModel.drop();
 
   endDuration(durationId);
 }
@@ -271,6 +285,7 @@ async function populateTempTables(handler) {
   const cabinFacilities = [];
   const accessabilities = [];
   const cabinAccessabilities = [];
+  const cabinToArea = [];
   let links = [];
   let openingHours = [];
   handler.cabins.processed.forEach((p) => {
@@ -315,6 +330,13 @@ async function populateTempTables(handler) {
         nameLowerCase: accessability.nameLowerCase,
         idCabinLegacyNtb: p.cabin.idLegacyNtb,
         description: accessability.description,
+      }));
+    }
+
+    if (p.areas) {
+      p.areas.forEach((area) => cabinToArea.push({
+        areaLegacyId: area,
+        cabinLegacyId: p.cabin.idLegacyNtb,
       }));
     }
   });
@@ -367,6 +389,12 @@ async function populateTempTables(handler) {
   await handler.cabins.TempCabinAccessabilityModel.bulkCreate(
     cabinAccessabilities
   );
+  endDuration(durationId);
+
+  // Insert temp data for CabinAccessability
+  logger.info('Inserting cabin to area temporary table');
+  durationId = startDuration();
+  await handler.cabins.TempCabinToAreaModel.bulkCreate(cabinToArea);
   endDuration(durationId);
 }
 
@@ -1027,6 +1055,86 @@ async function removeDepreactedCabinOpeningHours(handler) {
 
 
 /**
+ * Insert into `cabin_to_area`-table or update if it already exists
+ */
+async function mergeCabinToArea(handler) {
+  let sql;
+  let durationId;
+  const { tableName } = handler.cabins.TempCabinToAreaModel;
+
+  // Set UUIDs on cabinToArea temp data
+  sql = [
+    `UPDATE public.${tableName} a1 SET`,
+    '  cabin_uuid = c.uuid,',
+    '  area_uuid = a.uuid',
+    `FROM public.${tableName} a2`,
+    'INNER JOIN public.area a ON',
+    '  a.id_legacy_ntb = a2.area_legacy_id',
+    'INNER JOIN public.cabin c ON',
+    '  c.id_legacy_ntb = a2.cabin_legacy_id',
+    'WHERE',
+    '  a1.area_legacy_id = a2.area_legacy_id AND',
+    '  a1.cabin_legacy_id = a2.cabin_legacy_id',
+  ].join('\n');
+
+  logger.info('Update uuids on cabin-to-area temp data');
+  durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+
+  // Merge into prod table
+  sql = [
+    'INSERT INTO cabin_to_area (',
+    '  cabin_uuid, area_uuid, data_source, created_at, updated_at',
+    ')',
+    'SELECT',
+    '  cabin_uuid, area_uuid, :data_source, now(), now()',
+    `FROM public.${tableName}`,
+    'ON CONFLICT (cabin_uuid, area_uuid) DO NOTHING',
+  ].join('\n');
+
+  logger.info('Creating or updating cabin to area relations');
+  durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Remove area to area relations that no longer exist in legacy-ntb
+ */
+async function removeDepreactedCabinToArea(handler) {
+  const { tableName } = handler.cabins.TempCabinToAreaModel;
+
+  const sql = [
+    'DELETE FROM public.cabin_to_area',
+    'USING public.cabin_to_area c2a',
+    `LEFT JOIN public.${tableName} te ON`,
+    '  c2a.cabin_uuid = te.cabin_uuid AND',
+    '  c2a.area_uuid = te.area_uuid',
+    'WHERE',
+    '  te.area_uuid IS NULL AND',
+    '  c2a.data_source = :data_source AND',
+    '  public.cabin_to_area.cabin_uuid = c2a.cabin_uuid AND',
+    '  public.cabin_to_area.area_uuid = c2a.area_uuid',
+  ].join('\n');
+
+  logger.info('Deleting deprecated cabin to area relations');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
  * Process legacy cabin data and merge it into the postgres database
  */
 const process = async (handler) => {
@@ -1051,6 +1159,8 @@ const process = async (handler) => {
   await removeDepreactedCabinAccessabilities(handler);
   await mergeCabinOpeningHours(handler);
   await removeDepreactedCabinOpeningHours(handler);
+  await mergeCabinToArea(handler);
+  await removeDepreactedCabinToArea(handler);
   await dropTempTables(handler);
 };
 

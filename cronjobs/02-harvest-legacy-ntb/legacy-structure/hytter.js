@@ -10,7 +10,7 @@ import statusMapper from '../lib/statusMapper';
 
 
 // TODO(Roar):
-// - Translate facilities?
+// - Bilder
 
 
 const logger = createLogger();
@@ -38,13 +38,13 @@ function mapServiceLevelHelper(level) {
 }
 
 
-function mapServiceLevel(level, ob) {
+function mapServiceLevel(level, obj) {
   const l = mapServiceLevelHelper(level);
 
   if (!l && level) {
     logger.warn(
       `Unknown service level "${level}" on ` +
-      `cabin.id_legacy_ntb=${ob._id}`
+      `cabin.id_legacy_ntb=${obj._id}`
     );
   }
 
