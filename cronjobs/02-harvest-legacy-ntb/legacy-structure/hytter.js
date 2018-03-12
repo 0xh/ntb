@@ -153,7 +153,7 @@ function setLinks(obj, res, handler) {
         title: link.tittel,
         url: link.url,
         idCabinLegacyNtb: obj._id,
-        idxCabinLegacyNtb: idx,
+        sortIndex: idx,
         dataSource: 'legacy-ntb',
       });
     });

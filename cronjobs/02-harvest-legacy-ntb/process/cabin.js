@@ -115,7 +115,7 @@ async function createTempTables(handler) {
       url: { type: db.Sequelize.TEXT },
       cabinUuid: { type: db.Sequelize.UUID, allowNull: true },
       idCabinLegacyNtb: { type: db.Sequelize.TEXT },
-      idxCabinLegacyNtb: { type: db.Sequelize.INTEGER },
+      sortIndex: { type: db.Sequelize.INTEGER },
       dataSource: { type: db.Sequelize.TEXT },
       updatedAt: { type: db.Sequelize.DATE },
     }, {
@@ -585,7 +585,7 @@ async function mergeCabinLinks(handler) {
     '  g.id_legacy_ntb = gl2.id_cabin_legacy_ntb',
     'WHERE',
     '  gl1.id_cabin_legacy_ntb = gl2.id_cabin_legacy_ntb AND',
-    '  gl1.idx_cabin_legacy_ntb = gl2.idx_cabin_legacy_ntb',
+    '  gl1.sort_index = gl2.sort_index',
   ].join('\n');
 
   logger.info('Update uuids on cabin links temp data');
@@ -596,14 +596,14 @@ async function mergeCabinLinks(handler) {
   // Merge into prod table
   sql = [
     'INSERT INTO cabin_link (',
-    '  uuid, cabin_uuid, type, title, url, id_cabin_legacy_ntb,',
-    '  idx_cabin_legacy_ntb, data_source, created_at, updated_at',
+    '  uuid, cabin_uuid, type, title, url,',
+    '  sort_index, data_source, created_at, updated_at',
     ')',
     'SELECT',
-    '  uuid, cabin_uuid, type, title, url, id_cabin_legacy_ntb,',
-    '  idx_cabin_legacy_ntb, :data_source, now(), now()',
+    '  uuid, cabin_uuid, type, title, url,',
+    '  sort_index, :data_source, now(), now()',
     `FROM public.${tableName}`,
-    'ON CONFLICT (id_cabin_legacy_ntb, idx_cabin_legacy_ntb) DO UPDATE',
+    'ON CONFLICT (cabin_uuid, sort_index) DO UPDATE',
     'SET',
     '  type = EXCLUDED.type,',
     '  title = EXCLUDED.title,',
@@ -630,13 +630,13 @@ async function removeDepreactedCabinLinks(handler) {
     'DELETE FROM public.cabin_link',
     'USING public.cabin_link gl',
     `LEFT JOIN public.${tableName} te ON`,
-    '  gl.id_cabin_legacy_ntb = te.id_cabin_legacy_ntb AND',
-    '  gl.idx_cabin_legacy_ntb = te.idx_cabin_legacy_ntb',
+    '  gl.cabin_uuid = te.cabin_uuid AND',
+    '  gl.sort_index = te.sort_index',
     'WHERE',
     '  te.id_cabin_legacy_ntb IS NULL AND',
     '  gl.data_source = :data_source AND',
-    '  public.cabin_link.id_cabin_legacy_ntb = gl.id_cabin_legacy_ntb AND',
-    '  public.cabin_link.idx_cabin_legacy_ntb = gl.idx_cabin_legacy_ntb',
+    '  public.cabin_link.cabin_uuid = gl.cabin_uuid AND',
+    '  public.cabin_link.sort_index = gl.sort_index',
   ].join('\n');
 
   logger.info('Deleting deprecated cabin links');
