@@ -26,6 +26,7 @@ async function createTempTables(handler) {
   handler.cabins.TempCabinModel = db.sequelize.define(tableName, {
     uuid: { type: db.Sequelize.UUID, primaryKey: true },
     idLegacyNtb: { type: db.Sequelize.TEXT },
+    idSsr: { type: db.Sequelize.TEXT },
 
     dntCabin: { type: db.Sequelize.BOOLEAN },
     dntDiscount: { type: db.Sequelize.BOOLEAN },
@@ -429,33 +430,34 @@ async function mergeCabin(handler) {
   // Merge into prod table
   sql = [
     'INSERT INTO cabin (',
-    '  uuid, id_legacy_ntb, dnt_cabin, dnt_discount, maintainer_group_uuid,',
-    '  owner_group_uuid, contact_group_uuid, name, name_lower_case, name_alt,',
-    '  name_alt_lower_case, description, description_plain, contact_name,',
-    '  email, phone, mobile, fax, address_1, address_2, postal_code,',
-    '  postal_name, url, year_of_construction, geojson, county_uuid,',
-    '  municipality_uuid, service_level, beds_extra, beds_serviced,',
-    '  beds_self_service, beds_unmanned, beds_winter, booking_enabled,',
-    '  booking_only, booking_url, htgt_winter, htgt_summer,',
+    '  uuid, id_legacy_ntb, id_ssr, dnt_cabin, dnt_discount,',
+    '  maintainer_group_uuid, owner_group_uuid, contact_group_uuid, name,',
+    '  name_lower_case, name_alt, name_alt_lower_case, description,',
+    '  description_plain, contact_name, email, phone, mobile, fax, address_1,',
+    '  address_2, postal_code, postal_name, url, year_of_construction,',
+    '  geojson, county_uuid, municipality_uuid, service_level, beds_extra,',
+    '  beds_serviced, beds_self_service, beds_unmanned, beds_winter,',
+    '  booking_enabled, booking_only, booking_url, htgt_winter, htgt_summer,',
     '  htgt_other_winter, htgt_other_summer, map, map_alt, license,',
     '  provider, status, data_source, updated_at, created_at,',
     '  search_document_boost',
     ')',
     'SELECT',
-    '  uuid, id_legacy_ntb, dnt_cabin, dnt_discount, maintainer_group_uuid,',
-    '  owner_group_uuid, contact_group_uuid, name, name_lower_case, name_alt,',
-    '  name_alt_lower_case, description, description_plain, contact_name,',
-    '  email, phone, mobile, fax, address_1, address_2, postal_code,',
-    '  postal_name, url, year_of_construction, geojson, county_uuid,',
-    '  municipality_uuid, service_level::enum_cabin_service_level,',
-    '  beds_extra, beds_serviced, beds_self_service, beds_unmanned,',
-    '  beds_winter, booking_enabled, booking_only, booking_url, htgt_winter,',
-    '  htgt_summer, htgt_other_winter, htgt_other_summer, map, map_alt,',
-    '  license, provider, status::enum_cabin_status, :data_source,',
-    '  updated_at, updated_at, 1',
+    '  uuid, id_legacy_ntb, id_ssr, dnt_cabin, dnt_discount,',
+    '  maintainer_group_uuid, owner_group_uuid, contact_group_uuid, name,',
+    '  name_lower_case, name_alt, name_alt_lower_case, description,',
+    '  description_plain, contact_name, email, phone, mobile, fax, address_1,',
+    '  address_2, postal_code, postal_name, url, year_of_construction,',
+    '  geojson, county_uuid, municipality_uuid,',
+    '  service_level::enum_cabin_service_level, beds_extra, beds_serviced,',
+    '  beds_self_service, beds_unmanned, beds_winter, booking_enabled,',
+    '  booking_only, booking_url, htgt_winter, htgt_summer,',
+    '  htgt_other_winter, htgt_other_summer, map, map_alt, license, provider,',
+    '  status::enum_cabin_status, :data_source, updated_at, updated_at, 1',
     `FROM public.${tableName}`,
     'ON CONFLICT (id_legacy_ntb) DO UPDATE',
     'SET',
+    '   id_ssr = EXCLUDED.id_ssr,',
     '   dnt_cabin = EXCLUDED.dnt_cabin,',
     '   dnt_discount = EXCLUDED.dnt_discount,',
     '   maintainer_group_uuid = EXCLUDED.maintainer_group_uuid,',
@@ -1049,7 +1051,7 @@ const process = async (handler) => {
   await removeDepreactedCabinAccessabilities(handler);
   await mergeCabinOpeningHours(handler);
   await removeDepreactedCabinOpeningHours(handler);
-  // await dropTempTables(handler);
+  await dropTempTables(handler);
 };
 
 
