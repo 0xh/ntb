@@ -9,6 +9,14 @@ export default (sequelize, DataTypes) => {
       },
     },
 
+    cabinUuid: {
+      type: DataTypes.UUID,
+      unique: 'cabin-link-sort-index-key',
+      validate: {
+        isUUID: 4,
+      },
+    },
+
     allYear: { type: DataTypes.BOOLEAN, default: false, allowNull: false },
     from: { type: DataTypes.DATE },
     to: { type: DataTypes.DATE },
@@ -35,20 +43,9 @@ export default (sequelize, DataTypes) => {
       ],
     },
 
-    // The legacy-ntb id of the cabin this link belongs to
-    // This field is used (together with idxCabinLegacyNtb) to update or create
-    // when harvesting from legacy-ntb
-    idCabinLegacyNtb: {
-      type: DataTypes.TEXT,
-      unique: 'cabin-link-legacy-ntb-key',
-    },
-
-    // The legacy-ntb index of the cabin link array
-    // This field is used (together with idCabinLegacyNtb) to update or create
-    // when harvesting from legacy-ntb
-    idxCabinLegacyNtb: {
+    sortIndex: {
       type: DataTypes.INTEGER,
-      unique: 'cabin-link-legacy-ntb-key',
+      unique: 'cabin-link-sort-index-key',
     },
 
     dataSource: { type: DataTypes.TEXT },
