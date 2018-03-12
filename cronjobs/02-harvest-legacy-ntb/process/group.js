@@ -226,7 +226,7 @@ async function mergeGroupLinks(handler) {
     '  gl1.idx_group_legacy_ntb = gl2.idx_group_legacy_ntb',
   ].join('\n');
 
-  logger.info('Update uuids on area-to-area temp data');
+  logger.info('Update uuids on group links temp data');
   durationId = startDuration();
   await db.sequelize.query(sql);
   endDuration(durationId);
