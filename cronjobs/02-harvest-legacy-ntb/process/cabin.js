@@ -106,6 +106,24 @@ async function createTempTables(handler) {
   });
   await handler.cabins.TempTranslationModel.sync();
 
+  tableName = `${baseTableName}_cabin_links`;
+  handler.cabins.TempCabinLinkModel =
+    db.sequelize.define(tableName, {
+      uuid: { type: db.Sequelize.UUID, primaryKey: true },
+      type: { type: db.Sequelize.TEXT },
+      title: { type: db.Sequelize.TEXT, allowNull: true },
+      url: { type: db.Sequelize.TEXT },
+      cabinUuid: { type: db.Sequelize.UUID, allowNull: true },
+      idCabinLegacyNtb: { type: db.Sequelize.TEXT },
+      idxCabinLegacyNtb: { type: db.Sequelize.INTEGER },
+      dataSource: { type: db.Sequelize.TEXT },
+      updatedAt: { type: db.Sequelize.DATE },
+    }, {
+      timestamps: false,
+      tableName,
+    });
+  await handler.cabins.TempCabinLinkModel.sync();
+
   endDuration(durationId);
 }
 
@@ -118,6 +136,7 @@ async function dropTempTables(handler) {
 
   await handler.cabins.TempCabinModel.drop();
   await handler.cabins.TempTranslationModel.drop();
+  await handler.cabins.TempCabinLinkModel.drop();
 
   endDuration(durationId);
 }
@@ -159,16 +178,25 @@ async function populateTempTables(handler) {
 
 
   const translations = [];
+  let links = [];
   handler.cabins.processed.forEach((p) => {
     if (p.english) {
       translations.push(p.english);
     }
+
+    links = links.concat(p.links);
   });
 
   // Insert temp data for CabinTranslation
   logger.info('Inserting area county to temporary table');
   durationId = startDuration();
   await handler.cabins.TempTranslationModel.bulkCreate(translations);
+  endDuration(durationId);
+
+  // Insert temp data for CabinLink
+  logger.info('Inserting cabin links to temporary table');
+  durationId = startDuration();
+  await handler.cabins.TempCabinLinkModel.bulkCreate(links);
   endDuration(durationId);
 }
 
@@ -372,6 +400,88 @@ async function mergeCabinTranslation(handler) {
 
 
 /**
+ * Insert into `CABIN_link`-table or update if it already exists
+ */
+async function mergeCabinLinks(handler) {
+  let sql;
+  let durationId;
+  const { tableName } = handler.cabins.TempCabinLinkModel;
+
+  // Set UUIDs on cabinLink temp data
+  sql = [
+    `UPDATE public.${tableName} gl1 SET`,
+    '  cabin_uuid = g.uuid',
+    `FROM public.${tableName} gl2`,
+    'INNER JOIN public.cabin g ON',
+    '  g.id_legacy_ntb = gl2.id_cabin_legacy_ntb',
+    'WHERE',
+    '  gl1.id_cabin_legacy_ntb = gl2.id_cabin_legacy_ntb AND',
+    '  gl1.idx_cabin_legacy_ntb = gl2.idx_cabin_legacy_ntb',
+  ].join('\n');
+
+  logger.info('Update uuids on cabin links temp data');
+  durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+
+  // Merge into prod table
+  sql = [
+    'INSERT INTO cabin_link (',
+    '  uuid, cabin_uuid, type, title, url, id_cabin_legacy_ntb,',
+    '  idx_cabin_legacy_ntb, data_source, created_at, updated_at',
+    ')',
+    'SELECT',
+    '  uuid, cabin_uuid, type, title, url, id_cabin_legacy_ntb,',
+    '  idx_cabin_legacy_ntb, :data_source, now(), now()',
+    `FROM public.${tableName}`,
+    'ON CONFLICT (id_cabin_legacy_ntb, idx_cabin_legacy_ntb) DO UPDATE',
+    'SET',
+    '  type = EXCLUDED.type,',
+    '  title = EXCLUDED.title,',
+    '  url = EXCLUDED.url',
+  ].join('\n');
+
+  logger.info('Creating or updating cabin links');
+  durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Remove cabin links that no longer exist in legacy-ntb
+ */
+async function removeDepreactedCabinLinks(handler) {
+  const { tableName } = handler.cabins.TempCabinLinkModel;
+  const sql = [
+    'DELETE FROM public.cabin_link',
+    'USING public.cabin_link gl',
+    `LEFT JOIN public.${tableName} te ON`,
+    '  gl.id_cabin_legacy_ntb = te.id_cabin_legacy_ntb AND',
+    '  gl.idx_cabin_legacy_ntb = te.idx_cabin_legacy_ntb',
+    'WHERE',
+    '  te.id_cabin_legacy_ntb IS NULL AND',
+    '  gl.data_source = :data_source AND',
+    '  public.cabin_link.id_cabin_legacy_ntb = gl.id_cabin_legacy_ntb AND',
+    '  public.cabin_link.idx_cabin_legacy_ntb = gl.idx_cabin_legacy_ntb',
+  ].join('\n');
+
+  logger.info('Deleting deprecated cabin links');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
  * Process legacy cabin data and merge it into the postgres database
  */
 const process = async (handler) => {
@@ -383,6 +493,8 @@ const process = async (handler) => {
   await populateTempTables(handler);
   await mergeCabin(handler);
   await mergeCabinTranslation(handler);
+  await mergeCabinLinks(handler);
+  await removeDepreactedCabinLinks(handler);
   // await dropTempTables(handler);
 };
 
