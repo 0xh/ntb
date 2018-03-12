@@ -124,6 +124,19 @@ async function createTempTables(handler) {
     });
   await handler.cabins.TempCabinLinkModel.sync();
 
+  tableName = `${baseTableName}_cabin_tags`;
+  handler.cabins.TempCabinTagModel =
+    db.sequelize.define(tableName, {
+      name: { type: db.Sequelize.TEXT },
+      nameLowerCase: { type: db.Sequelize.TEXT },
+      idCabinLegacyNtb: { type: db.Sequelize.TEXT },
+      cabinUuid: { type: db.Sequelize.UUID },
+    }, {
+      timestamps: false,
+      tableName,
+    });
+  await handler.cabins.TempCabinTagModel.sync();
+
   endDuration(durationId);
 }
 
@@ -137,6 +150,7 @@ async function dropTempTables(handler) {
   await handler.cabins.TempCabinModel.drop();
   await handler.cabins.TempTranslationModel.drop();
   await handler.cabins.TempCabinLinkModel.drop();
+  await handler.cabins.TempCabinTagModel.drop();
 
   endDuration(durationId);
 }
@@ -178,6 +192,7 @@ async function populateTempTables(handler) {
 
 
   const translations = [];
+  const tags = [];
   let links = [];
   handler.cabins.processed.forEach((p) => {
     if (p.english) {
@@ -185,6 +200,12 @@ async function populateTempTables(handler) {
     }
 
     links = links.concat(p.links);
+
+    p.tags.forEach((tag) => tags.push({
+      name: tag,
+      nameLowerCase: tag.toLowerCase(),
+      idCabinLegacyNtb: p.cabin.idLegacyNtb,
+    }));
   });
 
   // Insert temp data for CabinTranslation
@@ -197,6 +218,12 @@ async function populateTempTables(handler) {
   logger.info('Inserting cabin links to temporary table');
   durationId = startDuration();
   await handler.cabins.TempCabinLinkModel.bulkCreate(links);
+  endDuration(durationId);
+
+  // Insert temp data for CabinTag
+  logger.info('Inserting cabin tags to temporary table');
+  durationId = startDuration();
+  await handler.cabins.TempCabinTagModel.bulkCreate(tags);
   endDuration(durationId);
 }
 
@@ -482,6 +509,104 @@ async function removeDepreactedCabinLinks(handler) {
 
 
 /**
+ * Create new tags
+ */
+async function createTags(handler) {
+  const { tableName } = handler.cabins.TempCabinTagModel;
+  const sql = [
+    'INSERT INTO tag (name_lower_case, name)',
+    'SELECT DISTINCT name_lower_case, name',
+    `FROM public.${tableName}`,
+    'ON CONFLICT (name_lower_case) DO NOTHING',
+  ].join('\n');
+
+  logger.info('Create new tags');
+  const durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+}
+
+
+/**
+ * Create new tag relations
+ */
+async function createTagRelations(handler) {
+  let sql;
+  let durationId;
+  const { tableName } = handler.cabins.TempCabinTagModel;
+
+  // Set UUIDs on cabinTag temp data
+  sql = [
+    `UPDATE public.${tableName} gt1 SET`,
+    '  cabin_uuid = g.uuid',
+    `FROM public.${tableName} gt2`,
+    'INNER JOIN public.cabin g ON',
+    '  g.id_legacy_ntb = gt2.id_cabin_legacy_ntb',
+    'WHERE',
+    '  gt1.id_cabin_legacy_ntb = gt2.id_cabin_legacy_ntb',
+  ].join('\n');
+
+  logger.info('Update uuids on cabin tag temp data');
+  durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+
+  // Create cabin tag relations
+  sql = [
+    'INSERT INTO tag_relation (',
+    '  tag_name, tagged_type, tagged_uuid, data_source',
+    ')',
+    'SELECT',
+    '  name_lower_case, :tagged_type, cabin_uuid, :data_source',
+    `FROM public.${tableName}`,
+    'ON CONFLICT (tag_name, tagged_type, tagged_uuid) DO NOTHING',
+  ].join('\n');
+
+  logger.info('Create new cabin tag relations');
+  durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      tagged_type: 'cabin',
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Remove cabin tags that no longer exist in legacy-ntb
+ */
+async function removeDepreactedGroupTags(handler) {
+  const { tableName } = handler.cabins.TempCabinTagModel;
+  const sql = [
+    'DELETE FROM public.tag_relation',
+    'USING public.tag_relation tr',
+    `LEFT JOIN public.${tableName} te ON`,
+    '  tr.tag_name = te.name_lower_case AND',
+    '  tr.tagged_uuid = te.cabin_uuid',
+    'WHERE',
+    '  te.id_cabin_legacy_ntb IS NULL AND',
+    '  tr.tagged_type = :tagged_type AND',
+    '  tr.data_source = :data_source AND',
+    '  public.tag_relation.tag_name = tr.tag_name AND',
+    '  public.tag_relation.tagged_type = tr.tagged_type AND',
+    '  public.tag_relation.tagged_uuid = tr.tagged_uuid',
+  ].join('\n');
+
+  logger.info('Deleting deprecated cabin links');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      tagged_type: 'cabin',
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
  * Process legacy cabin data and merge it into the postgres database
  */
 const process = async (handler) => {
@@ -495,6 +620,9 @@ const process = async (handler) => {
   await mergeCabinTranslation(handler);
   await mergeCabinLinks(handler);
   await removeDepreactedCabinLinks(handler);
+  await createTags(handler);
+  await createTagRelations(handler);
+  await removeDepreactedGroupTags(handler);
   // await dropTempTables(handler);
 };
 
