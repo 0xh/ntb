@@ -588,6 +588,17 @@ async function harvestCountiesAndMunicipalities() {
 }
 
 
+async function modifyCabinFacility(queryInterface, transaction) {
+  // Create composite primary keys
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "cabin_facility"',
+    'ADD CONSTRAINT "cabin_facility_primary" PRIMARY KEY (',
+    '  "facility_name", "cabin_uuid"',
+    ')',
+  ].join('\n'), { transaction });
+}
+
+
 const down = async (db) => {
   logger.info('Unset all the things');
   const sqls = [];
@@ -665,6 +676,7 @@ const up = async (db) => {
     await modifyMunicipality(queryInterface, transaction);
     await modifyCabin(queryInterface, transaction);
     await modifyCabinTranslation(queryInterface, transaction);
+    await modifyCabinFacility(queryInterface, transaction);
   }).catch((err) => {
     logger.error('TRANSACTION ERROR');
     logger.error(err);
