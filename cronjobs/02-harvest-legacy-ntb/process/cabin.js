@@ -161,6 +161,30 @@ async function createTempTables(handler) {
     });
   await handler.cabins.TempCabinFacilityModel.sync();
 
+  tableName = `${baseTableName}_cabin_accessability`;
+  handler.cabins.TempAccessabilityModel =
+    db.sequelize.define(tableName, {
+      name: { type: db.Sequelize.TEXT },
+      nameLowerCase: { type: db.Sequelize.TEXT },
+    }, {
+      timestamps: false,
+      tableName,
+    });
+  await handler.cabins.TempAccessabilityModel.sync();
+
+  tableName = `${baseTableName}_cabin_accessabilities`;
+  handler.cabins.TempCabinAccessabilityModel =
+    db.sequelize.define(tableName, {
+      nameLowerCase: { type: db.Sequelize.TEXT },
+      idCabinLegacyNtb: { type: db.Sequelize.TEXT },
+      cabinUuid: { type: db.Sequelize.UUID },
+      description: { type: db.Sequelize.TEXT },
+    }, {
+      timestamps: false,
+      tableName,
+    });
+  await handler.cabins.TempCabinAccessabilityModel.sync();
+
   endDuration(durationId);
 }
 
@@ -177,6 +201,8 @@ async function dropTempTables(handler) {
   await handler.cabins.TempCabinTagModel.drop();
   await handler.cabins.TempFacilityModel.drop();
   await handler.cabins.TempCabinFacilityModel.drop();
+  await handler.cabins.TempAccessabilityModel.drop();
+  await handler.cabins.TempCabinAccessabilityModel.drop();
 
   endDuration(durationId);
 }
@@ -221,6 +247,8 @@ async function populateTempTables(handler) {
   const tags = [];
   const facilities = [];
   const cabinFacilities = [];
+  const accessabilities = [];
+  const cabinAccessabilities = [];
   let links = [];
   handler.cabins.processed.forEach((p) => {
     if (p.english) {
@@ -229,23 +257,41 @@ async function populateTempTables(handler) {
 
     links = links.concat(p.links);
 
-    p.tags.forEach((tag) => tags.push({
-      name: tag,
-      nameLowerCase: tag.toLowerCase(),
-      idCabinLegacyNtb: p.cabin.idLegacyNtb,
-    }));
+    if (p.tags) {
+      p.tags.forEach((tag) => tags.push({
+        name: tag,
+        nameLowerCase: tag.toLowerCase(),
+        idCabinLegacyNtb: p.cabin.idLegacyNtb,
+      }));
+    }
 
-    p.facilities.forEach((facility) => facilities.push({
-      name: facility.name,
-      nameLowerCase: facility.nameLowerCase,
-    }));
+    if (p.facilities) {
+      p.facilities.forEach((facility) => facilities.push({
+        name: facility.name,
+        nameLowerCase: facility.nameLowerCase,
+      }));
 
-    p.facilities.forEach((facility) => cabinFacilities.push({
-      name: facility.name,
-      nameLowerCase: facility.nameLowerCase,
-      idCabinLegacyNtb: p.cabin.idLegacyNtb,
-      description: facility.description,
-    }));
+      p.facilities.forEach((facility) => cabinFacilities.push({
+        name: facility.name,
+        nameLowerCase: facility.nameLowerCase,
+        idCabinLegacyNtb: p.cabin.idLegacyNtb,
+        description: facility.description,
+      }));
+    }
+
+    if (p.accessibility) {
+      p.accessibility.forEach((accessability) => accessabilities.push({
+        name: accessability.name,
+        nameLowerCase: accessability.nameLowerCase,
+      }));
+
+      p.accessibility.forEach((accessability) => cabinAccessabilities.push({
+        name: accessability.name,
+        nameLowerCase: accessability.nameLowerCase,
+        idCabinLegacyNtb: p.cabin.idLegacyNtb,
+        description: accessability.description,
+      }));
+    }
   });
 
   // Insert temp data for CabinTranslation
@@ -276,6 +322,20 @@ async function populateTempTables(handler) {
   logger.info('Inserting cabin facilities to temporary table');
   durationId = startDuration();
   await handler.cabins.TempCabinFacilityModel.bulkCreate(cabinFacilities);
+  endDuration(durationId);
+
+  // Insert temp data for Accessability
+  logger.info('Inserting accessabilities to temporary table');
+  durationId = startDuration();
+  await handler.cabins.TempAccessabilityModel.bulkCreate(accessabilities);
+  endDuration(durationId);
+
+  // Insert temp data for CabinAccessability
+  logger.info('Inserting cabin accessabilities to temporary table');
+  durationId = startDuration();
+  await handler.cabins.TempCabinAccessabilityModel.bulkCreate(
+    cabinAccessabilities
+  );
   endDuration(durationId);
 }
 
@@ -753,6 +813,100 @@ async function removeDepreactedCabinFacilities(handler) {
 
 
 /**
+ * Create new accessabilities
+ */
+async function createAccessabilities(handler) {
+  const { tableName } = handler.cabins.TempAccessabilityModel;
+  const sql = [
+    'INSERT INTO accessability (name_lower_case, name)',
+    'SELECT DISTINCT name_lower_case, name',
+    `FROM public.${tableName}`,
+    'ON CONFLICT (name_lower_case) DO NOTHING',
+  ].join('\n');
+
+  logger.info('Create new accessabilities');
+  const durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+}
+
+
+/**
+ * Create new cabin accessabilities
+ */
+async function createCabinAccessabilities(handler) {
+  let sql;
+  let durationId;
+  const { tableName } = handler.cabins.TempCabinAccessabilityModel;
+
+  // Set UUIDs on cabinAccessability temp data
+  sql = [
+    `UPDATE public.${tableName} gt1 SET`,
+    '  cabin_uuid = g.uuid',
+    `FROM public.${tableName} gt2`,
+    'INNER JOIN public.cabin g ON',
+    '  g.id_legacy_ntb = gt2.id_cabin_legacy_ntb',
+    'WHERE',
+    '  gt1.id_cabin_legacy_ntb = gt2.id_cabin_legacy_ntb',
+  ].join('\n');
+
+  logger.info('Update uuids on cabin accessability temp data');
+  durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+
+  // Create cabin accessability relations
+  sql = [
+    'INSERT INTO cabin_accessability (',
+    '  accessability_name, cabin_uuid, description, data_source',
+    ')',
+    'SELECT',
+    '  name_lower_case, cabin_uuid, description, :data_source',
+    `FROM public.${tableName}`,
+    'ON CONFLICT (accessability_name, cabin_uuid) DO NOTHING',
+  ].join('\n');
+
+  logger.info('Create new cabin accessabilities');
+  durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Remove cabin accessabilities that no longer exist in legacy-ntb
+ */
+async function removeDepreactedCabinAccessabilities(handler) {
+  const { tableName } = handler.cabins.TempCabinAccessabilityModel;
+  const sql = [
+    'DELETE FROM public.cabin_accessability',
+    'USING public.cabin_accessability cf',
+    `LEFT JOIN public.${tableName} te ON`,
+    '  cf.accessability_name = te.name_lower_case AND',
+    '  cf.cabin_uuid = te.cabin_uuid',
+    'WHERE',
+    '  te.id_cabin_legacy_ntb IS NULL AND',
+    '  cf.data_source = :data_source AND',
+    '  public.cabin_accessability.accessability_name = cf.accessability_name',
+    '  AND public.cabin_accessability.cabin_uuid = cf.cabin_uuid',
+  ].join('\n');
+
+  logger.info('Deleting deprecated cabin accessabilities');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
  * Process legacy cabin data and merge it into the postgres database
  */
 const process = async (handler) => {
@@ -772,6 +926,9 @@ const process = async (handler) => {
   await createFacilities(handler);
   await createCabinFacilities(handler);
   await removeDepreactedCabinFacilities(handler);
+  await createAccessabilities(handler);
+  await createCabinAccessabilities(handler);
+  await removeDepreactedCabinAccessabilities(handler);
   // await dropTempTables(handler);
 };
 

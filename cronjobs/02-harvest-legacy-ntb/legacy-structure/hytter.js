@@ -200,11 +200,11 @@ function setAccessibility(obj, res, handler) {
         .filter((a) => a.name === type);
 
       if (!match.length) {
-        res.accessibility[type] = {
+        res.accessibility.push({
           nameLowerCase: type.toLowerCase(),
           name: type,
           description,
-        };
+        });
       }
       else {
         match[0].description = description;
