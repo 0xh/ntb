@@ -599,6 +599,17 @@ async function modifyCabinFacility(queryInterface, transaction) {
 }
 
 
+async function modifyCabinAccessability(queryInterface, transaction) {
+  // Create composite primary keys
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "cabin_accessability"',
+    'ADD CONSTRAINT "cabin_accessability_primary" PRIMARY KEY (',
+    '  "accessability_name", "cabin_uuid"',
+    ')',
+  ].join('\n'), { transaction });
+}
+
+
 const down = async (db) => {
   logger.info('Unset all the things');
   const sqls = [];
@@ -677,6 +688,7 @@ const up = async (db) => {
     await modifyCabin(queryInterface, transaction);
     await modifyCabinTranslation(queryInterface, transaction);
     await modifyCabinFacility(queryInterface, transaction);
+    await modifyCabinAccessability(queryInterface, transaction);
   }).catch((err) => {
     logger.error('TRANSACTION ERROR');
     logger.error(err);
