@@ -186,7 +186,14 @@ export default (sequelize, DataTypes) => {
     });
 
     models.Cabin.belongsToMany(models.Facility, {
+      as: 'Facilities',
       through: { model: models.CabinFacility },
+      foreignKey: 'cabinUuid',
+    });
+
+    models.Cabin.belongsToMany(models.Accessability, {
+      as: 'Accessabilities',
+      through: { model: models.CabinAccessability },
       foreignKey: 'cabinUuid',
     });
   };
