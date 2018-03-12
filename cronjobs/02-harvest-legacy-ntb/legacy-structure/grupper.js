@@ -137,7 +137,7 @@ function setLinks(obj, res, handler) {
         title: link.tittel,
         url: link.url,
         idGroupLegacyNtb: obj._id,
-        idxGroupLegacyNtb: idx,
+        sortIndex: idx,
         dataSource: 'legacy-ntb',
       });
     });

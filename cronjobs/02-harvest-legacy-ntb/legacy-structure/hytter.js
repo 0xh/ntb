@@ -265,7 +265,7 @@ function setOpeningHours(obj, res, handler) {
         key: mapOpeningHoursKey(o.nøkkel, res),
         description: o.kommentar,
         idCabinLegacyNtb: obj._id,
-        idxCabinLegacyNtb: idx,
+        sortIndex: idx,
       });
     });
   }
