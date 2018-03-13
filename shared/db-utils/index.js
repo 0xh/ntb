@@ -93,3 +93,18 @@ sequelize.addHook('beforeDefine', (attributes, options) => {
     options.otherKey = _.snakeCase(options.otherKey);
   }
 });
+
+
+// We need to reset udated_at and created_at back to camel case
+sequelize.addHook('beforeFindAfterOptions', (options) => {
+  if (options && options.attributes) {
+    options.attributes.forEach((attr, idx) => {
+      if (attr === 'created_at') {
+        options.attributes[idx] = [attr, 'createdAt'];
+      }
+      else if (attr === 'updated_at') {
+        options.attributes[idx] = [attr, 'updatedAt'];
+      }
+    });
+  }
+});
