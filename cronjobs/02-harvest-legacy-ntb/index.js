@@ -11,6 +11,7 @@ import getAllDocuments from './lib/mongodb-collections';
 import processArea from './process/area';
 import processGroup from './process/group';
 import processCabin from './process/cabin';
+import processPoi from './process/poi';
 
 
 const logger = createLogger();
@@ -103,6 +104,7 @@ async function main() {
   await processArea(handler);
   await processGroup(handler);
   await processCabin(handler);
+  await processPoi(handler);
 
   logger.info('Harvesting complete');
   endDuration(durationId);
