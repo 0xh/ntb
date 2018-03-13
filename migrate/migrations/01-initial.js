@@ -15,12 +15,15 @@ async function modifySearchConfig(queryInterface, transaction) {
     '  (\'search_document__area\', 1.1, NULL),',
     '  (\'search_document__group\', 1, NULL),',
     '  (\'search_document__cabin\', 1.5, NULL),',
+    '  (\'search_document__poi\', 1.5, NULL),',
     '  (\'search_document__county\', 1, NULL),',
     '  (\'search_document__municipality\', 1, NULL),',
     '  (\'area__field__name\', NULL, \'A\'),',
     '  (\'area__field__description\', NULL, \'D\'),',
     '  (\'cabin__field__name\', NULL, \'A\'),',
     '  (\'cabin__field__description\', NULL, \'D\'),',
+    '  (\'poi__field__name\', NULL, \'A\'),',
+    '  (\'poi__field__description\', NULL, \'D\'),',
     '  (\'group__field__name\', NULL, \'A\'),',
     '  (\'group__field__description\', NULL, \'D\'),',
     '  (\'county__field__name\', NULL, \'A\'),',
@@ -568,26 +571,6 @@ async function modifyCabinTranslation(queryInterface, transaction) {
 }
 
 
-async function harvestCountiesAndMunicipalities() {
-  // Harvest counties and municipalities from kartverket
-  await CMharvest()
-    .then((status) => {
-      if (status) {
-        logger.info('CM Harvester: Done with success!');
-      }
-      else {
-        logger.error('CM Harvester: Done with error!');
-        throw new Error('CM harvester reported failure');
-      }
-    })
-    .catch((err) => {
-      logger.error('UNCAUGHT ERROR');
-      logger.error(err.stack);
-      throw err;
-    });
-}
-
-
 async function modifyCabinFacility(queryInterface, transaction) {
   // Create composite primary keys
   await queryInterface.sequelize.query([
@@ -616,6 +599,144 @@ async function modifyCabinToArea(queryInterface, transaction) {
     'ALTER TABLE "cabin_to_area"',
     'ADD CONSTRAINT "cabin_to_area_primary" PRIMARY KEY (',
     '  "cabin_uuid", "area_uuid"',
+    ')',
+  ].join('\n'), { transaction });
+}
+
+
+async function modifyPoi(queryInterface, transaction) {
+  // Change to array of enums on field 'alt_type'.
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "poi"',
+    'ALTER COLUMN "alt_type" TYPE enum_poi_type[]',
+    'USING "alt_type"::enum_poi_type[];',
+  ].join('\n'), { transaction });
+
+  // Add tsvector field for norwegian
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "poi"',
+    'ADD COLUMN "search_nb" TSVECTOR;',
+  ].join('\n'), { transaction });
+
+  // Add index to tsvector field
+  await queryInterface.sequelize.query([
+    'CREATE INDEX poi_search_nb_idx ON "poi"',
+    'USING gin("search_nb");',
+  ].join('\n'), { transaction });
+
+  // Create tsvector trigger procedure for updating the norwegian vector
+  await queryInterface.sequelize.query([
+    'CREATE FUNCTION poi_tsvector_trigger() RETURNS trigger AS $$',
+    'DECLARE',
+    '  name_weight CHAR;',
+    '  description_weight CHAR;',
+    'BEGIN',
+    '  SELECT sbc."weight" INTO name_weight',
+    '  FROM "search_config" AS sbc',
+    '  WHERE sbc.name = \'poi__field__name\';',
+    '',
+    '  SELECT sbc."weight" INTO description_weight',
+    '  FROM "search_config" AS sbc',
+    '  WHERE sbc.name = \'poi__field__description\';',
+    '',
+    '  NEW.search_nb :=',
+    '    setweight(to_tsvector(',
+    '      \'pg_catalog.norwegian\',',
+    '       coalesce(NEW.name_lower_case, \'\')',
+    '    ), name_weight::"char") ||',
+    '    setweight(to_tsvector(',
+    '      \'pg_catalog.norwegian\',',
+    '       coalesce(NEW.description_plain, \'\')',
+    '    ), description_weight::"char");',
+    '  RETURN NEW;',
+    'END',
+    '$$ LANGUAGE plpgsql;',
+  ].join('\n'), { transaction });
+
+  // Create search document trigger procedure for Area
+  await queryInterface.sequelize.query([
+    'CREATE FUNCTION poi_search_document_trigger() RETURNS trigger AS $$',
+    'DECLARE',
+    '  boost FLOAT;',
+    'BEGIN',
+
+    '  SELECT sbc.boost INTO boost',
+    '  FROM search_config AS sbc',
+    '  WHERE sbc.name = \'search_document__poi\';',
+
+    '  INSERT INTO search_document (',
+    '    uuid, poi_uuid, status, search_nb, search_document_boost,',
+    '    search_document_type_boost, created_at, updated_at',
+    '  )',
+    '  VALUES (',
+    '    uuid_generate_v4(), NEW.uuid, NEW.status, NEW.search_nb,',
+    '    NEW.search_document_boost, boost, NEW.created_at, NEW.updated_at',
+    '  )',
+    '  ON CONFLICT ("poi_uuid")',
+    '  DO UPDATE',
+    '  SET',
+    '    search_nb = EXCLUDED.search_nb,',
+    '    search_document_type_boost = boost,',
+    '    created_at = EXCLUDED.created_at,',
+    '    updated_at = EXCLUDED.updated_at;',
+
+    '  RETURN NEW;',
+    'END',
+    '$$ LANGUAGE plpgsql;',
+  ].join('\n'), { transaction });
+
+  // Use tsvector trigger before each insert or update
+  await queryInterface.sequelize.query([
+    'CREATE TRIGGER poi_tsvector_update BEFORE INSERT OR UPDATE',
+    'ON "poi" FOR EACH ROW EXECUTE PROCEDURE poi_tsvector_trigger();',
+  ].join('\n'), { transaction });
+
+  // Use search document trigger after each insert or update
+  await queryInterface.sequelize.query([
+    'CREATE TRIGGER poi_search_document_update AFTER INSERT OR UPDATE',
+    'ON "poi"',
+    'FOR EACH ROW EXECUTE PROCEDURE poi_search_document_trigger();',
+  ].join('\n'), { transaction });
+}
+
+
+async function harvestCountiesAndMunicipalities() {
+  // Harvest counties and municipalities from kartverket
+  await CMharvest()
+    .then((status) => {
+      if (status) {
+        logger.info('CM Harvester: Done with success!');
+      }
+      else {
+        logger.error('CM Harvester: Done with error!');
+        throw new Error('CM harvester reported failure');
+      }
+    })
+    .catch((err) => {
+      logger.error('UNCAUGHT ERROR');
+      logger.error(err.stack);
+      throw err;
+    });
+}
+
+
+async function modifyPoiAccessability(queryInterface, transaction) {
+  // Create composite primary keys
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "poi_accessability"',
+    'ADD CONSTRAINT "poi_accessability_primary" PRIMARY KEY (',
+    '  "accessability_name", "poi_uuid"',
+    ')',
+  ].join('\n'), { transaction });
+}
+
+
+async function modifyPoiToArea(queryInterface, transaction) {
+  // Create composite primary keys
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "poi_to_area"',
+    'ADD CONSTRAINT "poi_to_area_primary" PRIMARY KEY (',
+    '  "poi_uuid", "area_uuid"',
     ')',
   ].join('\n'), { transaction });
 }
@@ -672,6 +793,11 @@ const down = async (db) => {
   );
   sqls.push('DROP FUNCTION IF EXISTS cabin_translation_on_delete();');
 
+  sqls.push('DROP TRIGGER IF EXISTS poi_tsvector_update ON "poi";');
+  sqls.push('DROP TRIGGER IF EXISTS poi_search_document_update ON "poi";');
+  sqls.push('DROP FUNCTION IF EXISTS poi_tsvector_trigger();');
+  sqls.push('DROP FUNCTION IF EXISTS poi_search_document_trigger();');
+
   await db.sequelize.query(
     sqls.join('\n')
   );
@@ -701,6 +827,9 @@ const up = async (db) => {
     await modifyCabinFacility(queryInterface, transaction);
     await modifyCabinAccessability(queryInterface, transaction);
     await modifyCabinToArea(queryInterface, transaction);
+    await modifyPoi(queryInterface, transaction);
+    await modifyPoiAccessability(queryInterface, transaction);
+    await modifyPoiToArea(queryInterface, transaction);
   }).catch((err) => {
     logger.error('TRANSACTION ERROR');
     logger.error(err);
