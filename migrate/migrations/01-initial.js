@@ -610,6 +610,17 @@ async function modifyCabinAccessability(queryInterface, transaction) {
 }
 
 
+async function modifyCabinToArea(queryInterface, transaction) {
+  // Create composite primary keys
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "cabin_to_area"',
+    'ADD CONSTRAINT "cabin_to_area_primary" PRIMARY KEY (',
+    '  "cabin_uuid", "area_uuid"',
+    ')',
+  ].join('\n'), { transaction });
+}
+
+
 const down = async (db) => {
   logger.info('Unset all the things');
   const sqls = [];
@@ -689,6 +700,7 @@ const up = async (db) => {
     await modifyCabinTranslation(queryInterface, transaction);
     await modifyCabinFacility(queryInterface, transaction);
     await modifyCabinAccessability(queryInterface, transaction);
+    await modifyCabinToArea(queryInterface, transaction);
   }).catch((err) => {
     logger.error('TRANSACTION ERROR');
     logger.error(err);
