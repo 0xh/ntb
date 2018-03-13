@@ -39,6 +39,16 @@ export default (sequelize, DataTypes) => {
       },
     },
 
+    // Foreign key to Poi
+    poiUuid: {
+      type: DataTypes.UUID,
+      unique: true,
+      allowNull: true,
+      validate: {
+        isUUID: 4,
+      },
+    },
+
     // Foreign key to County
     countyUuid: {
       type: DataTypes.UUID,
@@ -104,6 +114,11 @@ export default (sequelize, DataTypes) => {
     models.SearchDocument.belongsTo(models.Cabin, {
       as: 'Cabin',
       foreignKey: 'cabinUuid',
+    });
+
+    models.SearchDocument.belongsTo(models.Poi, {
+      as: 'Poi',
+      foreignKey: 'poiUuid',
     });
 
     models.SearchDocument.belongsTo(models.County, {

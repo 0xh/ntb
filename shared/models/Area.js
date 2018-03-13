@@ -89,6 +89,12 @@ export default (sequelize, DataTypes) => {
       through: models.CabinToArea,
       foreignKey: 'areaUuid',
     });
+
+    models.Area.belongsToMany(models.Poi, {
+      as: 'Pois',
+      through: models.PoiToArea,
+      foreignKey: 'areaUuid',
+    });
   };
 
 
