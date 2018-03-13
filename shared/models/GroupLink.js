@@ -11,6 +11,7 @@ export default (sequelize, DataTypes) => {
 
     groupUuid: {
       type: DataTypes.UUID,
+      allowNull: false,
       unique: 'group-link-sort-index-key',
       validate: {
         isUUID: 4,

@@ -11,6 +11,7 @@ export default (sequelize, DataTypes) => {
 
     cabinUuid: {
       type: DataTypes.UUID,
+      allowNull: false,
       unique: 'cabin-link-sort-index-key',
       validate: {
         isUUID: 4,
