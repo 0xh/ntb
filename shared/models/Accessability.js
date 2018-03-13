@@ -23,6 +23,14 @@ export default (sequelize, DataTypes) => {
       as: 'Cabins',
       foreignKey: 'accessabilityName',
     });
+
+    models.Accessability.belongsToMany(models.Poi, {
+      through: {
+        model: models.PoiAccessability,
+      },
+      as: 'Pois',
+      foreignKey: 'accessabilityName',
+    });
   };
 
 
