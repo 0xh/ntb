@@ -104,5 +104,24 @@ export default (sequelize, DataTypes) => {
     instance.nameLowerCase = instance.name.toLowerCase();
   });
 
+
+  // API presentation
+
+  Area.format = (instance) => (
+    {
+      uuid: instance.uuid,
+      name: instance.name,
+      description: instance.description,
+      geojson: instance.geojson,
+      map: instance.map,
+      url: instance.url,
+      license: instance.license,
+      provider: instance.provider,
+      status: instance.status,
+      updatedAt: instance.updatedAt,
+      createdAt: instance.createdAt,
+    }
+  );
+
   return Area;
 };
