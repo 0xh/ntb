@@ -7,7 +7,15 @@ import he from 'he';
  * @param {string} html  html string to sanetize
  */
 export function sanitizeHtml(html) {
-  return _sanitizeHtml(html);
+  const res = _sanitizeHtml(html)
+    .replace(/\r?\n|\r/g, '') // remove line breaks
+    .replace(/\u00a0/g, ' ') // replace nbsp-character
+    .replace(/[\t ]+</g, '<') // remove space and tabs before tags
+    .replace(/>[\t ]+</g, '><') // remove whitespace between tags
+    .replace(/>[\t ]+$/g, '>') // remove whitespace after tags
+    .replace(/\s+/g, ' ') // replace multiple spaces into a single space
+    .trim();
+  return res;
 }
 
 
