@@ -95,8 +95,8 @@ sequelize.addHook('beforeDefine', (attributes, options) => {
 });
 
 
-// We need to reset udated_at and created_at back to camel case
 sequelize.addHook('beforeFindAfterOptions', (options) => {
+  // We need to reset udated_at and created_at back to camel case
   if (options && options.attributes) {
     options.attributes.forEach((attr, idx) => {
       if (attr === 'created_at') {
@@ -106,5 +106,19 @@ sequelize.addHook('beforeFindAfterOptions', (options) => {
         options.attributes[idx] = [attr, 'updatedAt'];
       }
     });
+  }
+
+  // Snake case column names in order satement
+  if (options.order) {
+    if (Array.isArray(options.order)) {
+      options.order.forEach((order, idx) => {
+        options.order[idx] = order.map((o) => {
+          if (!['desc', 'asc'].includes(o.toLowerCase())) {
+            return _.snakeCase(o);
+          }
+          return o;
+        });
+      });
+    }
   }
 });
