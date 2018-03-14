@@ -1,8 +1,12 @@
 import { performance } from 'perf_hooks'; // eslint-disable-line
 import uuid4 from 'uuid/v4';
 import winston from 'winston';
+import _ from 'lodash';
 
 
+/**
+ * Create a winston logger
+ */
 export function createLogger() {
   const logger = winston.createLogger({
     level: 'info',
@@ -83,4 +87,88 @@ export function logError(err, msg) {
   logger.error(`ERROR: ${msg}`);
   logger.error(err);
   logger.error(err.stack);
+}
+/**
+ * Creates a deep clone of the specified object
+ * @param {object} obj Object to clone
+ */
+export function deepClone(obj) {
+  const clone = _.clone(obj);
+
+  _.each(clone, (value, key) => {
+    if (_.isObject(value)) {
+      clone[key] = deepClone(value);
+    }
+  });
+
+  return clone;
+}
+
+
+/**
+ * Removes all null-value keys from the object and any sub object.
+ * Returns a new version of the object.
+ * @param {object} obj Object to remove keys from
+ */
+export function removeNull(obj) {
+  const res = deepClone(obj);
+
+  _.each(res, (value, key) => {
+    if (_.isObject(value)) {
+      res[key] = deepClone(value);
+    }
+    else if (value === null || value === undefined) {
+      delete res[key];
+    }
+  });
+
+  return res;
+}
+
+
+/**
+ * Verifies that the specified value is a string
+ * @param {*} value value to verify
+ */
+export function isString(value) {
+  return typeof value === 'string' || value instanceof String;
+}
+
+
+/**
+ * Verifies that the specified value is a number
+ * @param {*} value value to verify
+ */
+export function isNumber(value) {
+  const regex = /^\d+$/g;
+  return typeof value === 'number' && Number.isFinite(value)
+    ? true
+    : regex.test(value);
+}
+
+
+/**
+ * Verifies that the specified value is a date
+ * @param {*} value value to verify
+ */
+export function isDate(value) {
+  return isNumber(Date.parse(value));
+}
+
+
+/**
+ * Verifies that the specified value is a boolean
+ * @param {*} value value to verify
+ */
+export function isBoolean(value) {
+  return typeof value === 'boolean';
+}
+
+
+/**
+ * Verifies that the specified value is an object
+ * @param {*} value value to verify
+ */
+export function isObject(value) {
+  return value && typeof value === 'object' && value.constructor === Object;
 }
