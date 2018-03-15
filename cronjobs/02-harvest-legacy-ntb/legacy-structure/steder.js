@@ -202,7 +202,7 @@ async function mapping(obj, handler) {
     season: obj.sesong || [],
     open: obj.åpen,
 
-    license: obj.lisens,
+    license: obj.lisens.toString(),
 
     provider: obj.tilbyder,
     status: statusMapper(obj.status),

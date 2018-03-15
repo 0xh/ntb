@@ -182,7 +182,7 @@ async function populateTempTables(handler) {
 
     if (p.areas) {
       p.areas.forEach((area) => poiToArea.push({
-        areaLegacyId: area,
+        areaLegacyId: area.toString(),
         poiLegacyId: p.poi.idLegacyNtb,
       }));
     }
@@ -543,7 +543,7 @@ const process = async (handler) => {
   await removeDepreactedPoiAccessabilities(handler);
   await mergePoiToArea(handler);
   await removeDepreactedPoiToArea(handler);
-  // await dropTempTables(handler);
+  await dropTempTables(handler);
 };
 
 
