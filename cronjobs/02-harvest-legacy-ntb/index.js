@@ -93,7 +93,11 @@ async function main() {
   if (process.argv.length > 2 && process.argv[2].trim() === 'testdata') {
     useTestData = true;
   }
-  await getAllDocuments(handler, useTestData);
+  await getAllDocuments(
+    handler,
+    ['grupper', 'områder', 'steder'/* , lister, bilder */],
+    useTestData
+  );
 
   if (!verifyAllDocuments(handler)) {
     throw new Error('Document verification failed.');

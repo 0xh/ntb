@@ -11,16 +11,6 @@ import {
 } from '@turistforeningen/ntb-shared-utils';
 
 
-const LEGACY_TYPES = [
-  'grupper',
-  'områder',
-  // 'lister',
-  'steder',
-  // 'turer',
-  // 'bilder',
-];
-
-
 const logger = createLogger();
 const testFilesFolder = path.resolve(__dirname, '..', 'test-data');
 
@@ -51,7 +41,7 @@ function getCollectionDocuments(mongoDb, collectionName) {
 /**
  * Get all documents for all collections from legacy-ntb MongoDb
  */
-async function getAllDocumentsFromMongoDb(handler) {
+async function getAllDocumentsFromMongoDb(handler, types) {
   logger.info('Fetching all documents from mongodb');
   const durationId = startDuration();
   const documents = {};
@@ -65,7 +55,7 @@ async function getAllDocumentsFromMongoDb(handler) {
   const mongoDb = mongoClient.db(settings.LEGACY_MONGO_DB_NAME);
 
   await Promise.all(
-    LEGACY_TYPES.map(async (type) => {
+    types.map(async (type) => {
       documents[type] = await getCollectionDocuments(mongoDb, type);
       documents[type].forEach((document) => {
         document._id = document._id.toString();
@@ -83,12 +73,12 @@ async function getAllDocumentsFromMongoDb(handler) {
 /**
  * Get all documents for all collections from legacy-ntb MongoDb
  */
-async function getAllDocumentsFromTestFiles(handler) {
+async function getAllDocumentsFromTestFiles(handler, types) {
   logger.warn('Fetching all documents from test files');
   const durationId = startDuration();
   const documents = {};
 
-  LEGACY_TYPES.forEach((name) => {
+  types.forEach((name) => {
     const p = path.resolve(testFilesFolder, `${name}.json`);
     const file = fs.readFileSync(p, 'utf-8');
     documents[name] = JSON.parse(file);
@@ -102,12 +92,12 @@ async function getAllDocumentsFromTestFiles(handler) {
 /**
  * Get all documents
  */
-export default function getAllDocuments(handler, useTest = false) {
+export default function getAllDocuments(handler, types, useTest = false) {
   if (useTest) {
-    return getAllDocumentsFromTestFiles(handler);
+    return getAllDocumentsFromTestFiles(handler, types);
   }
 
-  return getAllDocumentsFromMongoDb(handler);
+  return getAllDocumentsFromMongoDb(handler, types);
 }
 
 
