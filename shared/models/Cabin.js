@@ -121,8 +121,6 @@ export default (sequelize, DataTypes) => {
 
     htgtWinter: { type: DataTypes.TEXT },
     htgtSummer: { type: DataTypes.TEXT },
-    htgtOtherWinter: { type: DataTypes.TEXT },
-    htgtOtherSummer: { type: DataTypes.TEXT },
 
     map: { type: DataTypes.TEXT },
     mapAlt: { type: DataTypes.ARRAY(DataTypes.TEXT) },
