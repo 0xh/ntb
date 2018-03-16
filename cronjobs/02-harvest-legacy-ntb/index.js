@@ -7,14 +7,57 @@ import db from '@turistforeningen/ntb-shared-models';
 
 import * as legacy from './legacy-structure';
 import verify from './lib/verify';
-import getAllDocuments from './lib/mongodb-collections';
+import getAllDocuments, {
+  getDocumentCountFromMongoDb,
+  getDocumentsFromMongoDb,
+} from './lib/mongodb-collections';
 import processArea from './process/area';
 import processGroup from './process/group';
 import processCabin from './process/cabin';
 import processPoi from './process/poi';
+import processTrip from './process/trip';
 
 
 const logger = createLogger();
+
+
+/**
+ * Verify structure of documents in specified document type
+ * from legacy-ntb towards the defined structure.
+ */
+function verifyDocuments(handler, type) {
+  let verified = true;
+
+  if (!handler.documents) {
+    return false;
+  }
+
+  handler.documents[type] = handler.documents[type].filter((d) => !d.err);
+
+  logger.info(`Verifying structure of <${type}>`);
+  const { structure } = legacy[type];
+  const cabinStructure = legacy.hytter.structure;
+
+  if (handler.documents && handler.documents[type]) {
+    handler.documents[type].forEach((obj) => {
+      let s = structure;
+      if (type === 'steder' && obj.tags && obj.tags[0] === 'Hytte') {
+        s = cabinStructure;
+      }
+
+      const status = verify(obj, obj._id, s);
+      if (!status.verified) {
+        verified = false;
+        status.errors.forEach((e) => logger.error(e));
+      }
+    });
+  }
+  else {
+    verified = false;
+  }
+
+  return verified;
+}
 
 
 /**
@@ -28,28 +71,7 @@ function verifyAllDocuments(handler) {
   }
 
   Object.keys(handler.documents).forEach((type) => {
-    // remove any objects wit "err"
-    handler.documents[type] = handler.documents[type].filter((d) => !d.err);
-
-    logger.info(`Verifying structure of <${type}>`);
-    const { structure } = legacy[type];
-    const cabinStructure = legacy.hytter.structure;
-
-    if (handler.documents && handler.documents[type]) {
-      handler.documents[type].forEach((obj) => {
-        let s = structure;
-        if (type === 'steder' && obj.tags && obj.tags[0] === 'Hytte') {
-          s = cabinStructure;
-        }
-
-        const status = verify(obj, obj._id, s);
-        if (!status.verified) {
-          verified = false;
-          status.errors.forEach((e) => logger.error(e));
-        }
-      });
-    }
-    else {
+    if (!verifyDocuments(handler, type)) {
       verified = false;
     }
   });
@@ -95,7 +117,8 @@ async function main() {
   }
   await getAllDocuments(
     handler,
-    ['grupper', 'områder', 'steder'/* , lister, bilder */],
+    // ['grupper', 'områder', 'steder'/* , lister, bilder */],
+    [],
     useTestData
   );
 
@@ -105,10 +128,54 @@ async function main() {
 
   await getAllCM(handler);
 
-  await processArea(handler);
-  await processGroup(handler);
-  await processCabin(handler);
-  await processPoi(handler);
+  // await processArea(handler);
+  // await processGroup(handler);
+  // await processCabin(handler);
+  // await processPoi(handler);
+
+  // Get and process photos
+  let limit = 1000;
+  let skip = 0;
+  let first = true;
+
+  // while (first || handler.documents.bilder.length > 0) {
+  //   first = false;
+  //   await getDocumentsFromMongoDb(handler, 'bilder', skip, limit); // eslint-disable-line
+  //   const status = verifyDocuments(handler, 'bilder');
+  //   if (!status) {
+  //     throw new Error('Document verification failed.');
+  //   }
+  //   skip += limit;
+  // }
+
+  // Get and process trips
+  limit = 1000;
+  skip = 0;
+  first = true;
+
+  await getDocumentCountFromMongoDb('turer');
+
+  while (first || handler.documents.turer.length > 0) {
+    first = false;
+    await getDocumentsFromMongoDb(handler, 'turer', skip, limit); // eslint-disable-line
+
+    // On a few objects, the coordines are string and not number. This causes
+    // the geojson verification to fail.
+    handler.documents.turer.forEach((t) => {
+      if (t.privat && t.privat.startpunkt && t.privat.startpunkt.coordinates) {
+        t.privat.startpunkt.coordinates = t.privat.startpunkt.coordinates
+          .map((c) => +c);
+      }
+    });
+
+    const status = verifyDocuments(handler, 'turer');
+    if (!status) {
+      throw new Error('Document verification failed for trips.');
+    }
+
+    await processTrip(handler); // eslint-disable-line
+    skip += limit;
+  }
 
   logger.info('Harvesting complete');
   endDuration(durationId);

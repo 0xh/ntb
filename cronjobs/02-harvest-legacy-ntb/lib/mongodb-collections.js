@@ -16,25 +16,65 @@ const testFilesFolder = path.resolve(__dirname, '..', 'test-data');
 
 
 /**
- * Get all documents from the specified collection from legacy-ntb MongoDB
+ * Get document count from the specified collection from legacy-ntb MongoDB
  */
-function getCollectionDocuments(mongoDb, collectionName) {
+async function getCollectionCount(mongoDb, collectionName) {
   return new Promise((resolve) => {
     const durationId = startDuration();
     const collection = mongoDb.collection(collectionName);
 
-    collection
-      .find({ status: { $ne: 'Slettet' } })
-      // .project({ geojson: 0 })
-      .toArray((err, items) => {
-        endDuration(
-          durationId,
-          `Fetching "${collectionName}" from mongodb done in`
-        );
-
-        resolve(items);
-      });
+    const count = collection.find({ status: { $ne: 'Slettet' } }).count();
+    endDuration(durationId);
+    resolve(count);
   });
+}
+
+
+/**
+ * Get documents from the specified collection from legacy-ntb MongoDB
+ */
+function getCollectionDocuments(mongoDb, collectionName, skip, limit) {
+  return new Promise((resolve) => {
+    const durationId = startDuration();
+    const collection = mongoDb.collection(collectionName);
+
+    const query = collection.find({ status: { $ne: 'Slettet' } });
+
+    if (skip || limit) {
+      query.skip(skip).limit(limit).project({ geojson: 0 });
+    }
+
+    query.toArray((err, items) => {
+      endDuration(
+        durationId,
+        `Fetching "${collectionName}" from mongodb done in`
+      );
+
+      resolve(items);
+    });
+  });
+}
+
+
+/**
+ * Get count of documents for a collection from legacy-ntb MongoDb
+ */
+export async function getDocumentCountFromMongoDb(type) {
+  logger.info(`Fetching document count from mongodb of "${type}"`);
+  const durationId = startDuration();
+
+  const mongoClient = await MongoClient.connect(settings.LEGACY_MONGO_DB_URI)
+    .catch((err) => {
+      logger.error('ERROR - some mongodb error occured');
+      throw err;
+    });
+
+  const mongoDb = mongoClient.db(settings.LEGACY_MONGO_DB_NAME);
+  const count = await getCollectionCount(mongoDb, type);
+  logger.info(`"${type}" count: ${count}`);
+
+  mongoClient.close();
+  endDuration(durationId);
 }
 
 
@@ -67,6 +107,38 @@ async function getAllDocumentsFromMongoDb(handler, types) {
 
   handler.documents = documents;
   endDuration(durationId, 'Fetching all documents from mongodb done in');
+}
+
+
+/**
+ * Get documents for a collection from legacy-ntb MongoDb
+ * with skip and limit options
+ */
+export async function getDocumentsFromMongoDb(
+  handler,
+  type,
+  skip,
+  limit = 100
+) {
+  logger.info(
+    `Fetching "${type}" from mongodb (limit: ${limit}, skip: ${skip})`
+  );
+  const mongoClient = await MongoClient.connect(settings.LEGACY_MONGO_DB_URI)
+    .catch((err) => {
+      logger.error('ERROR - some mongodb error occured');
+      throw err;
+    });
+
+  const mongoDb = mongoClient.db(settings.LEGACY_MONGO_DB_NAME);
+
+  const documents = await getCollectionDocuments(mongoDb, type, skip, limit);
+  documents.forEach((document) => {
+    document._id = document._id.toString();
+  });
+
+  mongoClient.close();
+
+  handler.documents[type] = documents;
 }
 
 
