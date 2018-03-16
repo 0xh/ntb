@@ -374,14 +374,6 @@ async function mapping(obj, handler) {
     htgtSummer: obj.adkomst && obj.adkomst.sommer
       ? sanitizeHtml(obj.adkomst.sommer)
       : null,
-    htgtOtherWinter:
-      obj.tilkomst && obj.tilkomst.privat && obj.tilkomst.privat.vinter
-        ? sanitizeHtml(obj.tilkomst.privat.vinter)
-        : null,
-    htgtOtherSummer:
-      obj.tilkomst && obj.tilkomst.privat && obj.tilkomst.privat.sommer
-        ? sanitizeHtml(obj.tilkomst.privat.sommer)
-        : null,
 
     map: obj.kart,
     mapAlt: obj.turkart
