@@ -140,7 +140,6 @@ async function createTempTables(handler) {
   handler.cabins.TempFacilityModel =
     db.sequelize.define(tableName, {
       name: { type: db.Sequelize.TEXT },
-      nameLowerCase: { type: db.Sequelize.TEXT },
     }, {
       timestamps: false,
       tableName,
@@ -150,7 +149,7 @@ async function createTempTables(handler) {
   tableName = `${baseTableName}_cabin_facilities`;
   handler.cabins.TempCabinFacilityModel =
     db.sequelize.define(tableName, {
-      nameLowerCase: { type: db.Sequelize.TEXT },
+      name: { type: db.Sequelize.TEXT },
       idCabinLegacyNtb: { type: db.Sequelize.TEXT },
       cabinUuid: { type: db.Sequelize.UUID },
       description: { type: db.Sequelize.TEXT },
@@ -306,12 +305,10 @@ async function populateTempTables(handler) {
     if (p.facilities) {
       p.facilities.forEach((facility) => facilities.push({
         name: facility.name,
-        nameLowerCase: facility.nameLowerCase,
       }));
 
       p.facilities.forEach((facility) => cabinFacilities.push({
         name: facility.name,
-        nameLowerCase: facility.nameLowerCase,
         idCabinLegacyNtb: p.cabin.idLegacyNtb,
         description: facility.description,
       }));
@@ -780,10 +777,10 @@ async function removeDepreactedCabinTags(handler) {
 async function createFacilities(handler) {
   const { tableName } = handler.cabins.TempFacilityModel;
   const sql = [
-    'INSERT INTO facility (name_lower_case, name)',
-    'SELECT DISTINCT name_lower_case, name',
+    'INSERT INTO facility (name)',
+    'SELECT DISTINCT name',
     `FROM public.${tableName}`,
-    'ON CONFLICT (name_lower_case) DO NOTHING',
+    'ON CONFLICT (name) DO NOTHING',
   ].join('\n');
 
   logger.info('Create new facilities');
@@ -823,7 +820,7 @@ async function createCabinFacilities(handler) {
     '  facility_name, cabin_uuid, description, data_source',
     ')',
     'SELECT',
-    '  name_lower_case, cabin_uuid, description, :data_source',
+    '  name, cabin_uuid, description, :data_source',
     `FROM public.${tableName}`,
     'ON CONFLICT (facility_name, cabin_uuid) DO NOTHING',
   ].join('\n');
@@ -848,7 +845,7 @@ async function removeDepreactedCabinFacilities(handler) {
     'DELETE FROM public.cabin_facility',
     'USING public.cabin_facility cf',
     `LEFT JOIN public.${tableName} te ON`,
-    '  cf.facility_name = te.name_lower_case AND',
+    '  cf.facility_name = te.name AND',
     '  cf.cabin_uuid = te.cabin_uuid',
     'WHERE',
     '  te.id_cabin_legacy_ntb IS NULL AND',
