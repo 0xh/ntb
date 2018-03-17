@@ -19,17 +19,17 @@ const logger = createLogger();
 function mapServiceLevelHelper(level) {
   switch ((level || '').toLowerCase()) {
     case 'selvbetjent':
-      return 'self service';
+      return 'self-service';
     case 'betjent':
-      return 'serviced';
+      return 'staffed';
     case 'ubetjent':
-      return 'unmanned';
+      return 'no-service';
     case 'stengt':
       return 'closed';
     case 'servering':
       return 'food service';
     case 'dagshytte':
-      return 'unmanned (no beds)';
+      return 'no-service (no beds)';
     case 'nødbu':
       return 'emergency shelter';
     default:

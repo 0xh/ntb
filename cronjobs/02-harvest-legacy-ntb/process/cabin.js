@@ -89,6 +89,16 @@ async function createTempTables(handler) {
   });
   await handler.cabins.TempCabinModel.sync();
 
+  tableName = `${baseTableName}_cabin_service_level`;
+  handler.cabins.TempServiceLevelModel =
+    db.sequelize.define(tableName, {
+      name: { type: db.Sequelize.TEXT },
+    }, {
+      timestamps: false,
+      tableName,
+    });
+  await handler.cabins.TempServiceLevelModel.sync();
+
   tableName = `${baseTableName}_cabin_translation`;
   handler.cabins.TempTranslationModel = db.sequelize.define(tableName, {
     uuid: { type: db.Sequelize.UUID, primaryKey: true },
@@ -227,6 +237,7 @@ async function dropTempTables(handler) {
   const durationId = startDuration();
 
   await handler.cabins.TempCabinModel.drop();
+  await handler.cabins.TempServiceLevelModel.drop();
   await handler.cabins.TempTranslationModel.drop();
   await handler.cabins.TempCabinLinkModel.drop();
   await handler.cabins.TempCabinTagModel.drop();
@@ -276,6 +287,7 @@ async function populateTempTables(handler) {
   endDuration(durationId);
 
 
+  const serviceLevels = [];
   const translations = [];
   const tags = [];
   const facilities = [];
@@ -286,6 +298,19 @@ async function populateTempTables(handler) {
   let links = [];
   let openingHours = [];
   handler.cabins.processed.forEach((p) => {
+    if (
+      p.cabin.serviceLevel &&
+      !serviceLevels.includes(p.cabin.serviceLevel)
+    ) {
+      serviceLevels.push({ name: p.cabin.serviceLevel });
+    }
+
+    p.openingHours.forEach((oh) => {
+      if (oh.serviceLevel && !serviceLevels.includes(oh.serviceLevel)) {
+        serviceLevels.push({ name: oh.serviceLevel });
+      }
+    });
+
     if (p.english) {
       translations.push(p.english);
     }
@@ -293,6 +318,7 @@ async function populateTempTables(handler) {
     links = links.concat(p.links);
 
     openingHours = openingHours.concat(p.openingHours);
+
 
     if (p.tags) {
       p.tags.forEach((tag) => tags.push({
@@ -337,7 +363,14 @@ async function populateTempTables(handler) {
   });
 
   // Insert temp data for CabinTranslation
-  logger.info('Inserting area county to temporary table');
+  logger.info('Inserting cabin service levels to temporary table');
+  durationId = startDuration();
+  await handler.cabins.TempServiceLevelModel.bulkCreate(serviceLevels);
+  endDuration(durationId);
+
+
+  // Insert temp data for CabinTranslation
+  logger.info('Inserting cabin translations to temporary table');
   durationId = startDuration();
   await handler.cabins.TempTranslationModel.bulkCreate(translations);
   endDuration(durationId);
@@ -390,6 +423,27 @@ async function populateTempTables(handler) {
   logger.info('Inserting cabin to area temporary table');
   durationId = startDuration();
   await handler.cabins.TempCabinToAreaModel.bulkCreate(cabinToArea);
+  endDuration(durationId);
+}
+
+
+/**
+ * Insert into `cabin_service_level`-table
+ */
+async function mergeServiceLevel(handler) {
+  const { tableName } = handler.cabins.TempServiceLevelModel;
+
+  // Merge into prod table
+  const sql = [
+    'INSERT INTO cabin_service_level (name)',
+    'SELECT name',
+    `FROM public.${tableName}`,
+    'ON CONFLICT (name) DO NOTHING',
+  ].join('\n');
+
+  logger.info('Creating cabin service levels');
+  const durationId = startDuration();
+  await db.sequelize.query(sql);
   endDuration(durationId);
 }
 
@@ -472,7 +526,7 @@ async function mergeCabin(handler) {
     '  description_plain, contact_name, email, phone, mobile, fax, address_1,',
     '  address_2, postal_code, postal_name, url, year_of_construction,',
     '  geojson, county_uuid, municipality_uuid,',
-    '  service_level::enum_cabin_service_level, beds_extra, beds_serviced,',
+    '  service_level, beds_extra, beds_serviced,',
     '  beds_self_service, beds_unmanned, beds_winter, booking_enabled,',
     '  booking_only, booking_url, htgt_winter, htgt_summer,',
     '  map, map_alt, license, provider,',
@@ -992,7 +1046,7 @@ async function mergeCabinOpeningHours(handler) {
     ')',
     'SELECT',
     '  uuid, cabin_uuid, all_year, "from", "to",',
-    '  service_level::enum_cabin_opening_hours_service_level,',
+    '  service_level,',
     '  key::enum_cabin_opening_hours_key, sort_index, :data_source, now(),',
     '  now()',
     `FROM public.${tableName}`,
@@ -1137,6 +1191,7 @@ const process = async (handler) => {
   await mapData(handler);
   await createTempTables(handler);
   await populateTempTables(handler);
+  await mergeServiceLevel(handler);
   await mergeCabin(handler);
   await mergeCabinTranslation(handler);
   await mergeCabinLinks(handler);
