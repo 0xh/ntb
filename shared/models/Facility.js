@@ -1,13 +1,7 @@
 export default (sequelize, DataTypes) => {
   const Facility = sequelize.define('Facility', {
-    nameLowerCase: {
-      type: DataTypes.TEXT,
-      primaryKey: true,
-    },
-    name: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-    },
+    name: { type: DataTypes.TEXT, primaryKey: true },
+    description: { type: DataTypes.TEXT },
   }, {
     timestamps: false,
   });
