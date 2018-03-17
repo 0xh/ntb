@@ -22,16 +22,8 @@ export default (sequelize, DataTypes) => {
     to: { type: DataTypes.DATE },
 
     serviceLevel: {
-      type: DataTypes.ENUM,
-      values: [
-        'self service',
-        'serviced',
-        'unmanned',
-        'closed',
-        'dining',
-        'unmanned (no beds)',
-        'emergency shelter',
-      ],
+      // Foreign key to CabinServiceLevel
+      type: DataTypes.TEXT,
     },
 
     key: {
@@ -58,6 +50,11 @@ export default (sequelize, DataTypes) => {
 
   CabinOpeningHours.associate = (models) => {
     models.CabinOpeningHours.belongsTo(models.Cabin);
+
+    models.CabinOpeningHours.belongsTo(models.CabinServiceLevel, {
+      as: 'ServiceLevel',
+      foreignKey: 'serviceLevel',
+    });
   };
 
   return CabinOpeningHours;

@@ -89,16 +89,8 @@ export default (sequelize, DataTypes) => {
     },
 
     serviceLevel: {
-      type: DataTypes.ENUM,
-      values: [
-        'self service',
-        'serviced',
-        'unmanned',
-        'closed',
-        'dining',
-        'unmanned (no beds)',
-        'emergency shelter',
-      ],
+      // Foreign key to CabinServiceLevel
+      type: DataTypes.TEXT,
     },
 
     bedsExtra: { type: DataTypes.INTEGER, allowNull: false, default: 0 },
@@ -165,11 +157,18 @@ export default (sequelize, DataTypes) => {
     });
 
     models.Cabin.belongsTo(models.County, {
+      as: 'County',
       foreignKey: 'countyUuid',
     });
 
     models.Cabin.belongsTo(models.Municipality, {
+      as: 'Municipality',
       foreignKey: 'municipalityUuid',
+    });
+
+    models.Cabin.belongsTo(models.CabinServiceLevel, {
+      as: 'nServiceLevel',
+      foreignKey: 'serviceLevel',
     });
 
     models.Cabin.belongsToMany(models.Tag, {
