@@ -15,9 +15,9 @@ const logger = createLogger();
 function mapType(type, obj) {
   switch (type) {
     case 'alpint':
-      return 'alpine skiing';
+      return null;
     case 'bretur':
-      return 'glacier';
+      return 'glacier trip';
     case 'bærtur':
       return 'berry-picking';
     case 'downhillsykling':
@@ -28,7 +28,7 @@ function mapType(type, obj) {
     case 'fottur':
       return 'hiking';
     case 'grottetur':
-      return 'grotto trip';
+      return 'caving';
     case 'hyttetur':
       return 'cabin trip';
     case 'kajakk':
@@ -45,31 +45,31 @@ function mapType(type, obj) {
     case 'langrenn':
       return 'cross country skiing';
     case 'padletur':
-      return 'kayak';
+      return 'padling';
     case 'skitur':
-      return 'skiing';
+      return 'ski touring';
     case 'skøytetur':
-      return 'skating';
+      return 'ice skating';
     case 'skogstur':
-      return 'forest';
+      return 'woodland outing';
     case 'snowboard':
-      return 'snowboard';
+      return null;
     case 'snøhuletur':
-      return 'snow cave trip';
+      return 'snow caving';
     case 'sopptur':
       return 'mushroom picking';
     case 'sykkeltur':
       return 'cycling';
     case 'telemark':
-      return 'telemark skiing';
+      return null;
     case 'terrengsykling':
-      return 'mountain biking';
+      return 'off-road biking';
     case 'telttur':
       return 'camping';
     case 'topptur':
       return 'summit';
     case 'trilletur':
-      return 'strolling';
+      return 'pram tour';
     default:
       logger.error(
         `Unknown trip type "${type}" on ` +

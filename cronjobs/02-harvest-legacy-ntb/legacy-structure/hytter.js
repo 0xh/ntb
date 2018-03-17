@@ -27,7 +27,7 @@ function mapServiceLevelHelper(level) {
     case 'stengt':
       return 'closed';
     case 'servering':
-      return 'dining';
+      return 'food service';
     case 'dagshytte':
       return 'unmanned (no beds)';
     case 'nødbu':
@@ -168,13 +168,66 @@ function setTags(obj, res, handler) {
 }
 
 
+function mapFacilityType(type, res) {
+  switch ((type || '').toLowerCase().trim()) {
+    case '12v':
+      return '12v';
+    case '220v':
+      return '220v';
+    case 'badstu':
+      return 'sauna';
+    case 'booking':
+      return 'booking';
+    case 'båt':
+      return 'boat';
+    case 'dusj':
+      return 'shower';
+    case 'kano':
+      return 'canoe';
+    case 'kortbetaling':
+      return 'credit card payment';
+    case 'mobildekning':
+      return 'mobile coverage';
+    case 'peis':
+      return 'fireplace';
+    case 'servering':
+      return 'food service';
+    case 'steikeovn':
+      return 'oven';
+    case 'strømovn':
+      return 'heater';
+    case 'sykkelutleie':
+      return 'bicycle rentals';
+    case 'telefon':
+      return 'phone';
+    case 'teltplass':
+      return 'tent site';
+    case 'tørkerom':
+      return 'drying room';
+    case 'utleie':
+      return 'rental';
+    case 'vann':
+      return 'water';
+    case 'vedovn':
+      return 'wood stove';
+    case 'wc':
+      return 'wc';
+    default:
+      logger.warn(
+        `Missing or unknown link type "${type}" on ` +
+        `cabin.id_legacy_ntb=${res.cabin.idLegacyNtb}`
+      );
+      return 'other';
+  }
+}
+
+
 function setFacilities(obj, res, handler) {
   res.facilities = [];
 
   if (obj.fasiliteter) {
     res.facilities = Object.keys(obj.fasiliteter).map((facility) => ({
-      nameLowerCase: facility.trim().toLowerCase(),
-      name: facility.trim(),
+      name: mapFacilityType(facility),
       description: obj.fasiliteter[facility].trim(),
     }));
   }

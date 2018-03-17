@@ -27,7 +27,7 @@ function mapType(type, obj) {
     case 'bro':
       return 'bridge';
     case 'bu':
-      return 'shack';
+      return 'hut';
     case 'fiskeplass':
       return 'fishing';
     case 'fjelltopp':
@@ -39,7 +39,7 @@ function mapType(type, obj) {
     case 'grotte':
       return 'grotto';
     case 'holdeplass':
-      return 'commercial transport stop';
+      return 'public transport stop';
     case 'kitested':
       return 'kiting area';
     case 'klatrefelt':
@@ -49,7 +49,7 @@ function mapType(type, obj) {
     case 'rasteplass':
       return 'picnic area';
     case 'servering':
-      return 'dining';
+      return 'food service';
     case 'skiltpunkt':
       return 'sign point';
     case 'skitrekk':
@@ -67,7 +67,7 @@ function mapType(type, obj) {
     case 'utsiktspunkt':
       return 'lookout point';
     case 'vadested':
-      return 'shallow water crossing';
+      return 'fording place';
     default:
       // logger.warn(
       //   `Unknown POI type "${type}" on ` +
