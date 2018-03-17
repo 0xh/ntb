@@ -19,12 +19,5 @@ export default (sequelize, DataTypes) => {
     });
   };
 
-
-  // HOOKS
-
-  Facility.hook('beforeSave', (instance) => {
-    instance.nameLowerCase = instance.name.toLowerCase();
-  });
-
   return Facility;
 };
