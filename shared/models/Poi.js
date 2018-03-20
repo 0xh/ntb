@@ -1,30 +1,30 @@
-export const VALID_POI_TYPES = [
-  'attraction',
-  'bathing spot',
-  'bridge',
-  'campground',
-  'climbing',
-  'commercial transport stop',
-  'dining',
-  'fishing',
-  'geocaching',
-  'grotto',
-  'kiting area',
-  'lookout point',
-  'mountain peak',
-  'orienteering',
-  'parking',
-  'picnic area',
-  'shack',
-  'shallow water crossing',
-  'shelter',
-  'sign point',
-  'ski lift',
-  'sledding hill',
-  'toilet',
-  'train station',
-  'trip record',
-];
+// const VALID_POI_TYPES = [
+//   'attraction',
+//   'bathing spot',
+//   'bridge',
+//   'campground',
+//   'climbing',
+//   'public transport stop',
+//   'food service',
+//   'fishing',
+//   'geocaching',
+//   'grotto',
+//   'kiting area',
+//   'lookout point',
+//   'mountain peak',
+//   'orienteering',
+//   'parking',
+//   'picnic area',
+//   'hut',
+//   'fording place',
+//   'shelter',
+//   'sign point',
+//   'ski lift',
+//   'sledding hill',
+//   'toilet',
+//   'train station',
+//   'trip record',
+// ];
 
 
 export default (sequelize, DataTypes) => {
@@ -42,15 +42,8 @@ export default (sequelize, DataTypes) => {
     idSsr: { type: DataTypes.TEXT },
 
     type: {
-      type: DataTypes.ENUM,
-      allowNull: false,
-      values: VALID_POI_TYPES,
-    },
-    altType: {
-      // The type of this column is changed in migration 01 to be
-      // ARRAY(ENUM::enum_poi_type) which is the enum created by the "type"
-      // field from this table.
-      type: DataTypes.ARRAY(DataTypes.TEXT),
+      // Foreign key to PoiType
+      type: DataTypes.TEXT,
       allowNull: false,
     },
 
@@ -121,6 +114,16 @@ export default (sequelize, DataTypes) => {
 
     models.Poi.belongsTo(models.Municipality, {
       foreignKey: 'municipalityUuid',
+    });
+
+    models.Poi.belongsTo(models.PoiType, {
+      foreignKey: 'type',
+    });
+
+    models.Poi.belongsToMany(models.PoiType, {
+      as: 'PoiTypes',
+      through: { model: models.PoiToPoiType },
+      foreignKey: 'poiUuid',
     });
 
     models.Poi.belongsToMany(models.Accessability, {
