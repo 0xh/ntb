@@ -85,11 +85,26 @@ function setType(obj, res, handler) {
 
 
 function setAltTypes(obj, res, handler) {
-  res.poi.altType = obj.tags && obj.tags.length > 0
-    ? obj.tags.map((tag) => mapType(tag.toLowerCase(), obj))
-    : [mapType(null, obj)];
+  let types = [res.poi.type];
+  if (obj.tags && obj.tags.length > 1) {
+    types = types.concat(
+      obj.tags.splice(1).map((tag) => mapType(tag.toLowerCase(), obj))
+    );
+  }
 
-  res.poi.altType = Array.from(new Set(res.poi.altType));
+  types = Array.from(new Set(types));
+
+  let primary = true;
+  res.altTypes = types.map((type, sortIndex) => {
+    const altType = {
+      type,
+      idPoiLegacyNtb: obj._id,
+      primary,
+      sortIndex,
+    };
+    primary = false;
+    return altType;
+  });
 }
 
 

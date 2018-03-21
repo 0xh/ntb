@@ -28,7 +28,6 @@ async function createTempTables(handler) {
     idLegacyNtb: { type: db.Sequelize.TEXT },
     idSsr: { type: db.Sequelize.TEXT },
     type: { type: db.Sequelize.TEXT },
-    altType: { type: db.Sequelize.ARRAY(db.Sequelize.TEXT) },
     name: { type: db.Sequelize.TEXT },
     nameLowerCase: { type: db.Sequelize.TEXT },
     description: { type: db.Sequelize.TEXT },
@@ -48,6 +47,22 @@ async function createTempTables(handler) {
     tableName,
   });
   await handler.pois.TempPoiModel.sync();
+
+  tableName = `${baseTableName}_poi_types`;
+  handler.pois.TempPoiTypeModel =
+    db.sequelize.define(tableName, {
+      type: { type: db.Sequelize.TEXT },
+      poiUuid: { type: db.Sequelize.UUID, allowNull: true },
+      primary: { type: db.Sequelize.BOOLEAN, default: false },
+      idPoiLegacyNtb: { type: db.Sequelize.TEXT },
+      sortIndex: { type: db.Sequelize.INTEGER },
+      dataSource: { type: db.Sequelize.TEXT },
+      updatedAt: { type: db.Sequelize.DATE },
+    }, {
+      timestamps: false,
+      tableName,
+    });
+  await handler.pois.TempPoiTypeModel.sync();
 
   tableName = `${baseTableName}_poi_links`;
   handler.pois.TempPoiLinkModel =
@@ -103,6 +118,19 @@ async function createTempTables(handler) {
     });
   await handler.pois.TempPoiToAreaModel.sync();
 
+  tableName = `${baseTableName}_poi_to_group`;
+  handler.pois.TempPoiToGroupModel =
+    db.sequelize.define(tableName, {
+      poi_uuid: { type: db.Sequelize.UUID },
+      group_uuid: { type: db.Sequelize.UUID },
+      poiLegacyId: { type: db.Sequelize.TEXT },
+      groupLegacyId: { type: db.Sequelize.TEXT },
+    }, {
+      timestamps: false,
+      tableName,
+    });
+  await handler.pois.TempPoiToGroupModel.sync();
+
 
   endDuration(durationId);
 }
@@ -116,10 +144,12 @@ async function dropTempTables(handler) {
   const durationId = startDuration();
 
   await handler.pois.TempPoiModel.drop();
+  await handler.pois.TempPoiTypeModel.drop();
   await handler.pois.TempPoiLinkModel.drop();
   await handler.pois.TempAccessabilityModel.drop();
   await handler.pois.TempPoiAccessabilityModel.drop();
   await handler.pois.TempPoiToAreaModel.drop();
+  await handler.pois.TempPoiToGroupModel.drop();
 
   endDuration(durationId);
 }
@@ -162,9 +192,12 @@ async function populateTempTables(handler) {
   const accessabilities = [];
   const poiAccessabilities = [];
   const poiToArea = [];
+  const poiToGroup = [];
   let links = [];
+  let poiTypes = [];
   handler.pois.processed.forEach((p) => {
     links = links.concat(p.links);
+    poiTypes = poiTypes.concat(p.altTypes);
 
     if (p.accessibility) {
       p.accessibility.forEach((accessability) => accessabilities.push({
@@ -186,12 +219,25 @@ async function populateTempTables(handler) {
         poiLegacyId: p.poi.idLegacyNtb,
       }));
     }
+
+    if (p.groups) {
+      p.groups.forEach((group) => poiToGroup.push({
+        groupLegacyId: group.toString(),
+        poiLegacyId: p.poi.idLegacyNtb,
+      }));
+    }
   });
 
   // Insert temp data for PoiLink
   logger.info('Inserting poi links to temporary table');
   durationId = startDuration();
   await handler.pois.TempPoiLinkModel.bulkCreate(links);
+  endDuration(durationId);
+
+  // Insert temp data for PoiType
+  logger.info('Inserting poi types to temporary table');
+  durationId = startDuration();
+  await handler.pois.TempPoiTypeModel.bulkCreate(poiTypes);
   endDuration(durationId);
 
   // Insert temp data for Accessability
@@ -213,6 +259,33 @@ async function populateTempTables(handler) {
   durationId = startDuration();
   await handler.pois.TempPoiToAreaModel.bulkCreate(poiToArea);
   endDuration(durationId);
+
+  // Insert temp data for PoiAccessability
+  logger.info('Inserting poi to group temporary table');
+  durationId = startDuration();
+  await handler.pois.TempPoiToGroupModel.bulkCreate(poiToGroup);
+  endDuration(durationId);
+}
+
+
+/**
+ * Insert into `poi_type`-table or update if it already exists
+ */
+async function mergePoiTypes(handler) {
+  const { tableName } = handler.pois.TempPoiTypeModel;
+
+  // Merge into prod table
+  const sql = [
+    'INSERT INTO poi_type (name)',
+    'SELECT DISTINCT type',
+    `FROM public.${tableName}`,
+    'ON CONFLICT (name) DO NOTHING',
+  ].join('\n');
+
+  logger.info('Creating poi types');
+  const durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
 }
 
 
@@ -225,14 +298,14 @@ async function mergePoi(handler) {
   // Merge into prod table
   const sql = [
     'INSERT INTO poi (',
-    '  uuid, id_legacy_ntb, id_ssr, "type", alt_type, name, name_lower_case,',
+    '  uuid, id_legacy_ntb, id_ssr, "type", name, name_lower_case,',
     '  description, description_plain, geojson, season, open, county_uuid,',
     '  municipality_uuid, license, provider, status, data_source, updated_at,',
     '  created_at, search_document_boost',
     ')',
     'SELECT',
     '  uuid, id_legacy_ntb, id_ssr, "type"::enum_poi_type, ',
-    '  alt_type::enum_poi_type[], name, name_lower_case, description,',
+    '  name, name_lower_case, description,',
     '  description_plain, geojson, season, open, county_uuid,',
     '  municipality_uuid, license, provider, status::enum_poi_status,',
     '  :data_source, updated_at, updated_at, 1',
@@ -241,7 +314,6 @@ async function mergePoi(handler) {
     'SET',
     '   "id_ssr" = EXCLUDED."id_ssr",',
     '   "type" = EXCLUDED.type,',
-    '   "alt_type" = EXCLUDED."alt_type",',
     '   "name" = EXCLUDED."name",',
     '   "name_lower_case" = EXCLUDED."name_lower_case",',
     '   "description" = EXCLUDED."description",',
@@ -259,6 +331,87 @@ async function mergePoi(handler) {
   ].join('\n');
 
   logger.info('Creating or updating pois');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Insert into `poi_to_poi_type`-table or update if it already exists
+ */
+async function mergePoiToPoiTypes(handler) {
+  let sql;
+  let durationId;
+  const { tableName } = handler.pois.TempPoiTypeModel;
+
+  // Set UUIDs on poiLink temp data
+  sql = [
+    `UPDATE public.${tableName} gl1 SET`,
+    '  poi_uuid = g.uuid',
+    `FROM public.${tableName} gl2`,
+    'INNER JOIN public.poi g ON',
+    '  g.id_legacy_ntb = gl2.id_poi_legacy_ntb',
+    'WHERE',
+    '  gl1.id_poi_legacy_ntb = gl2.id_poi_legacy_ntb AND',
+    '  gl1.sort_index = gl2.sort_index',
+  ].join('\n');
+
+  logger.info('Update uuids on poi types temp data');
+  durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+
+  // Merge into prod table
+  sql = [
+    'INSERT INTO poi_to_poi_type (',
+    '  poi_type, poi_uuid, "primary",',
+    '  sort_index, data_source, created_at, updated_at',
+    ')',
+    'SELECT',
+    '  type, poi_uuid, "primary",',
+    '  sort_index, :data_source, now(), now()',
+    `FROM public.${tableName}`,
+    'ON CONFLICT (poi_uuid, sort_index) DO UPDATE',
+    'SET',
+    '  poi_type = EXCLUDED.poi_type,',
+    '  "primary" = EXCLUDED."primary"',
+  ].join('\n');
+
+  logger.info('Creating or updating poi links');
+  durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Remove poi links that no longer exist in legacy-ntb
+ */
+async function removeDepreactedPoiLinks(handler) {
+  const { tableName } = handler.pois.TempPoiLinkModel;
+  const sql = [
+    'DELETE FROM public.poi_link',
+    'USING public.poi_link gl',
+    `LEFT JOIN public.${tableName} te ON`,
+    '  gl.poi_uuid = te.poi_uuid AND',
+    '  gl.sort_index = te.sort_index',
+    'WHERE',
+    '  te.id_poi_legacy_ntb IS NULL AND',
+    '  gl.data_source = :data_source AND',
+    '  public.poi_link.poi_uuid = gl.poi_uuid AND',
+    '  public.poi_link.sort_index = gl.sort_index',
+  ].join('\n');
+
+  logger.info('Deleting deprecated poi links');
   const durationId = startDuration();
   await db.sequelize.query(sql, {
     replacements: {
@@ -495,7 +648,7 @@ async function mergePoiToArea(handler) {
 
 
 /**
- * Remove area to area relations that no longer exist in legacy-ntb
+ * Remove poi to area relations that no longer exist in legacy-ntb
  */
 async function removeDepreactedPoiToArea(handler) {
   const { tableName } = handler.pois.TempPoiToAreaModel;
@@ -525,6 +678,86 @@ async function removeDepreactedPoiToArea(handler) {
 
 
 /**
+ * Insert into `poi_to_group`-table or update if it already exists
+ */
+async function mergePoiToGroup(handler) {
+  let sql;
+  let durationId;
+  const { tableName } = handler.pois.TempPoiToGroupModel;
+
+  // Set UUIDs on poiToGroup temp data
+  sql = [
+    `UPDATE public.${tableName} a1 SET`,
+    '  poi_uuid = c.uuid,',
+    '  group_uuid = a.uuid',
+    `FROM public.${tableName} a2`,
+    'INNER JOIN public.group a ON',
+    '  a.id_legacy_ntb = a2.group_legacy_id',
+    'INNER JOIN public.poi c ON',
+    '  c.id_legacy_ntb = a2.poi_legacy_id',
+    'WHERE',
+    '  a1.group_legacy_id = a2.group_legacy_id AND',
+    '  a1.poi_legacy_id = a2.poi_legacy_id',
+  ].join('\n');
+
+  logger.info('Update uuids on poi-to-group temp data');
+  durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+
+  // Merge into prod table
+  sql = [
+    'INSERT INTO poi_to_group (',
+    '  poi_uuid, group_uuid, data_source, created_at, updated_at',
+    ')',
+    'SELECT',
+    '  poi_uuid, group_uuid, :data_source, now(), now()',
+    `FROM public.${tableName}`,
+    'ON CONFLICT (poi_uuid, group_uuid) DO NOTHING',
+  ].join('\n');
+
+  logger.info('Creating or updating poi to group relations');
+  durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Remove poi to group relations that no longer exist in legacy-ntb
+ */
+async function removeDepreactedPoiToGroup(handler) {
+  const { tableName } = handler.pois.TempPoiToGroupModel;
+
+  const sql = [
+    'DELETE FROM public.poi_to_group',
+    'USING public.poi_to_group c2a',
+    `LEFT JOIN public.${tableName} te ON`,
+    '  c2a.poi_uuid = te.poi_uuid AND',
+    '  c2a.group_uuid = te.group_uuid',
+    'WHERE',
+    '  te.group_uuid IS NULL AND',
+    '  c2a.data_source = :data_source AND',
+    '  public.poi_to_group.poi_uuid = c2a.poi_uuid AND',
+    '  public.poi_to_group.group_uuid = c2a.group_uuid',
+  ].join('\n');
+
+  logger.info('Deleting deprecated poi to group relations');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
  * Process legacy area data and merge it into the postgres database
  */
 const process = async (handler) => {
@@ -535,7 +768,9 @@ const process = async (handler) => {
   await mapData(handler);
   await createTempTables(handler);
   await populateTempTables(handler);
+  await mergePoiTypes(handler);
   await mergePoi(handler);
+  await mergePoiToPoiTypes(handler);
   await mergePoiLinks(handler);
   await removeDepreactedPoiLinks(handler);
   await createAccessabilities(handler);
@@ -543,6 +778,8 @@ const process = async (handler) => {
   await removeDepreactedPoiAccessabilities(handler);
   await mergePoiToArea(handler);
   await removeDepreactedPoiToArea(handler);
+  await mergePoiToGroup(handler);
+  await removeDepreactedPoiToGroup(handler);
   await dropTempTables(handler);
 };
 
