@@ -1,0 +1,16 @@
+{
+  "private": true,
+  "name": "@turistforeningen/ntb-shared-legacy-ntb-harvester",
+  "version": "0.0.0",
+  "dependencies": {
+    "@mapbox/polyline": "^0.2.0",
+    "@turistforeningen/ntb-shared-models": "*",
+    "@turistforeningen/ntb-shared-settings": "*",
+    "@turistforeningen/ntb-shared-text-content-utils": "*",
+    "@turistforeningen/ntb-shared-utils": "*",
+    "geojson-validation": "^0.2.0",
+    "moment": "^2.20.1",
+    "mongodb": "^3.0.1",
+    "uuid": "^3.2.1"
+  }
+}
