@@ -996,6 +996,28 @@ async function modifyTripToActivityType(queryInterface, transaction) {
 }
 
 
+async function modifyTripToGroup(queryInterface, transaction) {
+  // Create composite primary keys
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "trip_to_group"',
+    'ADD CONSTRAINT "trip_to_group_primary" PRIMARY KEY (',
+    '  "trip_uuid", "group_uuid"',
+    ')',
+  ].join('\n'), { transaction });
+}
+
+
+async function modifyTripToPoi(queryInterface, transaction) {
+  // Create composite primary keys
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "trip_to_poi"',
+    'ADD CONSTRAINT "trip_to_poi_primary" PRIMARY KEY (',
+    '  "trip_uuid", "poi_uuid"',
+    ')',
+  ].join('\n'), { transaction });
+}
+
+
 async function modifyRouteToActivityType(queryInterface, transaction) {
   // Create composite primary keys
   await queryInterface.sequelize.query([
@@ -1013,6 +1035,28 @@ async function modifyRouteToCounty(queryInterface, transaction) {
     'ALTER TABLE "route_to_county"',
     'ADD CONSTRAINT "route_to_county_primary" PRIMARY KEY (',
     '  "route_uuid", "county_uuid"',
+    ')',
+  ].join('\n'), { transaction });
+}
+
+
+async function modifyRouteToGroup(queryInterface, transaction) {
+  // Create composite primary keys
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "route_to_group"',
+    'ADD CONSTRAINT "route_to_group_primary" PRIMARY KEY (',
+    '  "route_uuid", "group_uuid"',
+    ')',
+  ].join('\n'), { transaction });
+}
+
+
+async function modifyRouteToPoi(queryInterface, transaction) {
+  // Create composite primary keys
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "route_to_poi"',
+    'ADD CONSTRAINT "route_to_poi_primary" PRIMARY KEY (',
+    '  "route_uuid", "poi_uuid"',
     ')',
   ].join('\n'), { transaction });
 }
@@ -1152,11 +1196,15 @@ const up = async (db) => {
     await modifyPoiToArea(queryInterface, transaction);
     await modifyPoiToGroup(queryInterface, transaction);
     await modifyTripToActivityType(queryInterface, transaction);
+    await modifyTripToGroup(queryInterface, transaction);
+    await modifyTripToPoi(queryInterface, transaction);
     await modifyRouteToActivityType(queryInterface, transaction);
     await modifyRouteToCounty(queryInterface, transaction);
     await modifyActivityTypeToActivityType(queryInterface, transaction);
     await modifyTrip(queryInterface, transaction);
     await modifyRoute(queryInterface, transaction);
+    await modifyRouteToGroup(queryInterface, transaction);
+    await modifyRouteToPoi(queryInterface, transaction);
     await modifyRouteToRouteWaymarkType(queryInterface, transaction);
     await modifyUuid(queryInterface, transaction);
   }).catch((err) => {
