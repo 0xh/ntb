@@ -16,6 +16,8 @@ async function modifySearchConfig(queryInterface, transaction) {
     '  (\'search_document__group\', 1, NULL),',
     '  (\'search_document__cabin\', 1.5, NULL),',
     '  (\'search_document__poi\', 1.5, NULL),',
+    '  (\'search_document__trip\', 1.5, NULL),',
+    '  (\'search_document__route\', 1.5, NULL),',
     '  (\'search_document__county\', 1, NULL),',
     '  (\'search_document__municipality\', 1, NULL),',
     '  (\'area__field__name\', NULL, \'A\'),',
@@ -24,6 +26,11 @@ async function modifySearchConfig(queryInterface, transaction) {
     '  (\'cabin__field__description\', NULL, \'D\'),',
     '  (\'poi__field__name\', NULL, \'A\'),',
     '  (\'poi__field__description\', NULL, \'D\'),',
+    '  (\'trip__field__name\', NULL, \'A\'),',
+    '  (\'trip__field__description\', NULL, \'D\'),',
+    '  (\'route__field__name\', NULL, \'A\'),',
+    '  (\'route__field__description\', NULL, \'C\'),',
+    '  (\'route__field__description_direction\', NULL, \'D\'),',
     '  (\'group__field__name\', NULL, \'A\'),',
     '  (\'group__field__description\', NULL, \'D\'),',
     '  (\'county__field__name\', NULL, \'A\'),',
@@ -605,13 +612,6 @@ async function modifyCabinToArea(queryInterface, transaction) {
 
 
 async function modifyPoi(queryInterface, transaction) {
-  // Change to array of enums on field 'alt_type'.
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "poi"',
-    'ALTER COLUMN "alt_type" TYPE enum_poi_type[]',
-    'USING "alt_type"::enum_poi_type[];',
-  ].join('\n'), { transaction });
-
   // Add tsvector field for norwegian
   await queryInterface.sequelize.query([
     'ALTER TABLE "poi"',
@@ -700,6 +700,238 @@ async function modifyPoi(queryInterface, transaction) {
 }
 
 
+async function modifyTrip(queryInterface, transaction) {
+  // Add tsvector field for norwegian
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "trip"',
+    'ADD COLUMN "search_nb" TSVECTOR,',
+    'ADD COLUMN "search_en" TSVECTOR;',
+  ].join('\n'), { transaction });
+
+  // Add index to tsvector field
+  await queryInterface.sequelize.query([
+    'CREATE INDEX trip_search_nb_idx ON "trip"',
+    'USING gin("search_nb");',
+  ].join('\n'), { transaction });
+  await queryInterface.sequelize.query([
+    'CREATE INDEX trip_search_en_idx ON "trip"',
+    'USING gin("search_en");',
+  ].join('\n'), { transaction });
+
+  // Create tsvector trigger procedure for updating the norwegian vector
+  await queryInterface.sequelize.query([
+    'CREATE FUNCTION trip_tsvector_trigger() RETURNS trigger AS $$',
+    'DECLARE',
+    '  name_weight CHAR;',
+    '  description_weight CHAR;',
+    'BEGIN',
+    '  SELECT sbc."weight" INTO name_weight',
+    '  FROM "search_config" AS sbc',
+    '  WHERE sbc.name = \'trip__field__name\';',
+    '',
+    '  SELECT sbc."weight" INTO description_weight',
+    '  FROM "search_config" AS sbc',
+    '  WHERE sbc.name = \'trip__field__description\';',
+    '',
+    '  NEW.search_nb :=',
+    '    setweight(to_tsvector(',
+    '      \'pg_catalog.norwegian\',',
+    '       coalesce(NEW.name_lower_case, \'\')',
+    '    ), name_weight::"char") ||',
+    '    setweight(to_tsvector(',
+    '      \'pg_catalog.norwegian\',',
+    '       coalesce(NEW.description_plain, \'\')',
+    '    ), description_weight::"char");',
+    '  RETURN NEW;',
+    'END',
+    '$$ LANGUAGE plpgsql;',
+  ].join('\n'), { transaction });
+
+  // Create search document trigger procedure for Area
+  await queryInterface.sequelize.query([
+    'CREATE FUNCTION trip_search_document_trigger() RETURNS trigger AS $$',
+    'DECLARE',
+    '  boost FLOAT;',
+    'BEGIN',
+
+    '  SELECT sbc.boost INTO boost',
+    '  FROM search_config AS sbc',
+    '  WHERE sbc.name = \'search_document__trip\';',
+
+    '  INSERT INTO search_document (',
+    '    uuid, trip_uuid, status, search_nb, search_document_boost,',
+    '    search_document_type_boost, created_at, updated_at',
+    '  )',
+    '  VALUES (',
+    '    uuid_generate_v4(), NEW.uuid, NEW.status, NEW.search_nb,',
+    '    NEW.search_document_boost, boost, NEW.created_at, NEW.updated_at',
+    '  )',
+    '  ON CONFLICT ("trip_uuid")',
+    '  DO UPDATE',
+    '  SET',
+    '    search_nb = EXCLUDED.search_nb,',
+    '    search_document_type_boost = boost,',
+    '    created_at = EXCLUDED.created_at,',
+    '    updated_at = EXCLUDED.updated_at;',
+
+    '  RETURN NEW;',
+    'END',
+    '$$ LANGUAGE plpgsql;',
+  ].join('\n'), { transaction });
+
+  // Use tsvector trigger before each insert or update
+  await queryInterface.sequelize.query([
+    'CREATE TRIGGER trip_tsvector_update BEFORE INSERT OR UPDATE',
+    'ON "trip" FOR EACH ROW EXECUTE PROCEDURE trip_tsvector_trigger();',
+  ].join('\n'), { transaction });
+
+  // Use search document trigger after each insert or update
+  await queryInterface.sequelize.query([
+    'CREATE TRIGGER trip_search_document_update AFTER INSERT OR UPDATE',
+    'ON "trip"',
+    'FOR EACH ROW EXECUTE PROCEDURE trip_search_document_trigger();',
+  ].join('\n'), { transaction });
+}
+
+
+async function modifyRoute(queryInterface, transaction) {
+  // Add tsvector field for norwegian
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "route"',
+    'ADD COLUMN "search_nb" TSVECTOR,',
+    'ADD COLUMN "search_en" TSVECTOR;',
+  ].join('\n'), { transaction });
+
+  // Add index to tsvector field
+  await queryInterface.sequelize.query([
+    'CREATE INDEX route_search_nb_idx ON "route"',
+    'USING gin("search_nb");',
+  ].join('\n'), { transaction });
+  await queryInterface.sequelize.query([
+    'CREATE INDEX route_search_en_idx ON "route"',
+    'USING gin("search_en");',
+  ].join('\n'), { transaction });
+
+  // Create tsvector trigger procedure for updating the norwegian vector
+  await queryInterface.sequelize.query([
+    'CREATE FUNCTION route_tsvector_trigger() RETURNS trigger AS $$',
+    'DECLARE',
+    '  name_weight CHAR;',
+    '  description_weight CHAR;',
+    '  description_direction_weight CHAR;',
+    'BEGIN',
+    '  SELECT sbc."weight" INTO name_weight',
+    '  FROM "search_config" AS sbc',
+    '  WHERE sbc.name = \'route__field__name\';',
+    '',
+    '  SELECT sbc."weight" INTO description_weight',
+    '  FROM "search_config" AS sbc',
+    '  WHERE sbc.name = \'route__field__description\';',
+    '',
+    '  SELECT sbc."weight" INTO description_direction_weight',
+    '  FROM "search_config" AS sbc',
+    '  WHERE sbc.name = \'route__field__description_direction\';',
+    '',
+    '  NEW.search_nb :=',
+    '    setweight(to_tsvector(',
+    '      \'pg_catalog.norwegian\',',
+    '       coalesce(NEW.name_lower_case, \'\')',
+    '    ), name_weight::"char") ||',
+    '    setweight(to_tsvector(',
+    '      \'pg_catalog.norwegian\',',
+    '       coalesce(NEW.description_plain, \'\')',
+    '    ), description_weight::"char") ||',
+    '    setweight(to_tsvector(',
+    '      \'pg_catalog.norwegian\',',
+    '       coalesce(NEW.description_ab_plain, \'\')',
+    '    ), description_direction_weight::"char") ||',
+    '    setweight(to_tsvector(',
+    '      \'pg_catalog.norwegian\',',
+    '       coalesce(NEW.description_ba_plain, \'\')',
+    '    ), description_direction_weight::"char");',
+    '  RETURN NEW;',
+    'END',
+    '$$ LANGUAGE plpgsql;',
+  ].join('\n'), { transaction });
+
+  // Create search document trigger procedure for Area
+  await queryInterface.sequelize.query([
+    'CREATE FUNCTION route_search_document_trigger() RETURNS trigger AS $$',
+    'DECLARE',
+    '  boost FLOAT;',
+    'BEGIN',
+
+    '  SELECT sbc.boost INTO boost',
+    '  FROM search_config AS sbc',
+    '  WHERE sbc.name = \'search_document__route\';',
+
+    '  INSERT INTO search_document (',
+    '    uuid, route_uuid, status, search_nb, search_document_boost,',
+    '    search_document_type_boost, created_at, updated_at',
+    '  )',
+    '  VALUES (',
+    '    uuid_generate_v4(), NEW.uuid, NEW.status, NEW.search_nb,',
+    '    NEW.search_document_boost, boost, NEW.created_at, NEW.updated_at',
+    '  )',
+    '  ON CONFLICT ("route_uuid")',
+    '  DO UPDATE',
+    '  SET',
+    '    search_nb = EXCLUDED.search_nb,',
+    '    search_document_type_boost = boost,',
+    '    created_at = EXCLUDED.created_at,',
+    '    updated_at = EXCLUDED.updated_at;',
+
+    '  RETURN NEW;',
+    'END',
+    '$$ LANGUAGE plpgsql;',
+  ].join('\n'), { transaction });
+
+  // Use tsvector trigger before each insert or update
+  await queryInterface.sequelize.query([
+    'CREATE TRIGGER route_tsvector_update BEFORE INSERT OR UPDATE',
+    'ON "route" FOR EACH ROW EXECUTE PROCEDURE route_tsvector_trigger();',
+  ].join('\n'), { transaction });
+
+  // Use search document trigger after each insert or update
+  await queryInterface.sequelize.query([
+    'CREATE TRIGGER route_search_document_update AFTER INSERT OR UPDATE',
+    'ON "route"',
+    'FOR EACH ROW EXECUTE PROCEDURE route_search_document_trigger();',
+  ].join('\n'), { transaction });
+}
+
+
+async function modifyRouteToRouteWaymarkType(queryInterface, transaction) {
+  // Create composite primary keys
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "route_to_route_waymark_type"',
+    'ADD CONSTRAINT "route_to_route_waymark_type_primary" PRIMARY KEY (',
+    '  "route_waymark_type_name", "route_uuid"',
+    ')',
+  ].join('\n'), { transaction });
+}
+
+
+async function modifyPoiToPoiType(queryInterface, transaction) {
+  // Create composite primary keys
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "poi_to_poi_type"',
+    'ADD CONSTRAINT "poi_to_poi_type_primary" PRIMARY KEY (',
+    '  "poi_type", "poi_uuid"',
+    ')',
+  ].join('\n'), { transaction });
+
+  // Update unique key
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "public"."poi_to_poi_type"',
+    'DROP CONSTRAINT "poi_to_poi_type_sort_index_key";',
+    'ALTER TABLE "public"."poi_to_poi_type"',
+    'ADD CONSTRAINT "poi_to_poi_type_sort_index_key"',
+    'UNIQUE ("sort_index","poi_uuid") NOT DEFERRABLE INITIALLY IMMEDIATE;',
+  ].join('\n'), { transaction });
+}
+
+
 async function harvestCountiesAndMunicipalities() {
   // Harvest counties and municipalities from kartverket
   await CMharvest()
@@ -742,6 +974,74 @@ async function modifyPoiToArea(queryInterface, transaction) {
 }
 
 
+async function modifyPoiToGroup(queryInterface, transaction) {
+  // Create composite primary keys
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "poi_to_group"',
+    'ADD CONSTRAINT "poi_to_group_primary" PRIMARY KEY (',
+    '  "poi_uuid", "group_uuid"',
+    ')',
+  ].join('\n'), { transaction });
+}
+
+
+async function modifyTripToActivityType(queryInterface, transaction) {
+  // Create composite primary keys
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "trip_to_activity_type"',
+    'ADD CONSTRAINT "trip_to_activity_type_primary" PRIMARY KEY (',
+    '  "activity_type_name", "trip_uuid"',
+    ')',
+  ].join('\n'), { transaction });
+}
+
+
+async function modifyRouteToActivityType(queryInterface, transaction) {
+  // Create composite primary keys
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "route_to_activity_type"',
+    'ADD CONSTRAINT "route_to_activity_type_primary" PRIMARY KEY (',
+    '  "activity_type_name", "route_uuid"',
+    ')',
+  ].join('\n'), { transaction });
+}
+
+
+async function modifyRouteToCounty(queryInterface, transaction) {
+  // Create composite primary keys
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "route_to_county"',
+    'ADD CONSTRAINT "route_to_county_primary" PRIMARY KEY (',
+    '  "route_uuid", "county_uuid"',
+    ')',
+  ].join('\n'), { transaction });
+}
+
+
+async function modifyActivityTypeToActivityType(
+  queryInterface,
+  transaction
+) {
+  // Create composite primary keys
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "activity_type_to_activity_type"',
+    'ADD CONSTRAINT "activity_type_to_activity_type_primary"',
+    'PRIMARY KEY ("primary_type", "sub_type")',
+  ].join('\n'), { transaction });
+}
+
+
+async function modifyUuid(queryInterface, transaction) {
+  // Create composite primary keys
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "uuid"',
+    'ADD CONSTRAINT "uuid_primary" PRIMARY KEY (',
+    '  "uuid", "document_type"',
+    ')',
+  ].join('\n'), { transaction });
+}
+
+
 const down = async (db) => {
   logger.info('Unset all the things');
   const sqls = [];
@@ -754,32 +1054,38 @@ const down = async (db) => {
     }
   });
 
+  // Remove 'area' triggers
   sqls.push('DROP TRIGGER IF EXISTS area_tsvector_update ON "area";');
   sqls.push('DROP TRIGGER IF EXISTS area_search_document_update ON "area";');
   sqls.push('DROP FUNCTION IF EXISTS area_tsvector_trigger();');
   sqls.push('DROP FUNCTION IF EXISTS area_search_document_trigger();');
 
+  // Remove 'group' triggers
   sqls.push('DROP TRIGGER IF EXISTS group_tsvector_update ON "group";');
   sqls.push('DROP TRIGGER IF EXISTS group_search_document_update ON "group";');
   sqls.push('DROP FUNCTION IF EXISTS group_tsvector_trigger();');
   sqls.push('DROP FUNCTION IF EXISTS group_search_document_trigger();');
 
+  // Remove 'county' triggers
   sqls.push(
     'DROP TRIGGER IF EXISTS county_search_document_update ON "county";'
   );
   sqls.push('DROP FUNCTION IF EXISTS county_search_document_trigger();');
 
+  // Remove 'municipality' triggers
   sqls.push(
     'DROP TRIGGER IF EXISTS municipality_search_document_update ' +
     'ON "municipality";'
   );
   sqls.push('DROP FUNCTION IF EXISTS municipality_search_document_trigger();');
 
+  // Remove 'cabin' triggers
   sqls.push('DROP TRIGGER IF EXISTS cabin_tsvector_update ON "cabin";');
   sqls.push('DROP TRIGGER IF EXISTS cabin_search_document_update ON "cabin";');
   sqls.push('DROP FUNCTION IF EXISTS cabin_tsvector_trigger();');
   sqls.push('DROP FUNCTION IF EXISTS cabin_search_document_trigger();');
 
+  // Remove 'cabin_translations' triggers
   sqls.push(
     'DROP TRIGGER IF EXISTS cabin_translation_update_trigger ON ' +
     '"cabin_translation";'
@@ -793,10 +1099,23 @@ const down = async (db) => {
   );
   sqls.push('DROP FUNCTION IF EXISTS cabin_translation_on_delete();');
 
+  // Remove 'poi' triggers
   sqls.push('DROP TRIGGER IF EXISTS poi_tsvector_update ON "poi";');
   sqls.push('DROP TRIGGER IF EXISTS poi_search_document_update ON "poi";');
   sqls.push('DROP FUNCTION IF EXISTS poi_tsvector_trigger();');
   sqls.push('DROP FUNCTION IF EXISTS poi_search_document_trigger();');
+
+  // Remove 'trip' triggers
+  sqls.push('DROP TRIGGER IF EXISTS trip_tsvector_update ON "trip";');
+  sqls.push('DROP TRIGGER IF EXISTS trip_search_document_update ON "trip";');
+  sqls.push('DROP FUNCTION IF EXISTS trip_tsvector_trigger();');
+  sqls.push('DROP FUNCTION IF EXISTS trip_search_document_trigger();');
+
+  // Remove 'route' triggers
+  sqls.push('DROP TRIGGER IF EXISTS route_tsvector_update ON "route";');
+  sqls.push('DROP TRIGGER IF EXISTS route_search_document_update ON "route";');
+  sqls.push('DROP FUNCTION IF EXISTS route_tsvector_trigger();');
+  sqls.push('DROP FUNCTION IF EXISTS route_search_document_trigger();');
 
   await db.sequelize.query(
     sqls.join('\n')
@@ -828,8 +1147,18 @@ const up = async (db) => {
     await modifyCabinAccessability(queryInterface, transaction);
     await modifyCabinToArea(queryInterface, transaction);
     await modifyPoi(queryInterface, transaction);
+    await modifyPoiToPoiType(queryInterface, transaction);
     await modifyPoiAccessability(queryInterface, transaction);
     await modifyPoiToArea(queryInterface, transaction);
+    await modifyPoiToGroup(queryInterface, transaction);
+    await modifyTripToActivityType(queryInterface, transaction);
+    await modifyRouteToActivityType(queryInterface, transaction);
+    await modifyRouteToCounty(queryInterface, transaction);
+    await modifyActivityTypeToActivityType(queryInterface, transaction);
+    await modifyTrip(queryInterface, transaction);
+    await modifyRoute(queryInterface, transaction);
+    await modifyRouteToRouteWaymarkType(queryInterface, transaction);
+    await modifyUuid(queryInterface, transaction);
   }).catch((err) => {
     logger.error('TRANSACTION ERROR');
     logger.error(err);
