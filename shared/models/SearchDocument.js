@@ -49,6 +49,26 @@ export default (sequelize, DataTypes) => {
       },
     },
 
+    // Foreign key to Trip
+    tripUuid: {
+      type: DataTypes.UUID,
+      unique: true,
+      allowNull: true,
+      validate: {
+        isUUID: 4,
+      },
+    },
+
+    // Foreign key to Route
+    routeUuid: {
+      type: DataTypes.UUID,
+      unique: true,
+      allowNull: true,
+      validate: {
+        isUUID: 4,
+      },
+    },
+
     // Foreign key to County
     countyUuid: {
       type: DataTypes.UUID,
@@ -119,6 +139,16 @@ export default (sequelize, DataTypes) => {
     models.SearchDocument.belongsTo(models.Poi, {
       as: 'Poi',
       foreignKey: 'poiUuid',
+    });
+
+    models.SearchDocument.belongsTo(models.Trip, {
+      as: 'Trip',
+      foreignKey: 'tripUuid',
+    });
+
+    models.SearchDocument.belongsTo(models.Route, {
+      as: 'Route',
+      foreignKey: 'routeUuid',
     });
 
     models.SearchDocument.belongsTo(models.County, {
