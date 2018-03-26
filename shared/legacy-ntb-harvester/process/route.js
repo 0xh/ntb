@@ -101,17 +101,48 @@ async function createTempTables(handler, sync = false) {
     });
   if (sync) await handler.routes.TempRouteRouteWaymarkTypeModel.sync();
 
-  tableName = `${baseTableName}_route_to_county`;
-  handler.routes.TempRouteToCountyModel =
+  tableName = `${baseTableName}_route_links`;
+  handler.routes.TempRouteLinkModel =
     db.sequelize.define(tableName, {
-      county_uuid: { type: db.Sequelize.UUID },
-      route_uuid: { type: db.Sequelize.UUID },
-      routeLegacyId: { type: db.Sequelize.TEXT },
+      uuid: { type: db.Sequelize.UUID, primaryKey: true },
+      title: { type: db.Sequelize.TEXT, allowNull: true },
+      url: { type: db.Sequelize.TEXT },
+      routeUuid: { type: db.Sequelize.UUID, allowNull: true },
+      idRouteLegacyNtb: { type: db.Sequelize.TEXT },
+      sortIndex: { type: db.Sequelize.INTEGER },
+      dataSource: { type: db.Sequelize.TEXT },
+      updatedAt: { type: db.Sequelize.DATE },
     }, {
       timestamps: false,
       tableName,
     });
-  await handler.routes.TempRouteToCountyModel.sync();
+  await handler.routes.TempRouteLinkModel.sync();
+
+  tableName = `${baseTableName}_route_to_group`;
+  handler.routes.TempRouteToGroupModel =
+    db.sequelize.define(tableName, {
+      routeUuid: { type: db.Sequelize.UUID },
+      groupUuid: { type: db.Sequelize.UUID },
+      routeLegacyId: { type: db.Sequelize.TEXT },
+      groupLegacyId: { type: db.Sequelize.TEXT },
+    }, {
+      timestamps: false,
+      tableName,
+    });
+  await handler.routes.TempRouteToGroupModel.sync();
+
+  tableName = `${baseTableName}_route_to_poi`;
+  handler.routes.TempRouteToPoiModel =
+    db.sequelize.define(tableName, {
+      routeUuid: { type: db.Sequelize.UUID },
+      poiUuid: { type: db.Sequelize.UUID },
+      routeLegacyId: { type: db.Sequelize.TEXT },
+      poiLegacyId: { type: db.Sequelize.TEXT },
+    }, {
+      timestamps: false,
+      tableName,
+    });
+  await handler.routes.TempRouteToPoiModel.sync();
 
   endDuration(durationId);
 }
@@ -128,6 +159,9 @@ async function dropTempTables(handler) {
   await handler.routes.TempRouteTypeModel.drop();
   await handler.routes.TempRouteWaymarkTypeModel.drop();
   await handler.routes.TempRouteRouteWaymarkTypeModel.drop();
+  await handler.routes.TempRouteLinkModel.drop();
+  await handler.routes.TempRouteToGroupModel.drop();
+  await handler.routes.TempRouteToPoiModel.drop();
 
   endDuration(durationId);
 }
@@ -171,11 +205,14 @@ async function populateTempTables(handler) {
 
   const routeWaymarkTypes = [];
   const routeRouteWaymarkTypes = [];
-  const routeToCounty = [];
+  const routeToGroup = [];
+  const routeToPoi = [];
+  let links = [];
   let suitableActivityTypes = [];
   handler.routes.processed.forEach((p) => {
     suitableActivityTypes = suitableActivityTypes
       .concat(p.suitableActivityTypes);
+    links = links.concat(p.links);
 
     if (p.routeWaymarkTypes) {
       p.routeWaymarkTypes.forEach((facility) => routeWaymarkTypes.push({
@@ -189,9 +226,16 @@ async function populateTempTables(handler) {
       }));
     }
 
-    if (p.counties) {
-      p.counties.forEach((county) => routeToCounty.push({
-        countyUuid: county,
+    if (p.groups) {
+      p.groups.forEach((group) => routeToGroup.push({
+        groupLegacyId: group.toString(),
+        routeLegacyId: p.route.idLegacyNtb,
+      }));
+    }
+
+    if (p.pois) {
+      p.pois.forEach((poi) => routeToPoi.push({
+        poiLegacyId: poi.toString(),
         routeLegacyId: p.route.idLegacyNtb,
       }));
     }
@@ -218,7 +262,26 @@ async function populateTempTables(handler) {
     routeRouteWaymarkTypes
   );
   endDuration(durationId);
+
+  // Insert temp data for RouteLink
+  logger.info('Inserting route links to temporary table');
+  durationId = startDuration();
+  await handler.routes.TempRouteLinkModel.bulkCreate(links);
+  endDuration(durationId);
+
+  // Insert temp data for RouteToGroup
+  logger.info('Inserting route to group temporary table');
+  durationId = startDuration();
+  await handler.routes.TempRouteToGroupModel.bulkCreate(routeToGroup);
+  endDuration(durationId);
+
+  // Insert temp data for RouteToPoi
+  logger.info('Inserting route to poi temporary table');
+  durationId = startDuration();
+  await handler.routes.TempRouteToPoiModel.bulkCreate(routeToPoi);
+  endDuration(durationId);
 }
+
 
 /**
  * Verify that there are max 2 of each route code
@@ -460,7 +523,7 @@ async function createRouteToActivityTypes(handler) {
     'INSERT INTO route_to_activity_type (',
     '  activity_type_name, route_uuid, sort_index, data_source',
     ')',
-    'SELECT DISTINCT ON (activity_type, id_route_legacy_ntb)',
+    'SELECT DISTINCT ON (activity_type, route_uuid)',
     '  activity_type, route_uuid, sort_index, :data_source',
     `FROM public.${tableName}`,
     'WHERE route_uuid IS NOT NULL',
@@ -483,7 +546,7 @@ async function createRouteToActivityTypes(handler) {
     'INSERT INTO route_to_activity_type (',
     '  activity_type_name, route_uuid, sort_index, data_source',
     ')',
-    'SELECT DISTINCT ON (activity_type, id_route_legacy_ntb)',
+    'SELECT DISTINCT ON (activity_sub_type, route_uuid)',
     '  activity_sub_type, route_uuid, sort_index, :data_source',
     `FROM public.${tableName}`,
     'WHERE route_uuid IS NOT NULL AND activity_sub_type IS NOT NULL',
@@ -636,43 +699,48 @@ async function removeDepreactedRouteToRouteWaymarkTypes(handler) {
 
 
 /**
- * Insert into `route_to_county`-table or update if it already exists
+ * Insert into `route_link`-table or update if it already exists
  */
-async function mergeCabinToArea(handler) {
+async function mergeRouteLinks(handler) {
   let sql;
   let durationId;
-  const { tableName } = handler.routes.TempRouteToCountyModel;
+  const { tableName } = handler.routes.TempRouteLinkModel;
 
-  // Set UUIDs on cabinToArea temp data
+  // Set UUIDs on routeLink temp data
   sql = [
-    `UPDATE public.${tableName} a1 SET`,
-    '  route_uuid = a.uuid',
-    `FROM public.${tableName} a2`,
-    'INNER JOIN public.route a ON',
-    '  a.id_legacy_ntb_ab = a2.route_legacy_id',
+    `UPDATE public.${tableName} gl1 SET`,
+    '  route_uuid = g.uuid',
+    `FROM public.${tableName} gl2`,
+    'INNER JOIN public.route g ON',
+    '  g.id_legacy_ntb_ab = gl2.id_route_legacy_ntb OR',
+    '  g.id_legacy_ntb_ba = gl2.id_route_legacy_ntb',
     'WHERE',
-    '  a1.route_legacy_id = a2.route_legacy_id AND',
-    '  a1.county_uuid = a2.county_uuid',
+    '  gl1.id_route_legacy_ntb = gl2.id_route_legacy_ntb AND',
+    '  gl1.sort_index = gl2.sort_index',
   ].join('\n');
 
-  logger.info('Update uuids on route-to-county temp data');
+  logger.info('Update uuids on route links temp data');
   durationId = startDuration();
   await db.sequelize.query(sql);
   endDuration(durationId);
 
   // Merge into prod table
   sql = [
-    'INSERT INTO route_to_county (',
-    '  route_uuid, county_uuid, data_source, created_at, updated_at',
+    'INSERT INTO route_link (',
+    '  uuid, route_uuid, title, url,',
+    '  sort_index, data_source, created_at, updated_at',
     ')',
     'SELECT',
-    '  route_uuid, county_uuid, :data_source, now(), now()',
+    '  uuid, route_uuid, title, url,',
+    '  sort_index, :data_source, now(), now()',
     `FROM public.${tableName}`,
-    'WHERE route_uuid IS NOT NULL AND county_uuid IS NOT NULL',
-    'ON CONFLICT (route_uuid, county_uuid) DO NOTHING',
+    'ON CONFLICT (route_uuid, sort_index) DO UPDATE',
+    'SET',
+    '  title = EXCLUDED.title,',
+    '  url = EXCLUDED.url',
   ].join('\n');
 
-  logger.info('Creating or updating route to county relations');
+  logger.info('Creating or updating route links');
   durationId = startDuration();
   await db.sequelize.query(sql, {
     replacements: {
@@ -684,25 +752,186 @@ async function mergeCabinToArea(handler) {
 
 
 /**
- * Remove route to county relations that no longer exist in legacy-ntb
+ * Remove route links that no longer exist in legacy-ntb
  */
-async function removeDepreactedRouteToCounty(handler) {
-  const { tableName } = handler.routes.TempRouteToCountyModel;
-
+async function removeDepreactedRouteLinks(handler) {
+  const { tableName } = handler.routes.TempRouteLinkModel;
   const sql = [
-    'DELETE FROM public.route_to_county',
-    'USING public.route_to_county c2a',
+    'DELETE FROM public.route_link',
+    'USING public.route_link gl',
     `LEFT JOIN public.${tableName} te ON`,
-    '  c2a.route_uuid = te.route_uuid AND',
-    '  c2a.county_uuid = te.county_uuid',
+    '  gl.route_uuid = te.route_uuid AND',
+    '  gl.sort_index = te.sort_index',
     'WHERE',
-    '  te.county_uuid IS NULL AND',
-    '  c2a.data_source = :data_source AND',
-    '  public.route_to_county.route_uuid = c2a.route_uuid AND',
-    '  public.route_to_county.county_uuid = c2a.county_uuid',
+    '  te.id_route_legacy_ntb IS NULL AND',
+    '  gl.data_source = :data_source AND',
+    '  public.route_link.route_uuid = gl.route_uuid AND',
+    '  public.route_link.sort_index = gl.sort_index',
   ].join('\n');
 
-  logger.info('Deleting deprecated route to county relations');
+  logger.info('Deleting deprecated route links');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Insert into `route_to_group`-table or update if it already exists
+ */
+async function mergeRouteToGroup(handler) {
+  let sql;
+  let durationId;
+  const { tableName } = handler.routes.TempRouteToGroupModel;
+
+  // Set UUIDs on routeToGroup temp data
+  sql = [
+    `UPDATE public.${tableName} a1 SET`,
+    '  route_uuid = c.uuid,',
+    '  group_uuid = a.uuid',
+    `FROM public.${tableName} a2`,
+    'INNER JOIN public.group a ON',
+    '  a.id_legacy_ntb = a2.group_legacy_id',
+    'INNER JOIN public.route c ON',
+    '  c.id_legacy_ntb_ab = a2.route_legacy_id',
+    'WHERE',
+    '  a1.group_legacy_id = a2.group_legacy_id AND',
+    '  a1.route_legacy_id = a2.route_legacy_id',
+  ].join('\n');
+
+  logger.info('Update uuids on route-to-group temp data');
+  durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+
+  // Merge into prod table
+  sql = [
+    'INSERT INTO route_to_group (',
+    '  route_uuid, group_uuid, data_source, created_at, updated_at',
+    ')',
+    'SELECT',
+    '  route_uuid, group_uuid, :data_source, now(), now()',
+    `FROM public.${tableName}`,
+    'WHERE route_uuid IS NOT NULL AND group_uuid IS NOT NULL',
+    'ON CONFLICT (route_uuid, group_uuid) DO NOTHING',
+  ].join('\n');
+
+  logger.info('Creating or updating route to group relations');
+  durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Remove route to group relations that no longer exist in legacy-ntb
+ */
+async function removeDepreactedRouteToGroup(handler) {
+  const { tableName } = handler.routes.TempRouteToGroupModel;
+
+  const sql = [
+    'DELETE FROM public.route_to_group',
+    'USING public.route_to_group c2a',
+    `LEFT JOIN public.${tableName} te ON`,
+    '  c2a.route_uuid = te.route_uuid AND',
+    '  c2a.group_uuid = te.group_uuid',
+    'WHERE',
+    '  te.group_uuid IS NULL AND',
+    '  c2a.data_source = :data_source AND',
+    '  public.route_to_group.route_uuid = c2a.route_uuid AND',
+    '  public.route_to_group.group_uuid = c2a.group_uuid',
+  ].join('\n');
+
+  logger.info('Deleting deprecated route to group relations');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Insert into `route_to_poi`-table or update if it already exists
+ */
+async function mergeRouteToPoi(handler) {
+  let sql;
+  let durationId;
+  const { tableName } = handler.routes.TempRouteToPoiModel;
+
+  // Set UUIDs on routeToPoi temp data
+  sql = [
+    `UPDATE public.${tableName} a1 SET`,
+    '  route_uuid = c.uuid,',
+    '  poi_uuid = a.uuid',
+    `FROM public.${tableName} a2`,
+    'INNER JOIN public.poi a ON',
+    '  a.id_legacy_ntb = a2.poi_legacy_id',
+    'INNER JOIN public.route c ON',
+    '  c.id_legacy_ntb_ab = a2.route_legacy_id',
+    'WHERE',
+    '  a1.poi_legacy_id = a2.poi_legacy_id AND',
+    '  a1.route_legacy_id = a2.route_legacy_id',
+  ].join('\n');
+
+  logger.info('Update uuids on route-to-poi temp data');
+  durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+
+  // Merge into prod table
+  sql = [
+    'INSERT INTO route_to_poi (',
+    '  route_uuid, poi_uuid, data_source, created_at, updated_at',
+    ')',
+    'SELECT',
+    '  route_uuid, poi_uuid, :data_source, now(), now()',
+    `FROM public.${tableName}`,
+    'WHERE route_uuid IS NOT NULL AND poi_uuid IS NOT NULL',
+    'ON CONFLICT (route_uuid, poi_uuid) DO NOTHING',
+  ].join('\n');
+
+  logger.info('Creating or updating route to poi relations');
+  durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Remove route to poi relations that no longer exist in legacy-ntb
+ */
+async function removeDepreactedRouteToPoi(handler) {
+  const { tableName } = handler.routes.TempRouteToPoiModel;
+
+  const sql = [
+    'DELETE FROM public.route_to_poi',
+    'USING public.route_to_poi c2a',
+    `LEFT JOIN public.${tableName} te ON`,
+    '  c2a.route_uuid = te.route_uuid AND',
+    '  c2a.poi_uuid = te.poi_uuid',
+    'WHERE',
+    '  te.poi_uuid IS NULL AND',
+    '  c2a.data_source = :data_source AND',
+    '  public.route_to_poi.route_uuid = c2a.route_uuid AND',
+    '  public.route_to_poi.poi_uuid = c2a.poi_uuid',
+  ].join('\n');
+
+  logger.info('Deleting deprecated route to poi relations');
   const durationId = startDuration();
   await db.sequelize.query(sql, {
     replacements: {
@@ -729,9 +958,13 @@ const process = async (handler, first = false) => {
   await removeDepreactedRouteToRouteWaymarkTypes(handler);
   await createRouteToActivityTypes(handler);
   await removeDepreactedRouteToActivityTypes(handler);
-  await mergeCabinToArea(handler);
-  await removeDepreactedRouteToCounty(handler);
-  // await dropTempTables(handler);
+  await mergeRouteLinks(handler);
+  await removeDepreactedRouteLinks(handler);
+  await mergeRouteToGroup(handler);
+  await removeDepreactedRouteToGroup(handler);
+  await mergeRouteToPoi(handler);
+  await removeDepreactedRouteToPoi(handler);
+  await dropTempTables(handler);
 };
 
 

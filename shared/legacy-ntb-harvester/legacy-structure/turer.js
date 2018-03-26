@@ -210,7 +210,7 @@ function mapMunicipalities(obj, res, handler) {
 
 function mapGrading(obj) {
   if (!obj.gradering) {
-    return null;
+    return 'moderate';
   }
 
   const cleanName = obj.gradering.toLowerCase().trim();
@@ -257,8 +257,28 @@ function mapDirection(obj) {
 
 function setSuitableForChildren(obj, res, handler) {
   if (obj.passer_for && obj.passer_for.length) {
-    res.route.suitableForChildren = obj.passer_for.includes('Barn');
+    res.trip.suitableForChildren = obj.passer_for.includes('Barn');
   }
+}
+
+
+function getStartingPoint(obj) {
+  if (obj.privat.startpunkt) {
+    return obj.privat.startpunkt;
+  }
+
+  if (
+    obj.geojson &&
+    obj.geojson.coordinates &&
+    obj.geojson.coordinates.length
+  ) {
+    return {
+      type: 'Point',
+      coordinates: obj.geojson.coordinates[0],
+    };
+  }
+
+  return null;
 }
 
 
@@ -297,7 +317,7 @@ async function mapping(obj, handler) {
     durationHours: null,
     durationDays: null,
 
-    startingPoint: obj.privat.startpunkt,
+    startingPoint: getStartingPoint(obj),
     geojson: obj.geojson,
     polyline: obj.geojson ? mapboxPolyline.fromGeoJSON(obj.geojson) : null,
 

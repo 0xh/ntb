@@ -260,7 +260,7 @@ async function populateTempTables(handler) {
   await handler.pois.TempPoiToAreaModel.bulkCreate(poiToArea);
   endDuration(durationId);
 
-  // Insert temp data for PoiAccessability
+  // Insert temp data for PoiToGroup
   logger.info('Inserting poi to group temporary table');
   durationId = startDuration();
   await handler.pois.TempPoiToGroupModel.bulkCreate(poiToGroup);

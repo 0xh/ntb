@@ -259,7 +259,6 @@ export async function harvestRoute(useTestData = false) {
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
-  // handler.timeStamp = '20180324042132926'; // TODO(Roar): REMOVE!
 
   await getAllCM(handler);
   await getDocumentCountFromMongoDb('turer', filter);
@@ -302,11 +301,11 @@ export async function harvestTrip(useTestData = false) {
   const durationId = startDuration();
   const handler = { documents: {} };
   const limit = 1000;
-  const filter = { rute: { kode: null } };
+  const filter = { 'rute.kode': null };
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
-  // handler.timeStamp = '20180324042132926'; // TODO(Roar): REMOVE!
+  // handler.timeStamp = '20180326065011506'; // TODO(Roar): REMOVE!
 
   await getAllCM(handler);
   await getDocumentCountFromMongoDb('turer', filter);

@@ -12,6 +12,9 @@ import { mapActivityType } from './turer';
 
 const logger = createLogger();
 
+const routeCodeLinkIndexd = {};
+const routeCodeLinks = {};
+
 
 function setSuitableActivityTypes(obj, res, handler) {
   const type = obj.tags && obj.tags.length ? obj.tags[0].toLowerCase() : null;
@@ -48,98 +51,38 @@ function setSuitableActivityTypes(obj, res, handler) {
 
 
 function setLinks(obj, res, handler) {
+  // Routes are duplicated in legacy-ntb (a-b and b-a) and consolidated
+  // in the new NTB. This means we have to beware of link indexes and
+  // link duplicates
   res.links = [];
 
   if (obj.lenker && obj.lenker.length) {
-    obj.lenker.forEach((link, idx) => {
-      if (link.url) {
+    if (!routeCodeLinkIndexd[res.route.code]) {
+      routeCodeLinkIndexd[res.route.code] = 0;
+      routeCodeLinks[res.route.code] = [];
+    }
+
+    obj.lenker.forEach((link) => {
+      if (link.url && !routeCodeLinks[res.route.code].includes(link.url)) {
         res.links.push({
           uuid: uuid4(),
           title: link.tittel,
           url: link.url,
           idRouteLegacyNtb: obj._id,
-          sortIndex: idx,
+          sortIndex: routeCodeLinkIndexd[res.route.code],
           dataSource: 'legacy-ntb',
         });
+        routeCodeLinkIndexd[res.route.code] += 1;
+        routeCodeLinks[res.route.code].push(link.url);
       }
     });
   }
 }
 
 
-function mapCounties(obj, res, handler) {
-  res.counties = [];
-  if (obj.fylker) {
-    res.counties = obj.fylker
-      .map((f) => {
-        let cleanName = f.trim().toLowerCase();
-
-        if (cleanName.endsWith('trøndelag')) {
-          cleanName = 'trøndelag';
-        }
-
-        if (cleanName.startsWith('finnmark')) {
-          cleanName = 'finnmark';
-        }
-
-        const match = handler.counties
-          .filter((c) => c.nameLowerCase === cleanName.toLowerCase().trim());
-        if (match.length === 1) {
-          return match[0].uuid;
-        }
-        else if (match.length > 1) {
-          logger.warn(
-            'Found multiple counties for name ' +
-            `"${cleanName}" -.route.id_legacy_ntb=${obj._id}`
-          );
-        }
-
-        // logger.warn(
-        //   'Unable to find a county for name ' +
-        //   `"${cleanName}" -.route.id_legacy_ntb=${obj._id}`
-        // );
-
-        return null;
-      })
-      .filter((c) => c !== null);
-  }
-}
-
-
-function mapMunicipalities(obj, res, handler) {
-  res.municipalities = [];
-  if (obj.kommuner) {
-    res.municipalities = obj.kommuner
-      .map((f) => {
-        const cleanName = f.trim().toLowerCase();
-
-        const match = handler.municipalities
-          .filter((c) => c.nameLowerCase === cleanName);
-        if (match.length === 1) {
-          return match[0].uuid;
-        }
-        else if (match.length > 1) {
-          logger.warn(
-            'Found multiple municipalities for name ' +
-            `"${cleanName}" -.route.id_legacy_ntb=${obj._id}`
-          );
-        }
-
-        // logger.warn(
-        //   'Unable to find a municipality for name ' +
-        //   `"${cleanName}" -.route.id_legacy_ntb=${obj._id}`
-        // );
-
-        return null;
-      })
-      .filter((c) => c !== null);
-  }
-}
-
-
 function mapGrading(obj) {
   if (!obj.gradering) {
-    return null;
+    return 'moderate';
   }
 
   const cleanName = obj.gradering.toLowerCase().trim();
@@ -299,12 +242,6 @@ async function mapping(obj, handler) {
   // Set waymark types
   setRouteWaymarkTypes(obj, res, handler);
 
-  // Set county relations
-  mapCounties(obj, res, handler);
-
-  // Set municipality relations
-  mapMunicipalities(obj, res, handler);
-
   // Set links
   setLinks(obj, res, handler);
 
@@ -312,7 +249,6 @@ async function mapping(obj, handler) {
   setSuitableForChildren(obj, res, handler);
 
   // Areas, groups and photos
-  res.areas = obj.områder || [];
   res.photos = obj.bilder || [];
   res.groups = obj.grupper || [];
   res.pois = obj.steder || [];
