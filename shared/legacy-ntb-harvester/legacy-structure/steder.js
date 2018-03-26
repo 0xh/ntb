@@ -108,59 +108,6 @@ function setAltTypes(obj, res, handler) {
 }
 
 
-function setCountyUuid(name, res, handler) {
-  let cleanName = name.trim().toLowerCase();
-
-  if (cleanName.endsWith('trøndelag')) {
-    cleanName = 'trøndelag';
-  }
-
-  if (cleanName.startsWith('finnmark')) {
-    cleanName = 'finnmark';
-  }
-
-  const match = handler.counties
-    .filter((c) => c.nameLowerCase === cleanName);
-  if (match.length === 1) {
-    res.poi.countyUuid = match[0].uuid;
-  }
-  else if (match.length > 1) {
-    logger.warn(
-      'Found multiple counties for name ' +
-      `"${cleanName}" - poi.id_legacy_ntb=${res.poi.idLegacyNtb}`
-    );
-  }
-  else {
-    logger.warn(
-      'Unable to find a county for name ' +
-      `"${cleanName}" - poi.id_legacy_ntb=${res.poi.idLegacyNtb}`
-    );
-  }
-}
-
-
-function setMunicipalityUuid(name, res, handler) {
-  const cleanName = name.trim().toLowerCase();
-  const match = handler.municipalities
-    .filter((c) => c.nameLowerCase === cleanName);
-  if (match.length === 1) {
-    res.poi.municipalityUuid = match[0].uuid;
-  }
-  else if (match.length > 1) {
-    logger.warn(
-      'Found municipalities counties for name ' +
-      `"${cleanName}" - poi.id_legacy_ntb=${res.poi.idLegacyNtb}`
-    );
-  }
-  else {
-    logger.warn(
-      'Unable to find a municipality for name ' +
-      `"${cleanName}" - poi.id_legacy_ntb=${res.poi.idLegacyNtb}`
-    );
-  }
-}
-
-
 function setAccessibility(obj, res, handler) {
   res.accessibility = [];
 
@@ -231,16 +178,6 @@ async function mapping(obj, handler) {
 
   // Set alternative types
   setAltTypes(obj, res, handler);
-
-  // Set county relation
-  if (obj.fylke) {
-    setCountyUuid(obj.fylke, res, handler);
-  }
-
-  // Set municipality relation
-  if (obj.kommune) {
-    setMunicipalityUuid(obj.kommune, res, handler);
-  }
 
   // Set accessibility
   setAccessibility(obj, res, handler);

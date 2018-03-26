@@ -52,55 +52,6 @@ function mapServiceLevel(level, obj) {
 }
 
 
-function setCountyUuid(name, res, handler) {
-  let cleanName = name.trim().toLowerCase();
-
-  if (cleanName.endsWith('trøndelag')) {
-    cleanName = 'trøndelag';
-  }
-
-  const match = handler.counties
-    .filter((c) => c.nameLowerCase === cleanName);
-  if (match.length === 1) {
-    res.cabin.countyUuid = match[0].uuid;
-  }
-  else if (match.length > 1) {
-    logger.warn(
-      'Found multiple counties for name ' +
-      `"${cleanName}" - cabin.id_legacy_ntb=${res.cabin.idLegacyNtb}`
-    );
-  }
-  else {
-    logger.warn(
-      'Unable to find a county for name ' +
-      `"${cleanName}" - cabin.id_legacy_ntb=${res.cabin.idLegacyNtb}`
-    );
-  }
-}
-
-
-function setMunicipalityUuid(name, res, handler) {
-  const cleanName = name.trim().toLowerCase();
-  const match = handler.municipalities
-    .filter((c) => c.nameLowerCase === cleanName);
-  if (match.length === 1) {
-    res.cabin.municipalityUuid = match[0].uuid;
-  }
-  else if (match.length > 1) {
-    logger.warn(
-      'Found municipalities counties for name ' +
-      `"${cleanName}" - cabin.id_legacy_ntb=${res.cabin.idLegacyNtb}`
-    );
-  }
-  else {
-    logger.warn(
-      'Unable to find a municipality for name ' +
-      `"${cleanName}" - cabin.id_legacy_ntb=${res.cabin.idLegacyNtb}`
-    );
-  }
-}
-
-
 function mapLinkType(type, res) {
   switch ((type || '').toLowerCase()) {
     case 'pris':
@@ -477,16 +428,6 @@ async function mapping(obj, handler) {
     res.cabin.address2 = cabinContact.adresse2;
     res.cabin.postalCode = cabinContact.postnummer;
     res.cabin.postalName = cabinContact.poststed;
-  }
-
-  // Set county relation
-  if (obj.fylke) {
-    setCountyUuid(obj.fylke, res, handler);
-  }
-
-  // Set municipality relation
-  if (obj.kommune) {
-    setMunicipalityUuid(obj.kommune, res, handler);
   }
 
   // Set english translation
