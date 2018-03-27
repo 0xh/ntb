@@ -305,7 +305,6 @@ export async function harvestTrip(useTestData = false) {
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
-  // handler.timeStamp = '20180326065011506'; // TODO(Roar): REMOVE!
 
   await getAllCM(handler);
   await getDocumentCountFromMongoDb('turer', filter);

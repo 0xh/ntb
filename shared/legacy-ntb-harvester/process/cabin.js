@@ -1183,6 +1183,36 @@ async function removeDepreactedCabinToArea(handler) {
 
 
 /**
+ * Mark cabins that no longer exist in legacy-ntb as deleted
+ */
+async function removeDepreactedCabin(handler) {
+  const { tableName } = handler.cabins.TempCabinModel;
+  const sql = [
+    'UPDATE public.cabin a1 SET',
+    '  status = :status',
+    'FROM public.cabin a2',
+    `LEFT JOIN public.${tableName} t ON`,
+    '  t.id_legacy_ntb = a2.id_legacy_ntb',
+    'WHERE',
+    '  t.id_legacy_ntb IS NULL AND',
+    '  a1.uuid = a2.uuid AND',
+    '  a2.data_source = :data_source AND',
+    '  a2.status != :status',
+  ].join('\n');
+
+  logger.info('Marking deprecated cabins as deleted');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+      status: 'deleted',
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
  * Process legacy cabin data and merge it into the postgres database
  */
 const process = async (handler) => {
@@ -1210,6 +1240,7 @@ const process = async (handler) => {
   await removeDepreactedCabinOpeningHours(handler);
   await mergeCabinToArea(handler);
   await removeDepreactedCabinToArea(handler);
+  await removeDepreactedCabin(handler);
   await dropTempTables(handler);
 };
 

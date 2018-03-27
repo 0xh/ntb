@@ -943,6 +943,37 @@ async function removeDepreactedRouteToPoi(handler) {
 
 
 /**
+ * Mark routes that no longer exist in legacy-ntb as deleted
+ */
+async function removeDepreactedRoute(handler) {
+  const { tableName } = handler.routes.TempRouteModel;
+  const sql = [
+    'UPDATE public.route a1 SET',
+    '  status = :status',
+    'FROM public.route a2',
+    `LEFT JOIN public.${tableName} t ON`,
+    '  t.id_legacy_ntb = a2.id_legacy_ntb_ab OR',
+    '  t.id_legacy_ntb = a2.id_legacy_ntb_ba',
+    'WHERE',
+    '  t.id_legacy_ntb IS NULL AND',
+    '  a1.uuid = a2.uuid AND',
+    '  a2.data_source = :data_source AND',
+    '  a2.status != :status',
+  ].join('\n');
+
+  logger.info('Marking deprecated routes as deleted');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+      status: 'deleted',
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
  * Process legacy route data and merge it into the postgres database
  */
 const process = async (handler, first = false) => {
@@ -964,6 +995,7 @@ const process = async (handler, first = false) => {
   await removeDepreactedRouteToGroup(handler);
   await mergeRouteToPoi(handler);
   await removeDepreactedRouteToPoi(handler);
+  await removeDepreactedRoute(handler);
   await dropTempTables(handler);
 };
 

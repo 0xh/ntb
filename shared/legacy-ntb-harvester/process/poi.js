@@ -760,6 +760,36 @@ async function removeDepreactedPoiToGroup(handler) {
 
 
 /**
+ * Mark pois that no longer exist in legacy-ntb as deleted
+ */
+async function removeDepreactedPoi(handler) {
+  const { tableName } = handler.pois.TempPoiModel;
+  const sql = [
+    'UPDATE public.poi a1 SET',
+    '  status = :status',
+    'FROM public.poi a2',
+    `LEFT JOIN public.${tableName} t ON`,
+    '  t.id_legacy_ntb = a2.id_legacy_ntb',
+    'WHERE',
+    '  t.id_legacy_ntb IS NULL AND',
+    '  a1.uuid = a2.uuid AND',
+    '  a2.data_source = :data_source AND',
+    '  a2.status != :status',
+  ].join('\n');
+
+  logger.info('Marking deprecated pois as deleted');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+      status: 'deleted',
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
  * Process legacy area data and merge it into the postgres database
  */
 const process = async (handler) => {
@@ -783,6 +813,7 @@ const process = async (handler) => {
   await removeDepreactedPoiToArea(handler);
   await mergePoiToGroup(handler);
   await removeDepreactedPoiToGroup(handler);
+  await removeDepreactedPoi(handler);
   await dropTempTables(handler);
 };
 

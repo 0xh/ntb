@@ -4,16 +4,12 @@ import {
   sanitizeHtml,
   stripHtml,
 } from '@turistforeningen/ntb-shared-text-content-utils';
-import { createLogger } from '@turistforeningen/ntb-shared-utils';
 
 import statusMapper from '../lib/statusMapper';
 
 
 // TODO(Roar):
 // - Bilder
-
-
-const logger = createLogger();
 
 
 function mapType(type, obj) {
