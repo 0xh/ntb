@@ -66,50 +66,6 @@ async function modifySearchDocument(queryInterface, transaction) {
 }
 
 
-async function modifyTagRelation(queryInterface, transaction) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "tag_relation"',
-    'ADD CONSTRAINT "tag_relation_primary" PRIMARY KEY (',
-    '  "tag_name", "tagged_type", "tagged_uuid"',
-    ')',
-  ].join('\n'), { transaction });
-}
-
-
-async function modifyAreaToArea(queryInterface, transaction) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "area_to_area"',
-    'ADD CONSTRAINT "area_to_area_primary" PRIMARY KEY (',
-    '  "parent_uuid", "child_uuid"',
-    ')',
-  ].join('\n'), { transaction });
-}
-
-
-async function modifyAreaToCounty(queryInterface, transaction) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "area_to_county"',
-    'ADD CONSTRAINT "area_to_county_primary" PRIMARY KEY (',
-    '  "area_uuid", "county_uuid"',
-    ')',
-  ].join('\n'), { transaction });
-}
-
-
-async function modifyAreaToMunicipality(queryInterface, transaction) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "area_to_municipality"',
-    'ADD CONSTRAINT "area_to_municipality_primary" PRIMARY KEY (',
-    '  "area_uuid", "municipality_uuid"',
-    ')',
-  ].join('\n'), { transaction });
-}
-
-
 async function modifyArea(queryInterface, transaction) {
   // Add tsvector field
   await queryInterface.sequelize.query([
@@ -578,39 +534,6 @@ async function modifyCabinTranslation(queryInterface, transaction) {
 }
 
 
-async function modifyCabinFacility(queryInterface, transaction) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "cabin_facility"',
-    'ADD CONSTRAINT "cabin_facility_primary" PRIMARY KEY (',
-    '  "facility_name", "cabin_uuid"',
-    ')',
-  ].join('\n'), { transaction });
-}
-
-
-async function modifyCabinAccessability(queryInterface, transaction) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "cabin_accessability"',
-    'ADD CONSTRAINT "cabin_accessability_primary" PRIMARY KEY (',
-    '  "accessability_name", "cabin_uuid"',
-    ')',
-  ].join('\n'), { transaction });
-}
-
-
-async function modifyCabinToArea(queryInterface, transaction) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "cabin_to_area"',
-    'ADD CONSTRAINT "cabin_to_area_primary" PRIMARY KEY (',
-    '  "cabin_uuid", "area_uuid"',
-    ')',
-  ].join('\n'), { transaction });
-}
-
-
 async function modifyPoi(queryInterface, transaction) {
   // Add tsvector field for norwegian
   await queryInterface.sequelize.query([
@@ -901,26 +824,7 @@ async function modifyRoute(queryInterface, transaction) {
 }
 
 
-async function modifyRouteToRouteWaymarkType(queryInterface, transaction) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "route_to_route_waymark_type"',
-    'ADD CONSTRAINT "route_to_route_waymark_type_primary" PRIMARY KEY (',
-    '  "route_waymark_type_name", "route_uuid"',
-    ')',
-  ].join('\n'), { transaction });
-}
-
-
 async function modifyPoiToPoiType(queryInterface, transaction) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "poi_to_poi_type"',
-    'ADD CONSTRAINT "poi_to_poi_type_primary" PRIMARY KEY (',
-    '  "poi_type", "poi_uuid"',
-    ')',
-  ].join('\n'), { transaction });
-
   // Update unique key
   await queryInterface.sequelize.query([
     'ALTER TABLE "public"."poi_to_poi_type"',
@@ -930,6 +834,18 @@ async function modifyPoiToPoiType(queryInterface, transaction) {
     'UNIQUE ("sort_index","poi_uuid") NOT DEFERRABLE INITIALLY IMMEDIATE;',
   ].join('\n'), { transaction });
 }
+
+
+async function modifyTagRelation(queryInterface, transaction) {
+  // Create composite primary keys
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "tag_relation"',
+    'ADD CONSTRAINT "tag_relation_primary" PRIMARY KEY (',
+    '  "tag_name", "tagged_type", "tagged_uuid"',
+    ')',
+  ].join('\n'), { transaction });
+}
+
 
 
 async function harvestCountiesAndMunicipalities() {
@@ -949,140 +865,6 @@ async function harvestCountiesAndMunicipalities() {
       logger.error(err.stack);
       throw err;
     });
-}
-
-
-async function modifyPoiAccessability(queryInterface, transaction) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "poi_accessability"',
-    'ADD CONSTRAINT "poi_accessability_primary" PRIMARY KEY (',
-    '  "accessability_name", "poi_uuid"',
-    ')',
-  ].join('\n'), { transaction });
-}
-
-
-async function modifyPoiToArea(queryInterface, transaction) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "poi_to_area"',
-    'ADD CONSTRAINT "poi_to_area_primary" PRIMARY KEY (',
-    '  "poi_uuid", "area_uuid"',
-    ')',
-  ].join('\n'), { transaction });
-}
-
-
-async function modifyPoiToGroup(queryInterface, transaction) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "poi_to_group"',
-    'ADD CONSTRAINT "poi_to_group_primary" PRIMARY KEY (',
-    '  "poi_uuid", "group_uuid"',
-    ')',
-  ].join('\n'), { transaction });
-}
-
-
-async function modifyTripToActivityType(queryInterface, transaction) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "trip_to_activity_type"',
-    'ADD CONSTRAINT "trip_to_activity_type_primary" PRIMARY KEY (',
-    '  "activity_type_name", "trip_uuid"',
-    ')',
-  ].join('\n'), { transaction });
-}
-
-
-async function modifyTripToGroup(queryInterface, transaction) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "trip_to_group"',
-    'ADD CONSTRAINT "trip_to_group_primary" PRIMARY KEY (',
-    '  "trip_uuid", "group_uuid"',
-    ')',
-  ].join('\n'), { transaction });
-}
-
-
-async function modifyTripToPoi(queryInterface, transaction) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "trip_to_poi"',
-    'ADD CONSTRAINT "trip_to_poi_primary" PRIMARY KEY (',
-    '  "trip_uuid", "poi_uuid"',
-    ')',
-  ].join('\n'), { transaction });
-}
-
-
-async function modifyRouteToActivityType(queryInterface, transaction) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "route_to_activity_type"',
-    'ADD CONSTRAINT "route_to_activity_type_primary" PRIMARY KEY (',
-    '  "activity_type_name", "route_uuid"',
-    ')',
-  ].join('\n'), { transaction });
-}
-
-
-async function modifyRouteToCounty(queryInterface, transaction) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "route_to_county"',
-    'ADD CONSTRAINT "route_to_county_primary" PRIMARY KEY (',
-    '  "route_uuid", "county_uuid"',
-    ')',
-  ].join('\n'), { transaction });
-}
-
-
-async function modifyRouteToGroup(queryInterface, transaction) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "route_to_group"',
-    'ADD CONSTRAINT "route_to_group_primary" PRIMARY KEY (',
-    '  "route_uuid", "group_uuid"',
-    ')',
-  ].join('\n'), { transaction });
-}
-
-
-async function modifyRouteToPoi(queryInterface, transaction) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "route_to_poi"',
-    'ADD CONSTRAINT "route_to_poi_primary" PRIMARY KEY (',
-    '  "route_uuid", "poi_uuid"',
-    ')',
-  ].join('\n'), { transaction });
-}
-
-
-async function modifyActivityTypeToActivityType(
-  queryInterface,
-  transaction
-) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "activity_type_to_activity_type"',
-    'ADD CONSTRAINT "activity_type_to_activity_type_primary"',
-    'PRIMARY KEY ("primary_type", "sub_type")',
-  ].join('\n'), { transaction });
-}
-
-
-async function modifyUuid(queryInterface, transaction) {
-  // Create composite primary keys
-  await queryInterface.sequelize.query([
-    'ALTER TABLE "uuid"',
-    'ADD CONSTRAINT "uuid_primary" PRIMARY KEY (',
-    '  "uuid", "document_type"',
-    ')',
-  ].join('\n'), { transaction });
 }
 
 
@@ -1177,36 +959,17 @@ const up = async (db) => {
   await queryInterface.sequelize.transaction(async (transaction) => {
     await modifySearchConfig(queryInterface, transaction);
     await modifySearchDocument(queryInterface, transaction);
-    await modifyTagRelation(queryInterface, transaction);
-    await modifyAreaToArea(queryInterface, transaction);
-    await modifyAreaToCounty(queryInterface, transaction);
-    await modifyAreaToMunicipality(queryInterface, transaction);
     await modifyArea(queryInterface, transaction);
     await modifyGroup(queryInterface, transaction);
     await modifyCounty(queryInterface, transaction);
     await modifyMunicipality(queryInterface, transaction);
     await modifyCabin(queryInterface, transaction);
     await modifyCabinTranslation(queryInterface, transaction);
-    await modifyCabinFacility(queryInterface, transaction);
-    await modifyCabinAccessability(queryInterface, transaction);
-    await modifyCabinToArea(queryInterface, transaction);
     await modifyPoi(queryInterface, transaction);
     await modifyPoiToPoiType(queryInterface, transaction);
-    await modifyPoiAccessability(queryInterface, transaction);
-    await modifyPoiToArea(queryInterface, transaction);
-    await modifyPoiToGroup(queryInterface, transaction);
-    await modifyTripToActivityType(queryInterface, transaction);
-    await modifyTripToGroup(queryInterface, transaction);
-    await modifyTripToPoi(queryInterface, transaction);
-    await modifyRouteToActivityType(queryInterface, transaction);
-    await modifyRouteToCounty(queryInterface, transaction);
-    await modifyActivityTypeToActivityType(queryInterface, transaction);
     await modifyTrip(queryInterface, transaction);
     await modifyRoute(queryInterface, transaction);
-    await modifyRouteToGroup(queryInterface, transaction);
-    await modifyRouteToPoi(queryInterface, transaction);
-    await modifyRouteToRouteWaymarkType(queryInterface, transaction);
-    await modifyUuid(queryInterface, transaction);
+    await modifyTagRelation(queryInterface, transaction);
   }).catch((err) => {
     logger.error('TRANSACTION ERROR');
     logger.error(err);
