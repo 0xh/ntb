@@ -85,7 +85,6 @@ async function createTempTables(handler) {
   handler.pois.TempAccessabilityModel =
     db.sequelize.define(tableName, {
       name: { type: db.Sequelize.TEXT },
-      nameLowerCase: { type: db.Sequelize.TEXT },
     }, {
       timestamps: false,
       tableName,
@@ -95,7 +94,7 @@ async function createTempTables(handler) {
   tableName = `${baseTableName}_poi_accessabilities`;
   handler.pois.TempPoiAccessabilityModel =
     db.sequelize.define(tableName, {
-      nameLowerCase: { type: db.Sequelize.TEXT },
+      name: { type: db.Sequelize.TEXT },
       idPoiLegacyNtb: { type: db.Sequelize.TEXT },
       poiUuid: { type: db.Sequelize.UUID },
       description: { type: db.Sequelize.TEXT },
@@ -509,10 +508,10 @@ async function removeDepreactedPoiLinks(handler) {
 async function createAccessabilities(handler) {
   const { tableName } = handler.pois.TempAccessabilityModel;
   const sql = [
-    'INSERT INTO accessability (name_lower_case, name)',
-    'SELECT DISTINCT name_lower_case, name',
+    'INSERT INTO accessability (name)',
+    'SELECT DISTINCT name',
     `FROM public.${tableName}`,
-    'ON CONFLICT (name_lower_case) DO NOTHING',
+    'ON CONFLICT (name) DO NOTHING',
   ].join('\n');
 
   logger.info('Create new accessabilities');
@@ -552,7 +551,7 @@ async function createPoiAccessabilities(handler) {
     '  accessability_name, poi_uuid, description, data_source',
     ')',
     'SELECT',
-    '  name_lower_case, poi_uuid, description, :data_source',
+    '  name, poi_uuid, description, :data_source',
     `FROM public.${tableName}`,
     'ON CONFLICT (accessability_name, poi_uuid) DO NOTHING',
   ].join('\n');
@@ -577,7 +576,7 @@ async function removeDepreactedPoiAccessabilities(handler) {
     'DELETE FROM public.poi_accessability',
     'USING public.poi_accessability cf',
     `LEFT JOIN public.${tableName} te ON`,
-    '  cf.accessability_name = te.name_lower_case AND',
+    '  cf.accessability_name = te.name AND',
     '  cf.poi_uuid = te.poi_uuid',
     'WHERE',
     '  te.id_poi_legacy_ntb IS NULL AND',

@@ -6,6 +6,7 @@ import {
 } from '@turistforeningen/ntb-shared-text-content-utils';
 
 import statusMapper from '../lib/statusMapper';
+import { mapAccessability } from './hytter';
 
 
 // TODO(Roar):
@@ -109,8 +110,7 @@ function setAccessibility(obj, res, handler) {
 
   if (obj.tilrettelagt_for) {
     res.accessibility = obj.tilrettelagt_for.map((acc) => ({
-      nameLowerCase: acc.trim().toLowerCase(),
-      name: acc.trim(),
+      name: mapAccessability(acc),
       description: null,
     }));
   }

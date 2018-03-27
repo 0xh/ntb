@@ -133,19 +133,6 @@ async function createTempTables(handler) {
     });
   await handler.cabins.TempCabinLinkModel.sync();
 
-  tableName = `${baseTableName}_cabin_tags`;
-  handler.cabins.TempCabinTagModel =
-    db.sequelize.define(tableName, {
-      name: { type: db.Sequelize.TEXT },
-      nameLowerCase: { type: db.Sequelize.TEXT },
-      idCabinLegacyNtb: { type: db.Sequelize.TEXT },
-      cabinUuid: { type: db.Sequelize.UUID },
-    }, {
-      timestamps: false,
-      tableName,
-    });
-  await handler.cabins.TempCabinTagModel.sync();
-
   tableName = `${baseTableName}_cabin_facility`;
   handler.cabins.TempFacilityModel =
     db.sequelize.define(tableName, {
@@ -173,7 +160,6 @@ async function createTempTables(handler) {
   handler.cabins.TempAccessabilityModel =
     db.sequelize.define(tableName, {
       name: { type: db.Sequelize.TEXT },
-      nameLowerCase: { type: db.Sequelize.TEXT },
     }, {
       timestamps: false,
       tableName,
@@ -183,7 +169,7 @@ async function createTempTables(handler) {
   tableName = `${baseTableName}_cabin_accessabilities`;
   handler.cabins.TempCabinAccessabilityModel =
     db.sequelize.define(tableName, {
-      nameLowerCase: { type: db.Sequelize.TEXT },
+      name: { type: db.Sequelize.TEXT },
       idCabinLegacyNtb: { type: db.Sequelize.TEXT },
       cabinUuid: { type: db.Sequelize.UUID },
       description: { type: db.Sequelize.TEXT },
@@ -240,7 +226,6 @@ async function dropTempTables(handler) {
   await handler.cabins.TempServiceLevelModel.drop();
   await handler.cabins.TempTranslationModel.drop();
   await handler.cabins.TempCabinLinkModel.drop();
-  await handler.cabins.TempCabinTagModel.drop();
   await handler.cabins.TempFacilityModel.drop();
   await handler.cabins.TempCabinFacilityModel.drop();
   await handler.cabins.TempAccessabilityModel.drop();
@@ -289,7 +274,6 @@ async function populateTempTables(handler) {
 
   const serviceLevels = [];
   const translations = [];
-  const tags = [];
   const facilities = [];
   const cabinFacilities = [];
   const accessabilities = [];
@@ -318,15 +302,6 @@ async function populateTempTables(handler) {
     links = links.concat(p.links);
 
     openingHours = openingHours.concat(p.openingHours);
-
-
-    if (p.tags) {
-      p.tags.forEach((tag) => tags.push({
-        name: tag,
-        nameLowerCase: tag.toLowerCase(),
-        idCabinLegacyNtb: p.cabin.idLegacyNtb,
-      }));
-    }
 
     if (p.facilities) {
       p.facilities.forEach((facility) => facilities.push({
@@ -385,12 +360,6 @@ async function populateTempTables(handler) {
   logger.info('Inserting cabin opening hours to temporary table');
   durationId = startDuration();
   await handler.cabins.TempCabinOHoursModel.bulkCreate(openingHours);
-  endDuration(durationId);
-
-  // Insert temp data for CabinTag
-  logger.info('Inserting cabin tags to temporary table');
-  durationId = startDuration();
-  await handler.cabins.TempCabinTagModel.bulkCreate(tags);
   endDuration(durationId);
 
   // Insert temp data for Facility
@@ -728,104 +697,6 @@ async function removeDepreactedCabinLinks(handler) {
 
 
 /**
- * Create new tags
- */
-async function createTags(handler) {
-  const { tableName } = handler.cabins.TempCabinTagModel;
-  const sql = [
-    'INSERT INTO tag (name_lower_case, name)',
-    'SELECT DISTINCT name_lower_case, name',
-    `FROM public.${tableName}`,
-    'ON CONFLICT (name_lower_case) DO NOTHING',
-  ].join('\n');
-
-  logger.info('Create new tags');
-  const durationId = startDuration();
-  await db.sequelize.query(sql);
-  endDuration(durationId);
-}
-
-
-/**
- * Create new tag relations
- */
-async function createTagRelations(handler) {
-  let sql;
-  let durationId;
-  const { tableName } = handler.cabins.TempCabinTagModel;
-
-  // Set UUIDs on cabinTag temp data
-  sql = [
-    `UPDATE public.${tableName} gt1 SET`,
-    '  cabin_uuid = g.uuid',
-    `FROM public.${tableName} gt2`,
-    'INNER JOIN public.cabin g ON',
-    '  g.id_legacy_ntb = gt2.id_cabin_legacy_ntb',
-    'WHERE',
-    '  gt1.id_cabin_legacy_ntb = gt2.id_cabin_legacy_ntb',
-  ].join('\n');
-
-  logger.info('Update uuids on cabin tag temp data');
-  durationId = startDuration();
-  await db.sequelize.query(sql);
-  endDuration(durationId);
-
-  // Create cabin tag relations
-  sql = [
-    'INSERT INTO tag_relation (',
-    '  tag_name, tagged_type, tagged_uuid, data_source',
-    ')',
-    'SELECT',
-    '  name_lower_case, :tagged_type, cabin_uuid, :data_source',
-    `FROM public.${tableName}`,
-    'ON CONFLICT (tag_name, tagged_type, tagged_uuid) DO NOTHING',
-  ].join('\n');
-
-  logger.info('Create new cabin tag relations');
-  durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      tagged_type: 'cabin',
-      data_source: DATASOURCE_NAME,
-    },
-  });
-  endDuration(durationId);
-}
-
-
-/**
- * Remove cabin tags that no longer exist in legacy-ntb
- */
-async function removeDepreactedCabinTags(handler) {
-  const { tableName } = handler.cabins.TempCabinTagModel;
-  const sql = [
-    'DELETE FROM public.tag_relation',
-    'USING public.tag_relation tr',
-    `LEFT JOIN public.${tableName} te ON`,
-    '  tr.tag_name = te.name_lower_case AND',
-    '  tr.tagged_uuid = te.cabin_uuid',
-    'WHERE',
-    '  te.id_cabin_legacy_ntb IS NULL AND',
-    '  tr.tagged_type = :tagged_type AND',
-    '  tr.data_source = :data_source AND',
-    '  public.tag_relation.tag_name = tr.tag_name AND',
-    '  public.tag_relation.tagged_type = tr.tagged_type AND',
-    '  public.tag_relation.tagged_uuid = tr.tagged_uuid',
-  ].join('\n');
-
-  logger.info('Deleting deprecated cabin links');
-  const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      tagged_type: 'cabin',
-      data_source: DATASOURCE_NAME,
-    },
-  });
-  endDuration(durationId);
-}
-
-
-/**
  * Create new facilities
  */
 async function createFacilities(handler) {
@@ -925,10 +796,10 @@ async function removeDepreactedCabinFacilities(handler) {
 async function createAccessabilities(handler) {
   const { tableName } = handler.cabins.TempAccessabilityModel;
   const sql = [
-    'INSERT INTO accessability (name_lower_case, name)',
-    'SELECT DISTINCT name_lower_case, name',
+    'INSERT INTO accessability (name)',
+    'SELECT DISTINCT name',
     `FROM public.${tableName}`,
-    'ON CONFLICT (name_lower_case) DO NOTHING',
+    'ON CONFLICT (name) DO NOTHING',
   ].join('\n');
 
   logger.info('Create new accessabilities');
@@ -968,7 +839,7 @@ async function createCabinAccessabilities(handler) {
     '  accessability_name, cabin_uuid, description, data_source',
     ')',
     'SELECT',
-    '  name_lower_case, cabin_uuid, description, :data_source',
+    '  name, cabin_uuid, description, :data_source',
     `FROM public.${tableName}`,
     'ON CONFLICT (accessability_name, cabin_uuid) DO NOTHING',
   ].join('\n');
@@ -993,7 +864,7 @@ async function removeDepreactedCabinAccessabilities(handler) {
     'DELETE FROM public.cabin_accessability',
     'USING public.cabin_accessability cf',
     `LEFT JOIN public.${tableName} te ON`,
-    '  cf.accessability_name = te.name_lower_case AND',
+    '  cf.accessability_name = te.name AND',
     '  cf.cabin_uuid = te.cabin_uuid',
     'WHERE',
     '  te.id_cabin_legacy_ntb IS NULL AND',
@@ -1227,9 +1098,6 @@ const process = async (handler) => {
   await mergeCabinTranslation(handler);
   await mergeCabinLinks(handler);
   await removeDepreactedCabinLinks(handler);
-  await createTags(handler);
-  await createTagRelations(handler);
-  await removeDepreactedCabinTags(handler);
   await createFacilities(handler);
   await createCabinFacilities(handler);
   await removeDepreactedCabinFacilities(handler);

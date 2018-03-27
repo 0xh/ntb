@@ -230,19 +230,41 @@ export async function harvestGroups(useTestData = false) {
 }
 
 
-export async function harvestCabinAndPoi(useTestData = false) {
+export async function harvestCabin(useTestData = false) {
   const durationId = startDuration();
-  const handler = {};
+  const handler = { documents: {} };
+  const filter = { 'tags.0': 'Hytte' };
 
-  await getAllDocuments(handler, ['steder'], useTestData);
+  // await getAllDocuments(handler, ['steder'], useTestData);
+  await getDocumentsFromMongoDb(handler, 'steder', null, null, filter);
 
   const status = verifyDocuments(handler, 'steder');
   if (!status) {
-    throw new Error('Document verification failed for cabins and pois.');
+    throw new Error('Document verification failed for cabins');
   }
 
   await getAllCM(handler);
   await processCabin(handler);
+
+  logger.info('Harvesting complete');
+  endDuration(durationId);
+}
+
+
+export async function harvestPoi(useTestData = false) {
+  const durationId = startDuration();
+  const handler = { documents: {} };
+  const filter = { 'tags.0': { $ne: 'Hytte' } };
+
+  // await getAllDocuments(handler, ['steder'], useTestData);
+  await getDocumentsFromMongoDb(handler, 'steder', null, null, filter);
+
+  const status = verifyDocuments(handler, 'steder');
+  if (!status) {
+    throw new Error('Document verification failed for pois');
+  }
+
+  await getAllCM(handler);
   await processPoi(handler);
 
   logger.info('Harvesting complete');

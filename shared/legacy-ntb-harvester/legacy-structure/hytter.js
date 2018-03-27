@@ -112,19 +112,14 @@ function setLinks(obj, res, handler) {
 }
 
 
-function setTags(obj, res, handler) {
-  res.tags = obj.tags && obj.tags.length > 1
-    ? obj.tags.splice(1)
-    : [];
-}
-
-
 function mapFacilityType(type, res) {
   switch ((type || '').toLowerCase().trim()) {
     case '12v':
       return '12v';
     case '220v':
       return '220v';
+    case 'bade':
+      return 'swimming';
     case 'badstu':
       return 'sauna';
     case 'booking':
@@ -133,6 +128,8 @@ function mapFacilityType(type, res) {
       return 'boat';
     case 'dusj':
       return 'shower';
+    case 'fiske':
+      return 'fishing';
     case 'kano':
       return 'canoe';
     case 'kortbetaling':
@@ -165,7 +162,7 @@ function mapFacilityType(type, res) {
       return 'wc';
     default:
       logger.warn(
-        `Missing or unknown link type "${type}" on ` +
+        `Missing or unknown facility type "${type}" on ` +
         `cabin.id_legacy_ntb=${res.cabin.idLegacyNtb}`
       );
       return 'other';
@@ -185,27 +182,49 @@ function setFacilities(obj, res, handler) {
 }
 
 
+export function mapAccessability(type, res) {
+  switch ((type || '').toLowerCase().trim()) {
+    case 'barnevogn':
+      return 'stroller';
+    case 'barnevennlig':
+      return 'kid friendly';
+    case 'handikap':
+      return 'handicap';
+    case 'hund':
+      return 'dog';
+    case 'rullestol':
+      return 'wheelchair';
+    case 'skoleklasser':
+      return 'school classes';
+    default:
+      logger.warn(
+        `Missing or unknown accessability type "${type}" on ` +
+        `cabin.id_legacy_ntb=${res.cabin.idLegacyNtb}`
+      );
+      return 'other';
+  }
+}
+
+
 function setAccessibility(obj, res, handler) {
   res.accessibility = [];
 
   if (obj.tilrettelagt_for) {
     res.accessibility = obj.tilrettelagt_for.map((acc) => ({
-      nameLowerCase: acc.trim().toLowerCase(),
-      name: acc.trim(),
+      name: mapAccessability(acc),
       description: null,
     }));
   }
 
   if (obj.tilrettelegginger) {
     obj.tilrettelegginger.forEach((acc) => {
-      const type = acc.type.trim();
+      const type = mapAccessability(acc.type);
       const description = acc.kommentar ? acc.kommentar.trim() : null;
       const match = res.accessibility
         .filter((a) => a.name === type);
 
       if (!match.length) {
         res.accessibility.push({
-          nameLowerCase: type.toLowerCase(),
           name: type,
           description,
         });
@@ -301,6 +320,58 @@ function setDntCabin(obj, res, handler) {
 }
 
 
+function processTags(obj, res, handler) {
+  const tags = obj.tags && obj.tags.length > 1
+    ? obj.tags.splice(1)
+    : [];
+
+  tags.forEach((tag) => {
+    const cleanName = tag.toLowerCase().trim();
+    if (cleanName === 'fiske') {
+      res.facilities.push({
+        name: mapFacilityType(cleanName),
+        description: null,
+      });
+    }
+    else if (cleanName === 'bade') {
+      res.facilities.push({
+        name: mapFacilityType(cleanName),
+        description: null,
+      });
+    }
+    else if (cleanName === 'barnevennlig') {
+      let exists = false;
+      const accessabilityName = mapAccessability('barnevennlig');
+
+      res.accessibility.forEach((a) => {
+        if (a.name === accessabilityName) {
+          exists = true;
+        }
+      });
+
+      if (!exists) {
+        res.accessibility.push({
+          name: accessabilityName,
+          description: null,
+        });
+      }
+    }
+    else if (cleanName === 'kollektiv') {
+      res.cabin.htgtPublicTransportAvailable = true;
+    }
+    else if (cleanName === 'sykkel') {
+      res.cabin.htgtBicycle = true;
+    }
+    else if (cleanName === 'sommerbil') {
+      res.cabin.htgtCarSummer = true;
+    }
+    else if (cleanName === 'helårsbil') {
+      res.cabin.htgtCarAllYear = true;
+    }
+  });
+}
+
+
 async function setEnglishTranslation(obj, res, handler) {
   res.english = null;
 
@@ -379,6 +450,12 @@ async function mapping(obj, handler) {
       ? sanitizeHtml(obj.adkomst.sommer)
       : null,
 
+    // These will be set using processTags()
+    htgtCarAllYear: false,
+    htgtCarSummer: false,
+    htgtBicycle: false,
+    htgtPublicTransportAvailable: false,
+
     map: obj.kart,
     mapAlt: obj.turkart
       ? obj.turkart.map((n) => n.trim()).filter((n) => n)
@@ -436,9 +513,6 @@ async function mapping(obj, handler) {
   // Set links
   setLinks(obj, res, handler);
 
-  // Set tags
-  setTags(obj, res, handler);
-
   // Set facilities
   setFacilities(obj, res, handler);
 
@@ -454,6 +528,9 @@ async function mapping(obj, handler) {
   // Set true/false if its a DNT cabin and if members get discount
   setDntCabin(obj, res, handler);
 
+  // Set extra data based on tags
+  processTags(obj, res, handler);
+
   // Areas and photos
   res.areas = obj.områder;
   res.photos = obj.bilder;
@@ -462,7 +539,7 @@ async function mapping(obj, handler) {
 }
 
 
-module.exports = {
+export default {
   mapping,
   structure: {
     _id: 'string',
