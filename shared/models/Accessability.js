@@ -1,12 +1,9 @@
 export default (sequelize, DataTypes) => {
   const Accessability = sequelize.define('Accessability', {
-    nameLowerCase: {
-      type: DataTypes.TEXT,
-      primaryKey: true,
-    },
     name: {
       type: DataTypes.TEXT,
       allowNull: false,
+      primaryKey: true,
     },
   }, {
     timestamps: false,
