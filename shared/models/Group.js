@@ -93,6 +93,12 @@ export default (sequelize, DataTypes) => {
       foreignKey: 'taggedUuid',
       constraints: false,
     });
+
+    models.Group.belongsToMany(models.Poi, {
+      as: 'Pois',
+      through: models.PoiToGroup,
+      foreignKey: 'groupUuid',
+    });
   };
 
   // Class methods :: Search

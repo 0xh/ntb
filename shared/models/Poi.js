@@ -126,6 +126,18 @@ export default (sequelize, DataTypes) => {
       foreignKey: 'poiUuid',
     });
 
+    models.Poi.belongsToMany(models.Area, {
+      as: 'Areas',
+      through: models.PoiToArea,
+      foreignKey: 'poiUuid',
+    });
+
+    models.Poi.belongsToMany(models.Group, {
+      as: 'Groups',
+      through: models.PoiToGroup,
+      foreignKey: 'poiUuid',
+    });
+
     models.Poi.belongsToMany(models.Accessability, {
       as: 'Accessabilities',
       through: { model: models.PoiAccessability },

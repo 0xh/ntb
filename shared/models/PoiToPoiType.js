@@ -3,12 +3,12 @@ export default (sequelize, DataTypes) => {
     poiType: {
       type: DataTypes.TEXT,
       allowNull: false,
-      // Composite primaryKey defined in migration 01
+      primaryKey: true,
     },
     poiUuid: {
       type: DataTypes.UUID,
       allowNull: false,
-      // Composite primaryKey defined in migration 01
+      primaryKey: true,
       unique: 'poi-type-sort-index-key',
     },
 
@@ -23,10 +23,6 @@ export default (sequelize, DataTypes) => {
   }, {
     timestamps: true,
   });
-
-
-  // Primary key for this table is created manually in migration 01
-  PoiToPoiType.removeAttribute('id');
 
   return PoiToPoiType;
 };

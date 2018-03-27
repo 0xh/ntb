@@ -32,6 +32,18 @@ export default (sequelize, DataTypes) => {
       foreignKey: 'subType',
       otherKey: 'primaryType',
     });
+
+    models.ActivityType.belongsToMany(models.Route, {
+      as: 'Routes',
+      through: models.RouteToActivityType,
+      foreignKey: 'activityTypeName',
+    });
+
+    models.ActivityType.belongsToMany(models.Trip, {
+      as: 'Trips',
+      through: models.TripToActivityType,
+      foreignKey: 'activityTypeName',
+    });
   };
 
   return ActivityType;

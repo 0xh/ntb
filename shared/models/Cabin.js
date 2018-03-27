@@ -177,6 +177,12 @@ export default (sequelize, DataTypes) => {
       foreignKey: 'serviceLevel',
     });
 
+    models.Cabin.belongsToMany(models.Area, {
+      as: 'Areas',
+      through: { model: models.CabinToArea },
+      foreignKey: 'cabinUuid',
+    });
+
     models.Cabin.belongsToMany(models.Tag, {
       through: {
         model: models.TagRelation,

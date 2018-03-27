@@ -3,7 +3,7 @@ export default (sequelize, DataTypes) => {
     poiUuid: {
       type: DataTypes.UUID,
       allowNull: false,
-      // Composite primaryKey defined in migration 01
+      primaryKey: true,
       validate: {
         isUUID: 4,
       },
@@ -12,7 +12,7 @@ export default (sequelize, DataTypes) => {
     areaUuid: {
       type: DataTypes.UUID,
       allowNull: false,
-      // Composite primaryKey defined in migration 01
+      primaryKey: true,
       validate: {
         isUUID: 4,
       },
@@ -22,24 +22,6 @@ export default (sequelize, DataTypes) => {
   }, {
     timestamps: true,
   });
-
-  // Primary key for this table is created manually in migration 01
-  PoiToArea.removeAttribute('id');
-
-
-  // Associations
-
-  PoiToArea.associate = (models) => {
-    models.PoiToArea.belongsTo(models.Poi, {
-      as: 'Poi',
-      foreignKey: 'poiUuid',
-    });
-
-    models.PoiToArea.belongsTo(models.Area, {
-      as: 'Area',
-      foreignKey: 'areaUuid',
-    });
-  };
 
   return PoiToArea;
 };

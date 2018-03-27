@@ -3,21 +3,18 @@ export default (sequelize, DataTypes) => {
     routeWaymarkTypeName: {
       type: DataTypes.TEXT,
       allowNull: false,
-      // Composite primaryKey defined in migration 01
+      primaryKey: true,
     },
     routeUuid: {
       type: DataTypes.UUID,
       allowNull: false,
-      // Composite primaryKey defined in migration 01
+      primaryKey: true,
     },
 
     dataSource: { type: DataTypes.TEXT },
   }, {
     timestamps: false,
   });
-
-  // Primary key for this table is created manually in migration 01
-  RouteToRouteWaymarkType.removeAttribute('id');
 
   return RouteToRouteWaymarkType;
 };

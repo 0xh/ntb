@@ -3,12 +3,12 @@ export default (sequelize, DataTypes) => {
     activityTypeName: {
       type: DataTypes.TEXT,
       allowNull: false,
-      // Composite primaryKey defined in migration 01
+      primaryKey: true,
     },
     tripUuid: {
       type: DataTypes.UUID,
       allowNull: false,
-      // Composite primaryKey defined in migration 01
+      primaryKey: true,
     },
 
     primary: { type: DataTypes.BOOLEAN, default: false, allowNull: false },
@@ -18,9 +18,6 @@ export default (sequelize, DataTypes) => {
   }, {
     timestamps: false,
   });
-
-  // Primary key for this table is created manually in migration 01
-  TripToActivityType.removeAttribute('id');
 
   return TripToActivityType;
 };

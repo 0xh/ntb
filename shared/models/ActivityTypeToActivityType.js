@@ -5,20 +5,17 @@ export default (sequelize, DataTypes) => {
       primaryType: {
         type: DataTypes.TEXT,
         allowNull: false,
-        // Composite primaryKey defined in migration 01
+        primaryKey: true,
       },
       subType: {
         type: DataTypes.TEXT,
         allowNull: false,
-        // Composite primaryKey defined in migration 01
+        primaryKey: true,
       },
     }, {
       timestamps: false,
     }
   );
-
-  // Primary key for this table is created manually in migration 01
-  ActivityTypeToActivityType.removeAttribute('id');
 
 
   // Associations

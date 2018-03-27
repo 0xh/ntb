@@ -3,12 +3,12 @@ export default (sequelize, DataTypes) => {
     activityTypeName: {
       type: DataTypes.TEXT,
       allowNull: false,
-      // Composite primaryKey defined in migration 01
+      primaryKey: true,
     },
     routeUuid: {
       type: DataTypes.UUID,
       allowNull: false,
-      // Composite primaryKey defined in migration 01
+      primaryKey: true,
     },
 
     sortIndex: { type: DataTypes.INTEGER },
@@ -17,9 +17,6 @@ export default (sequelize, DataTypes) => {
   }, {
     timestamps: false,
   });
-
-  // Primary key for this table is created manually in migration 01
-  RouteToActivityType.removeAttribute('id');
 
   return RouteToActivityType;
 };

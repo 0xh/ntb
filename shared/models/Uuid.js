@@ -3,19 +3,16 @@ export default (sequelize, DataTypes) => {
     uuid: {
       type: DataTypes.UUID,
       allowNull: false,
-      // Composite primaryKey defined in migration 01
+      primaryKey: true,
     },
     documentType: {
       type: DataTypes.TEXT,
       allowNull: false,
-      // Composite primaryKey defined in migration 01
+      primaryKey: true,
     },
   }, {
     timestamps: false,
   });
-
-  // Primary key for this table is created manually in migration 01
-  Uuid.removeAttribute('id');
 
   return Uuid;
 };

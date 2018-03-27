@@ -3,12 +3,12 @@ export default (sequelize, DataTypes) => {
     facilityName: {
       type: DataTypes.TEXT,
       allowNull: false,
-      // Composite primaryKey defined in migration 01
+      primaryKey: true,
     },
     cabinUuid: {
       type: DataTypes.UUID,
       allowNull: false,
-      // Composite primaryKey defined in migration 01
+      primaryKey: true,
     },
 
     description: { type: DataTypes.TEXT },
@@ -17,9 +17,6 @@ export default (sequelize, DataTypes) => {
   }, {
     timestamps: false,
   });
-
-  // Primary key for this table is created manually in migration 01
-  CabinFacility.removeAttribute('id');
 
   return CabinFacility;
 };

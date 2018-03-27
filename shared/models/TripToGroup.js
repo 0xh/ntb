@@ -3,7 +3,7 @@ export default (sequelize, DataTypes) => {
     tripUuid: {
       type: DataTypes.UUID,
       allowNull: false,
-      // Composite primaryKey defined in migration 01
+      primaryKey: true,
       validate: {
         isUUID: 4,
       },
@@ -12,7 +12,7 @@ export default (sequelize, DataTypes) => {
     groupUuid: {
       type: DataTypes.UUID,
       allowNull: false,
-      // Composite primaryKey defined in migration 01
+      primaryKey: true,
       validate: {
         isUUID: 4,
       },
@@ -22,9 +22,6 @@ export default (sequelize, DataTypes) => {
   }, {
     timestamps: true,
   });
-
-  // Primary key for this table is created manually in migration 01
-  TripToGroup.removeAttribute('id');
 
 
   // Associations

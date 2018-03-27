@@ -24,5 +24,6 @@ export default (sequelize, DataTypes) => {
   // Primary key for this table is created manually in migration 01
   TagRelation.removeAttribute('id');
 
+
   return TagRelation;
 };
