@@ -15,9 +15,6 @@ export default (sequelize, DataTypes) => {
     timestamps: false,
   });
 
-  // Primary key for this table is created manually in migration 01
-  ActivityType.removeAttribute('id');
-
 
   // Associations
 
