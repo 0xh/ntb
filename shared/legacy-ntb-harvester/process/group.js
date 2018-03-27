@@ -25,7 +25,8 @@ async function createTempTables(handler) {
   handler.groups.TempGroupModel = db.sequelize.define(`${baseTableName}_g`, {
     uuid: { type: db.Sequelize.UUID, primaryKey: true },
     idLegacyNtb: { type: db.Sequelize.TEXT },
-    type: { type: db.Sequelize.TEXT, allowNull: true },
+    groupType: { type: db.Sequelize.TEXT, allowNull: true },
+    groupSubType: { type: db.Sequelize.TEXT, allowNull: true },
     name: { type: db.Sequelize.TEXT },
     nameLowerCase: { type: db.Sequelize.TEXT },
     description: { type: db.Sequelize.TEXT, allowNull: true },
@@ -70,18 +71,6 @@ async function createTempTables(handler) {
     });
   await handler.groups.TempGroupLinkModel.sync();
 
-  handler.groups.TempGroupTagModel =
-    db.sequelize.define(`${baseTableName}_gt`, {
-      name: { type: db.Sequelize.TEXT },
-      nameLowerCase: { type: db.Sequelize.TEXT },
-      idGroupLegacyNtb: { type: db.Sequelize.TEXT },
-      groupUuid: { type: db.Sequelize.UUID },
-    }, {
-      timestamps: false,
-      tableName: `${baseTableName}_gt`,
-    });
-  await handler.groups.TempGroupTagModel.sync();
-
   endDuration(durationId);
 }
 
@@ -95,7 +84,6 @@ async function dropTempTables(handler) {
 
   await handler.groups.TempGroupModel.drop();
   await handler.groups.TempGroupLinkModel.drop();
-  await handler.groups.TempGroupTagModel.drop();
 
   endDuration(durationId);
 }
@@ -133,15 +121,8 @@ async function populateTempTables(handler) {
 
   // Process data for links and tags
   let links = [];
-  const tags = [];
   handler.groups.processed.forEach((p) => {
     links = links.concat(p.links);
-
-    p.tags.forEach((tag) => tags.push({
-      name: tag,
-      nameLowerCase: tag.toLowerCase(),
-      idGroupLegacyNtb: p.group.idLegacyNtb,
-    }));
   });
 
   // Insert temp data for GroupLink
@@ -149,13 +130,43 @@ async function populateTempTables(handler) {
   durationId = startDuration();
   await handler.groups.TempGroupLinkModel.bulkCreate(links);
   endDuration(durationId);
+}
 
-  // Insert temp data for GroupTag
-  logger.info('Inserting group tags to temporary table');
+
+/**
+ * Create new group types
+ */
+async function createGroupTypes(handler) {
+  const { tableName } = handler.groups.TempGroupModel;
+
+  // Create primary group types
+  let sql = [
+    'INSERT INTO group_type (name)',
+    'SELECT DISTINCT group_type',
+    `FROM public.${tableName}`,
+    'ON CONFLICT (name) DO NOTHING',
+  ].join('\n');
+
+  logger.info('Create new primary group types');
+  let durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+
+  // Create sub group types
+  sql = [
+    'INSERT INTO group_type (name, parent)',
+    'SELECT DISTINCT group_sub_type, group_type',
+    `FROM public.${tableName}`,
+    'WHERE group_sub_type IS NOT NULL',
+    'ON CONFLICT (name) DO NOTHING',
+  ].join('\n');
+
+  logger.info('Create new sub group types');
   durationId = startDuration();
-  await handler.groups.TempGroupTagModel.bulkCreate(tags);
+  await db.sequelize.query(sql);
   endDuration(durationId);
 }
+
 
 /**
  * Insert into `group`-table or update if it already exists
@@ -163,22 +174,67 @@ async function populateTempTables(handler) {
 async function mergeGroups(handler) {
   const sql = [
     'INSERT INTO public.group (',
-    '  uuid, id_legacy_ntb, type, name, name_lower_case, description,',
-    '  description_plain, logo, organization_number, url, email, phone,',
-    '  mobile, fax, address_1, address_2, postal_code, postal_name, license,',
-    '  provider, status, data_source, created_at, updated_at,',
-    '  municipality_uuid, search_document_boost',
+    '  uuid,',
+    '  id_legacy_ntb,',
+    '  group_type,',
+    '  group_sub_type,',
+    '  name,',
+    '  name_lower_case,',
+    '  description,',
+    '  description_plain,',
+    '  logo,',
+    '  organization_number,',
+    '  url,',
+    '  email,',
+    '  phone,',
+    '  mobile,',
+    '  fax,',
+    '  address_1,',
+    '  address_2,',
+    '  postal_code,',
+    '  postal_name,',
+    '  license,',
+    '  provider,',
+    '  status,',
+    '  data_source,',
+    '  created_at,',
+    '  updated_at,',
+    '  municipality_uuid,',
+    '  search_document_boost',
     ')',
     'SELECT',
-    '  uuid, id_legacy_ntb, type, name, name_lower_case, description,',
-    '  description_plain, logo, organization_number, url, email, phone,',
-    '  mobile, fax, address_1, address_2, postal_code, postal_name, license,',
-    '  provider,  status::enum_group_status, data_source, updated_at,',
-    '  updated_at, municipality_uuid, 1',
+    '  uuid,',
+    '  id_legacy_ntb,',
+    '  group_type,',
+    '  group_sub_type,',
+    '  name,',
+    '  name_lower_case,',
+    '  description,',
+    '  description_plain,',
+    '  logo,',
+    '  organization_number,',
+    '  url,',
+    '  email,',
+    '  phone,',
+    '  mobile,',
+    '  fax,',
+    '  address_1,',
+    '  address_2,',
+    '  postal_code,',
+    '  postal_name,',
+    '  license,',
+    '  provider,',
+    '   status::enum_group_status,',
+    '  data_source,',
+    '  updated_at,',
+    '  updated_at,',
+    '  municipality_uuid,',
+    '  1',
     `FROM public.${handler.groups.TempGroupModel.tableName}`,
     'ON CONFLICT (id_legacy_ntb) DO UPDATE',
     'SET',
-    '  type = EXCLUDED.type,',
+    '  group_type = EXCLUDED.group_type,',
+    '  group_sub_type = EXCLUDED.group_sub_type,',
     '  name = EXCLUDED.name,',
     '  name_lower_case = EXCLUDED.name_lower_case,',
     '  description = EXCLUDED.description,',
@@ -206,6 +262,7 @@ async function mergeGroups(handler) {
   await db.sequelize.query(sql);
   endDuration(durationId);
 }
+
 
 /**
  * Insert into `group_link`-table or update if it already exists
@@ -288,104 +345,6 @@ async function removeDepreactedGroupLinks(handler) {
 
 
 /**
- * Create new tags
- */
-async function createTags(handler) {
-  const { tableName } = handler.groups.TempGroupTagModel;
-  const sql = [
-    'INSERT INTO tag (name_lower_case, name)',
-    'SELECT DISTINCT name_lower_case, name',
-    `FROM public.${tableName}`,
-    'ON CONFLICT (name_lower_case) DO NOTHING',
-  ].join('\n');
-
-  logger.info('Create new tags');
-  const durationId = startDuration();
-  await db.sequelize.query(sql);
-  endDuration(durationId);
-}
-
-
-/**
- * Create new tag relations
- */
-async function createTagRelations(handler) {
-  let sql;
-  let durationId;
-  const { tableName } = handler.groups.TempGroupTagModel;
-
-  // Set UUIDs on groupTag temp data
-  sql = [
-    `UPDATE public.${tableName} gt1 SET`,
-    '  group_uuid = g.uuid',
-    `FROM public.${tableName} gt2`,
-    'INNER JOIN public.group g ON',
-    '  g.id_legacy_ntb = gt2.id_group_legacy_ntb',
-    'WHERE',
-    '  gt1.id_group_legacy_ntb = gt2.id_group_legacy_ntb',
-  ].join('\n');
-
-  logger.info('Update uuids on group tag temp data');
-  durationId = startDuration();
-  await db.sequelize.query(sql);
-  endDuration(durationId);
-
-  // Create group tag relations
-  sql = [
-    'INSERT INTO tag_relation (',
-    '  tag_name, tagged_type, tagged_uuid, data_source',
-    ')',
-    'SELECT',
-    '  name_lower_case, :tagged_type, group_uuid, :data_source',
-    `FROM public.${tableName}`,
-    'ON CONFLICT (tag_name, tagged_type, tagged_uuid) DO NOTHING',
-  ].join('\n');
-
-  logger.info('Create new group tag relations');
-  durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      tagged_type: 'group',
-      data_source: DATASOURCE_NAME,
-    },
-  });
-  endDuration(durationId);
-}
-
-
-/**
- * Remove group tags that no longer exist in legacy-ntb
- */
-async function removeDepreactedGroupTags(handler) {
-  const { tableName } = handler.groups.TempGroupTagModel;
-  const sql = [
-    'DELETE FROM public.tag_relation',
-    'USING public.tag_relation tr',
-    `LEFT JOIN public.${tableName} te ON`,
-    '  tr.tag_name = te.name_lower_case AND',
-    '  tr.tagged_uuid = te.group_uuid',
-    'WHERE',
-    '  te.id_group_legacy_ntb IS NULL AND',
-    '  tr.tagged_type = :tagged_type AND',
-    '  tr.data_source = :data_source AND',
-    '  public.tag_relation.tag_name = tr.tag_name AND',
-    '  public.tag_relation.tagged_type = tr.tagged_type AND',
-    '  public.tag_relation.tagged_uuid = tr.tagged_uuid',
-  ].join('\n');
-
-  logger.info('Deleting deprecated group links');
-  const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      tagged_type: 'group',
-      data_source: DATASOURCE_NAME,
-    },
-  });
-  endDuration(durationId);
-}
-
-
-/**
  * Mark groups that no longer exist in legacy-ntb as deleted
  */
 async function removeDepreactedGroups(handler) {
@@ -425,12 +384,10 @@ const process = async (handler) => {
   await mapData(handler);
   await createTempTables(handler);
   await populateTempTables(handler);
+  await createGroupTypes(handler);
   await mergeGroups(handler);
   await mergeGroupLinks(handler);
   await removeDepreactedGroupLinks(handler);
-  await createTags(handler);
-  await createTagRelations(handler);
-  await removeDepreactedGroupTags(handler);
   await removeDepreactedGroups(handler);
   await dropTempTables(handler);
 };

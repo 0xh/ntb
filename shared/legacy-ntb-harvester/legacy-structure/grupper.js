@@ -46,42 +46,58 @@ function setMunicipalityUuid(res, handler) {
 }
 
 
-function mapGroupType(tags, res) {
-  const tag = tags && tags.length
-    ? tags[0].toLowerCase()
-    : '';
-
+function mapGroupType(tag, res) {
   switch (tag) {
+    case 'barnas turlag':
+      return 'dnt childrens trekking club';
     case 'bedrift':
       return 'business';
     case 'destinasjonsselskap':
       return 'destination company';
     case 'dnt':
       return 'dnt';
+    case 'fjellsport':
+      return 'dnt mountain sports';
     case 'fotballag':
       return 'football team';
     case 'friluftsråd':
       return 'outdoor recreation council';
     case 'fylkeskommune':
       return 'county council';
+    case 'styre':
+      return 'other';
+    case 'hytte':
+      return 'dnt cabin';
     case 'idrettslag':
       return 'sports team';
     case 'interesseorganisasjon':
       return 'interest group';
     case 'kommune':
       return 'municipality';
+    case 'medlemsforening':
+      return 'dnt association';
     case 'nasjonalpark':
       return 'national park';
     case 'orienteringslag':
       return 'orienteering team';
+    case 'prosjket':
+      return 'dnt project';
+    case 'senior':
+      return 'dnt senior';
+    case 'sentral':
+      return 'dnt central';
     case 'skole':
       return 'school';
     case 'speidergruppe':
       return 'scout group';
     case 'turistinformasjon':
       return 'tourist information';
+    case 'lokalforening':
+    case 'andre turgrupper':
     case 'turlag':
       return 'outdoor group';
+    case 'ungdomgruppe':
+      return 'dnt youth';
     default:
       if (tag.length) {
         logger.warn(
@@ -91,6 +107,28 @@ function mapGroupType(tags, res) {
       }
       return 'other';
   }
+}
+
+
+function getGroupType(tags, res) {
+  const tag = tags && tags.length
+    ? tags[0].toLowerCase()
+    : '';
+
+  return mapGroupType(tag, res);
+}
+
+
+function getGroupSubType(tags, res) {
+  const tag = tags && tags.length && tags.length > 1
+    ? tags[1].toLowerCase()
+    : null;
+
+  if (!tag) {
+    return null;
+  }
+
+  return mapGroupType(tag, res);
 }
 
 
@@ -145,13 +183,6 @@ function setLinks(obj, res, handler) {
 }
 
 
-function setTags(obj, res, handler) {
-  res.tags = obj.tags && obj.tags.length > 1
-    ? obj.tags.splice(1)
-    : [];
-}
-
-
 async function mapping(obj, handler) {
   const res = {};
 
@@ -178,7 +209,8 @@ async function mapping(obj, handler) {
   };
 
   // Group type
-  res.group.type = mapGroupType(obj.tags, res);
+  res.group.groupType = getGroupType(obj.tags, res);
+  res.group.groupSubType = getGroupSubType(obj.tags, res);
 
   // Contact info
   if (obj.kontaktinfo && obj.kontaktinfo.length) {
@@ -207,9 +239,6 @@ async function mapping(obj, handler) {
 
   // Set links
   setLinks(obj, res, handler);
-
-  // Set tags
-  setTags(obj, res, handler);
 
   return res;
 }
