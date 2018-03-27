@@ -11,7 +11,8 @@ export default (sequelize, DataTypes) => {
 
     idLegacyNtb: { type: DataTypes.TEXT, unique: true },
 
-    type: { type: DataTypes.TEXT },
+    groupType: { type: DataTypes.TEXT },
+    groupSubType: { type: DataTypes.TEXT },
 
     name: {
       type: DataTypes.TEXT,
@@ -69,6 +70,16 @@ export default (sequelize, DataTypes) => {
   // Associations
 
   Group.associate = (models) => {
+    models.Group.belongsTo(models.GroupType, {
+      as: 'GroupType',
+      foreignKey: 'groupType',
+    });
+
+    models.Group.belongsTo(models.GroupType, {
+      as: 'GroupSubType',
+      foreignKey: 'groupSubType',
+    });
+
     models.Group.belongsTo(models.Municipality);
 
     models.Group.belongsToMany(models.Tag, {
@@ -79,7 +90,7 @@ export default (sequelize, DataTypes) => {
           taggedType: 'group',
         },
       },
-      foreignKey: 'tagged_uuid',
+      foreignKey: 'taggedUuid',
       constraints: false,
     });
   };
