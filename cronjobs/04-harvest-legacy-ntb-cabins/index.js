@@ -1,5 +1,5 @@
 import { createLogger } from '@turistforeningen/ntb-shared-utils';
-import { harvestCabinAndPoi } from
+import { harvestCabin } from
   '@turistforeningen/ntb-shared-legacy-ntb-harvester';
 
 
@@ -11,7 +11,7 @@ if (process.argv.length > 2 && process.argv[2].trim() === 'testdata') {
   useTestData = true;
 }
 
-harvestCabinAndPoi(useTestData)
+harvestCabin(useTestData)
   .then(() => process.exit(0))
   .catch((err) => {
     logger.error('UNCAUGHT ERROR');
