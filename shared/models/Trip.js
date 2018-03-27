@@ -60,7 +60,13 @@ export default (sequelize, DataTypes) => {
     season: { type: DataTypes.ARRAY(DataTypes.INTEGER) },
 
     htgtGeneral: { type: DataTypes.TEXT },
+    htgtWinter: { type: DataTypes.TEXT },
+    htgtSummer: { type: DataTypes.TEXT },
     htgtPublicTransport: { type: DataTypes.TEXT },
+    htgtCarAllYear: { type: DataTypes.BOOLEAN },
+    htgtCarSummer: { type: DataTypes.BOOLEAN },
+    htgtBicycle: { type: DataTypes.BOOLEAN },
+    htgtPublicTransportAvailable: { type: DataTypes.BOOLEAN },
 
     license: { type: DataTypes.TEXT },
 

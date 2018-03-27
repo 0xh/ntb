@@ -111,8 +111,14 @@ export default (sequelize, DataTypes) => {
     },
     bookingUrl: { type: DataTypes.TEXT },
 
+    htgtGeneral: { type: DataTypes.TEXT },
     htgtWinter: { type: DataTypes.TEXT },
     htgtSummer: { type: DataTypes.TEXT },
+    htgtPublicTransport: { type: DataTypes.TEXT },
+    htgtCarAllYear: { type: DataTypes.BOOLEAN },
+    htgtCarSummer: { type: DataTypes.BOOLEAN },
+    htgtBicycle: { type: DataTypes.BOOLEAN },
+    htgtPublicTransportAvailable: { type: DataTypes.BOOLEAN },
 
     map: { type: DataTypes.TEXT },
     mapAlt: { type: DataTypes.ARRAY(DataTypes.TEXT) },
