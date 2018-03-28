@@ -19,6 +19,7 @@ import processCabin from './process/cabin';
 import processPoi from './process/poi';
 import processTrip, { mapTripData } from './process/trip';
 import processRoute, { mapRouteData } from './process/route';
+import processPicture, { mapPictureData } from './process/picture';
 
 
 const logger = createLogger();
@@ -106,92 +107,8 @@ async function getAllCM(handler) {
 
 
 /**
- * Harvest data from legacy-ntb through it's MongoDB, verify the structure of
- * the data towards the defined legacy structure and map the data to the
- * database models
+ * Harvest areas
  */
-async function main() {
-  const durationId = startDuration();
-  const handler = {};
-
-  let useTestData = false;
-  if (process.argv.length > 2 && process.argv[2].trim() === 'testdata') {
-    useTestData = true;
-  }
-  await getAllDocuments(
-    handler,
-    ['grupper', 'områder', 'steder'/* , lister, bilder */],
-    // [],
-    useTestData
-  );
-
-  if (!verifyAllDocuments(handler)) {
-    throw new Error('Document verification failed.');
-  }
-
-  await getAllCM(handler);
-
-  // await processArea(handler);
-  // await processGroup(handler);
-  // await processCabin(handler);
-  // await processPoi(handler);
-
-  // Get and process photos
-  let limit = 1000;
-  let skip = 0;
-  let first = true;
-  let filter = {};
-  handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
-  handler.timeStamp = '20180324042132926'; // TODO(Roar): REMOVE!
-
-  // while (first || handler.documents.bilder.length > 0) {
-  //   first = false;
-  //   await getDocumentsFromMongoDb(handler, 'bilder', skip, limit); // eslint-disable-line
-  //   const status = verifyDocuments(handler, 'bilder');
-  //   if (!status) {
-  //     throw new Error('Document verification failed.');
-  //   }
-  //   skip += limit;
-  // }
-
-  // Get and process trips
-  limit = 1000;
-  skip = 0;
-  first = true;
-  // filter = { 'rute.kode': { $ne: null } };
-  filter = { };
-
-  await getDocumentCountFromMongoDb('turer', filter);
-
-  // while (first || handler.documents.turer.length > 0) {
-  //   await getDocumentsFromMongoDb(handler, 'turer', skip, limit, filter); // eslint-disable-line
-
-  //   // On a few objects, the coordines are string and not number. This causes
-  //   // the geojson verification to fail.
-  //   handler.documents.turer.forEach((t) => {
-  //     if (t.privat && t.privat.startpunkt && t.privat.startpunkt.coordinates) {
-  //       t.privat.startpunkt.coordinates = t.privat.startpunkt.coordinates
-  //         .map((c) => +c);
-  //     }
-  //   });
-
-  //   const status = verifyDocuments(handler, 'turer');
-  //   if (!status) {
-  //     throw new Error('Document verification failed for trips.');
-  //   }
-
-  //   await mapTripData(handler, first); // eslint-disable-line
-  //   first = false;
-  //   skip += limit;
-  // }
-
-  await processTrip(handler);
-
-  logger.info('Harvesting complete');
-  endDuration(durationId);
-}
-
-
 export async function harvestAreas(useTestData = false) {
   const durationId = startDuration();
   const handler = {};
@@ -211,6 +128,9 @@ export async function harvestAreas(useTestData = false) {
 }
 
 
+/**
+ * Harvest groups
+ */
 export async function harvestGroups(useTestData = false) {
   const durationId = startDuration();
   const handler = {};
@@ -230,6 +150,9 @@ export async function harvestGroups(useTestData = false) {
 }
 
 
+/**
+ * Harvest cabins
+ */
 export async function harvestCabin(useTestData = false) {
   const durationId = startDuration();
   const handler = { documents: {} };
@@ -272,6 +195,9 @@ export async function harvestPoi(useTestData = false) {
 }
 
 
+/**
+ * Harvest routes
+ */
 export async function harvestRoute(useTestData = false) {
   const durationId = startDuration();
   const handler = { documents: {} };
@@ -319,6 +245,9 @@ export async function harvestRoute(useTestData = false) {
 }
 
 
+/**
+ * Harvest trips
+ */
 export async function harvestTrip(useTestData = false) {
   const durationId = startDuration();
   const handler = { documents: {} };
@@ -356,6 +285,52 @@ export async function harvestTrip(useTestData = false) {
   }
 
   await processTrip(handler);
+
+  logger.info('Harvesting complete');
+  endDuration(durationId);
+}
+
+
+/**
+ * Harvest pictures
+ */
+export async function harvestPictures(useTestData = false) {
+  const durationId = startDuration();
+  const handler = { documents: {} };
+  const limit = 2000;
+  const filter = { status: 'Offentlig' };
+  let skip = 0;
+  let first = true;
+  handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
+  // handler.timeStamp = '20180328064949549'; // TODO(Roar): REMOVE THIS!
+
+  await getDocumentCountFromMongoDb('bilder', filter);
+
+  while (first || handler.documents.bilder.length > 0) {
+    // eslint-disable-next-line
+    await getDocumentsFromMongoDb(handler, 'bilder', skip, limit, filter);
+
+    // On a few objects, the coordines are string and not number. This causes
+    // the geojson verification to fail.
+    handler.documents.bilder.forEach((t) => {
+      if (t.privat && t.privat.startpunkt && t.privat.startpunkt.coordinates) {
+        t.privat.startpunkt.coordinates = t.privat.startpunkt.coordinates
+          .map((c) => +c);
+      }
+    });
+
+    const status = verifyDocuments(handler, 'bilder');
+    if (!status) {
+      throw new Error('Document verification failed for pictures.');
+    }
+
+    // eslint-disable-next-line
+    await mapPictureData(handler, first);
+    first = false;
+    skip += limit;
+  }
+
+  await processPicture(handler);
 
   logger.info('Harvesting complete');
   endDuration(durationId);
