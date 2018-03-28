@@ -1,9 +1,59 @@
-'use strict';
+import uuid4 from 'uuid/v4';
 
-const mapping = () => {};
+import { createLogger } from '@turistforeningen/ntb-shared-utils';
+
+import statusMapper from '../lib/statusMapper';
 
 
-module.exports = {
+const logger = createLogger();
+
+
+async function mapping(obj, handler) {
+  const res = {};
+
+  if (!obj.fotograf) {
+    obj.fotograf = {};
+  }
+
+  res.picture = {
+    uuid: uuid4(),
+    idLegacyNtb: obj._id,
+
+    description: (obj.beskrivelse || '').trim(),
+
+    photographerName: obj.fotograf.navn,
+    photographerEmail: obj.fotograf.epost,
+    photographerCredit: obj.fotograf.kreditering,
+
+    coordinates: obj.geojson,
+
+    original: obj.original,
+    exif: obj.exif,
+    versions: obj.img,
+
+    legacyFirstTag: (obj.tags || []).length
+      ? obj.tags[0].split(',')[0].toLowerCase().trim()
+      : null,
+    legacyTags: (obj.tags || []).length ? obj.tags : [],
+
+    license: obj.lisens,
+
+    provider: obj.tilbyder,
+    status: statusMapper(obj.status),
+    updatedAt: obj.endret,
+
+    dataSource: 'legacy-ntb',
+  };
+
+  // if (obj.tags) logger.debug([obj.tags, obj._id]);
+  // if (obj.navn && !obj.navn.startsWith('Bilde fra')) logger.debug([obj.navn, obj.beskrivelse, obj._id]);
+  // if (obj.fotograf.kreditering) debugger;
+
+  return res;
+}
+
+
+export default {
   mapping,
   structure: {
     _id: 'string',
