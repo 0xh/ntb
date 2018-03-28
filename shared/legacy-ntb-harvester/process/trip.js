@@ -152,11 +152,8 @@ async function mapData(handler) {
   await Promise.all(
     handler.documents.turer
       .map(async (d) => {
-        // Ignore trips without a type
-        if (d.tags && d.tags.length) {
-          const m = await legacy.turer.mapping(d, handler);
-          trips.push(m);
-        }
+        const m = await legacy.turer.mapping(d, handler);
+        trips.push(m);
       })
   );
   endDuration(durationId);
