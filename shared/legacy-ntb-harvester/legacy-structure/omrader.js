@@ -106,6 +106,8 @@ async function mapping(obj, handler) {
 
   res.areaRelations = obj.foreldreområder || [];
 
+  res.pictures = obj.bilder || [];
+
   return res;
 }
 

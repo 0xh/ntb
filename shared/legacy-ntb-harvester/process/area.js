@@ -27,13 +27,13 @@ async function createTempTables(handler) {
     idLegacyNtb: { type: db.Sequelize.TEXT },
     name: { type: db.Sequelize.TEXT },
     nameLowerCase: { type: db.Sequelize.TEXT },
-    description: { type: db.Sequelize.TEXT, allowNull: true },
-    descriptionPlain: { type: db.Sequelize.TEXT, allowNull: true },
-    geojson: { type: db.Sequelize.GEOMETRY, allowNull: true },
-    map: { type: db.Sequelize.TEXT, allowNull: true },
-    url: { type: db.Sequelize.TEXT, allowNull: true },
-    license: { type: db.Sequelize.TEXT, allowNull: true },
-    provider: { type: db.Sequelize.TEXT, allowNull: true },
+    description: { type: db.Sequelize.TEXT },
+    descriptionPlain: { type: db.Sequelize.TEXT },
+    geojson: { type: db.Sequelize.GEOMETRY },
+    map: { type: db.Sequelize.TEXT },
+    url: { type: db.Sequelize.TEXT },
+    license: { type: db.Sequelize.TEXT },
+    provider: { type: db.Sequelize.TEXT },
     status: { type: db.Sequelize.TEXT },
     dataSource: { type: db.Sequelize.TEXT },
     updatedAt: { type: db.Sequelize.DATE },
@@ -46,9 +46,9 @@ async function createTempTables(handler) {
   handler.areas.TempAreaAreaModel = db.sequelize.define(
     `${baseTableName}_aa`, {
       parentLegacyId: { type: db.Sequelize.TEXT },
-      parentUuid: { type: db.Sequelize.UUID, allowNull: true },
+      parentUuid: { type: db.Sequelize.UUID },
       childLegacyId: { type: db.Sequelize.TEXT },
-      childUuid: { type: db.Sequelize.UUID, allowNull: true },
+      childUuid: { type: db.Sequelize.UUID },
     }, {
       timestamps: false,
       tableName: `${baseTableName}_aa`,
@@ -59,7 +59,7 @@ async function createTempTables(handler) {
   handler.areas.TempAreaCountyModel = db.sequelize.define(
     `${baseTableName}_ac`, {
       areaLegacyId: { type: db.Sequelize.TEXT },
-      areaUuid: { type: db.Sequelize.UUID, allowNull: true },
+      areaUuid: { type: db.Sequelize.UUID },
       countyUuid: { type: db.Sequelize.UUID },
     }, {
       timestamps: false,
@@ -71,7 +71,7 @@ async function createTempTables(handler) {
   handler.areas.TempAreaMunicipalityModel = db.sequelize.define(
     `${baseTableName}_am`, {
       areaLegacyId: { type: db.Sequelize.TEXT },
-      areaUuid: { type: db.Sequelize.UUID, allowNull: true },
+      areaUuid: { type: db.Sequelize.UUID },
       municipalityUuid: { type: db.Sequelize.UUID },
     }, {
       timestamps: false,
@@ -79,6 +79,18 @@ async function createTempTables(handler) {
     }
   );
   await handler.areas.TempAreaMunicipalityModel.sync();
+
+  handler.areas.TempAreaPicturesModel = db.sequelize.define(
+    `${baseTableName}_ap`, {
+      areaLegacyId: { type: db.Sequelize.TEXT },
+      areaUuid: { type: db.Sequelize.UUID },
+      pictureLegacyId: { type: db.Sequelize.TEXT },
+    }, {
+      timestamps: false,
+      tableName: `${baseTableName}_ap`,
+    }
+  );
+  await handler.areas.TempAreaPicturesModel.sync();
 
   endDuration(durationId);
 }
@@ -94,6 +106,7 @@ async function dropTempTables(handler) {
   await handler.areas.TempAreaAreaModel.drop();
   await handler.areas.TempAreaCountyModel.drop();
   await handler.areas.TempAreaMunicipalityModel.drop();
+  await handler.areas.TempAreaPicturesModel.drop();
 
   endDuration(durationId);
 }
@@ -133,6 +146,7 @@ async function populateTempTables(handler) {
   const areaArea = [];
   const areaCounty = [];
   const areaMunicipality = [];
+  const pictures = [];
   handler.areas.processed.forEach((p) => {
     p.counties.forEach((countyUuid) => areaCounty.push({
       areaLegacyId: p.area.idLegacyNtb,
@@ -145,6 +159,10 @@ async function populateTempTables(handler) {
     p.areaRelations.forEach((parentLegacyId) => areaArea.push({
       parentLegacyId,
       childLegacyId: p.area.idLegacyNtb,
+    }));
+    p.pictures.forEach((pictureLegacyId) => pictures.push({
+      pictureLegacyId,
+      areaLegacyId: p.area.idLegacyNtb,
     }));
   });
 
@@ -164,6 +182,12 @@ async function populateTempTables(handler) {
   logger.info('Inserting area<>area to temporary table');
   durationId = startDuration();
   await handler.areas.TempAreaAreaModel.bulkCreate(areaArea);
+  endDuration(durationId);
+
+  // Insert temp data for AreaArea
+  logger.info('Inserting area<>picture to temporary table');
+  durationId = startDuration();
+  await handler.areas.TempAreaPicturesModel.bulkCreate(pictures);
   endDuration(durationId);
 }
 
@@ -256,6 +280,81 @@ async function mergeAreaToArea(handler) {
 
 
 /**
+ * Insert area uuid into `pictures`-table
+ */
+async function setAreaPictures(handler) {
+  let sql;
+  let durationId;
+  const { tableName } = handler.areas.TempAreaPicturesModel;
+
+  // Set UUIDs on areaToArea temp data
+  sql = [
+    `UPDATE public.${tableName} a1 SET`,
+    '  area_uuid = a.uuid',
+    `FROM public.${tableName} a2`,
+    'INNER JOIN public.area a ON',
+    '  a.id_legacy_ntb = a2.area_legacy_id',
+    'WHERE',
+    '  a1.area_legacy_id = a2.area_legacy_id AND',
+    '  a1.picture_legacy_id = a2.picture_legacy_id',
+  ].join('\n');
+
+  logger.info('Update uuids on area-to-picture temp data');
+  durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+
+  // Merge into prod table
+  sql = [
+    'UPDATE picture p1 SET',
+    '  area_uuid = a.area_uuid',
+    'FROM picture p2',
+    `INNER JOIN public.${tableName} a ON`,
+    '  a.picture_legacy_id = p2.id_legacy_ntb',
+    'WHERE',
+    '  p1.uuid = p2.uuid',
+  ].join('\n');
+
+  logger.info('Setting area uuid on pictures');
+  durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Remove pictures that used to belong to an area in legacy-ntb
+ */
+async function removeDepreactedAreaPictures(handler) {
+  const { tableName } = handler.areas.TempAreaPicturesModel;
+  const sql = [
+    'DELETE FROM public.picture',
+    'USING public.picture p2',
+    `LEFT JOIN public.${tableName} te ON`,
+    '  p2.id_legacy_ntb = te.picture_legacy_id',
+    'WHERE',
+    '  te.picture_legacy_id IS NULL AND',
+    '  p2.area_uuid IS NOT NULL AND',
+    '  p2.data_source = :data_source AND',
+    '  public.picture.uuid = p2.uuid',
+  ].join('\n');
+
+  logger.info('Deleting deprecated area pictures');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
  * Remove area to area relations that no longer exist in legacy-ntb
  */
 async function removeDepreactedAreaToArea(handler) {
@@ -327,6 +426,8 @@ const process = async (handler) => {
   await mergeAreas(handler);
   await mergeAreaToArea(handler);
   await removeDepreactedAreaToArea(handler);
+  await setAreaPictures(handler);
+  await removeDepreactedAreaPictures(handler);
   await removeDepreactedArea(handler);
   await dropTempTables(handler);
 };
