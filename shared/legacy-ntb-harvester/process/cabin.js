@@ -212,6 +212,19 @@ async function createTempTables(handler) {
     });
   await handler.cabins.TempCabinToAreaModel.sync();
 
+  tableName = `${baseTableName}_cabin_pictures`;
+  handler.cabins.TempCabinPicturesModel =
+    db.sequelize.define(tableName, {
+      cabinLegacyId: { type: db.Sequelize.TEXT },
+      cabinUuid: { type: db.Sequelize.UUID },
+      pictureLegacyId: { type: db.Sequelize.TEXT },
+      sortIndex: { type: db.Sequelize.INTEGER },
+    }, {
+      timestamps: false,
+      tableName,
+    });
+  await handler.cabins.TempCabinPicturesModel.sync();
+
   endDuration(durationId);
 }
 
@@ -232,6 +245,7 @@ async function dropTempTables(handler) {
   await handler.cabins.TempCabinAccessabilityModel.drop();
   await handler.cabins.TempCabinOHoursModel.drop();
   await handler.cabins.TempCabinToAreaModel.drop();
+  await handler.cabins.TempCabinPicturesModel.drop();
 
   endDuration(durationId);
 }
@@ -279,6 +293,7 @@ async function populateTempTables(handler) {
   const accessabilities = [];
   const cabinAccessabilities = [];
   const cabinToArea = [];
+  const pictures = [];
   let links = [];
   let openingHours = [];
   handler.cabins.processed.forEach((p) => {
@@ -294,6 +309,13 @@ async function populateTempTables(handler) {
         serviceLevels.push({ name: oh.serviceLevel });
       }
     });
+
+
+    p.pictures.forEach((pictureLegacyId, idx) => pictures.push({
+      pictureLegacyId,
+      cabinLegacyId: p.cabin.idLegacyNtb,
+      sortIndex: idx,
+    }));
 
     if (p.english) {
       translations.push(p.english);
@@ -392,6 +414,12 @@ async function populateTempTables(handler) {
   logger.info('Inserting cabin to area temporary table');
   durationId = startDuration();
   await handler.cabins.TempCabinToAreaModel.bulkCreate(cabinToArea);
+  endDuration(durationId);
+
+  // Insert temp data for CabinPicture
+  logger.info('Inserting cabin picture temporary table');
+  durationId = startDuration();
+  await handler.cabins.TempCabinPicturesModel.bulkCreate(pictures);
   endDuration(durationId);
 }
 
@@ -1054,6 +1082,94 @@ async function removeDepreactedCabinToArea(handler) {
 
 
 /**
+ * Insert cabin uuid into `pictures`-table
+ */
+async function setCabinPictures(handler) {
+  let sql;
+  let durationId;
+  const { tableName } = handler.cabins.TempCabinPicturesModel;
+
+  // Set UUIDs on cabinToCabin temp data
+  sql = [
+    `UPDATE public.${tableName} a1 SET`,
+    '  cabin_uuid = a.uuid',
+    `FROM public.${tableName} a2`,
+    'INNER JOIN public.cabin a ON',
+    '  a.id_legacy_ntb = a2.cabin_legacy_id',
+    'WHERE',
+    '  a1.cabin_legacy_id = a2.cabin_legacy_id AND',
+    '  a1.picture_legacy_id = a2.picture_legacy_id',
+  ].join('\n');
+
+  logger.info('Update uuids on cabin-to-picture temp data');
+  durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+
+  // Merge into prod table
+  sql = [
+    'UPDATE picture p1 SET',
+    '  cabin_uuid = a.cabin_uuid,',
+    '  sort_index = a.sort_index,',
+    '  cabin_picture_type = (',
+    '    CASE p2.legacy_first_tag',
+    '      WHEN \'vinter\'',
+    '        THEN \'winter\'',
+    '      WHEN \'sommer\'',
+    '        THEN \'summer\'',
+    '      WHEN \'interiør\'',
+    '        THEN \'interior\'',
+    '      ELSE',
+    '        \'other\'',
+    '    END',
+    '  )::enum_picture_cabin_picture_type',
+    'FROM picture p2',
+    `INNER JOIN public.${tableName} a ON`,
+    '  a.picture_legacy_id = p2.id_legacy_ntb',
+    'WHERE',
+    '  p1.uuid = p2.uuid',
+  ].join('\n');
+
+  logger.info('Setting cabin uuid on pictures');
+  durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Remove pictures that used to belong to an cabin in legacy-ntb
+ */
+async function removeDepreactedCabinPictures(handler) {
+  const { tableName } = handler.cabins.TempCabinPicturesModel;
+  const sql = [
+    'DELETE FROM public.picture',
+    'USING public.picture p2',
+    `LEFT JOIN public.${tableName} te ON`,
+    '  p2.id_legacy_ntb = te.picture_legacy_id',
+    'WHERE',
+    '  te.picture_legacy_id IS NULL AND',
+    '  p2.cabin_uuid IS NOT NULL AND',
+    '  p2.data_source = :data_source AND',
+    '  public.picture.uuid = p2.uuid',
+  ].join('\n');
+
+  logger.info('Deleting deprecated cabin pictures');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
  * Mark cabins that no longer exist in legacy-ntb as deleted
  */
 async function removeDepreactedCabin(handler) {
@@ -1108,6 +1224,8 @@ const process = async (handler) => {
   await removeDepreactedCabinOpeningHours(handler);
   await mergeCabinToArea(handler);
   await removeDepreactedCabinToArea(handler);
+  await setCabinPictures(handler);
+  await removeDepreactedCabinPictures(handler);
   await removeDepreactedCabin(handler);
   await dropTempTables(handler);
 };

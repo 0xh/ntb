@@ -531,9 +531,9 @@ async function mapping(obj, handler) {
   // Set extra data based on tags
   processTags(obj, res, handler);
 
-  // Areas and photos
+  // Areas and pictures
   res.areas = obj.områder;
-  res.photos = obj.bilder;
+  res.pictures = obj.bilder || [];
 
   return res;
 }
