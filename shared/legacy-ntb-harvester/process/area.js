@@ -85,6 +85,7 @@ async function createTempTables(handler) {
       areaLegacyId: { type: db.Sequelize.TEXT },
       areaUuid: { type: db.Sequelize.UUID },
       pictureLegacyId: { type: db.Sequelize.TEXT },
+      sortIndex: { type: db.Sequelize.INTEGER },
     }, {
       timestamps: false,
       tableName: `${baseTableName}_ap`,
@@ -160,9 +161,10 @@ async function populateTempTables(handler) {
       parentLegacyId,
       childLegacyId: p.area.idLegacyNtb,
     }));
-    p.pictures.forEach((pictureLegacyId) => pictures.push({
+    p.pictures.forEach((pictureLegacyId, idx) => pictures.push({
       pictureLegacyId,
       areaLegacyId: p.area.idLegacyNtb,
+      sortIndex: idx,
     }));
   });
 
@@ -280,6 +282,34 @@ async function mergeAreaToArea(handler) {
 
 
 /**
+ * Remove area to area relations that no longer exist in legacy-ntb
+ */
+async function removeDepreactedAreaToArea(handler) {
+  const sql = [
+    'DELETE FROM public.area_to_area',
+    'USING public.area_to_area a2a',
+    `LEFT JOIN public.${handler.areas.TempAreaAreaModel.tableName} te ON`,
+    '  a2a.parent_uuid = te.parent_uuid AND',
+    '  a2a.child_uuid = te.child_uuid',
+    'WHERE',
+    '  te.child_uuid IS NULL AND',
+    '  a2a.data_source = :data_source AND',
+    '  public.area_to_area.parent_uuid = a2a.parent_uuid AND',
+    '  public.area_to_area.child_uuid = a2a.child_uuid',
+  ].join('\n');
+
+  logger.info('Deleting deprecated area to area relations');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
  * Insert area uuid into `pictures`-table
  */
 async function setAreaPictures(handler) {
@@ -307,7 +337,8 @@ async function setAreaPictures(handler) {
   // Merge into prod table
   sql = [
     'UPDATE picture p1 SET',
-    '  area_uuid = a.area_uuid',
+    '  area_uuid = a.area_uuid,',
+    '  sort_index = a.sort_index',
     'FROM picture p2',
     `INNER JOIN public.${tableName} a ON`,
     '  a.picture_legacy_id = p2.id_legacy_ntb',
@@ -344,34 +375,6 @@ async function removeDepreactedAreaPictures(handler) {
   ].join('\n');
 
   logger.info('Deleting deprecated area pictures');
-  const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
-  });
-  endDuration(durationId);
-}
-
-
-/**
- * Remove area to area relations that no longer exist in legacy-ntb
- */
-async function removeDepreactedAreaToArea(handler) {
-  const sql = [
-    'DELETE FROM public.area_to_area',
-    'USING public.area_to_area a2a',
-    `LEFT JOIN public.${handler.areas.TempAreaAreaModel.tableName} te ON`,
-    '  a2a.parent_uuid = te.parent_uuid AND',
-    '  a2a.child_uuid = te.child_uuid',
-    'WHERE',
-    '  te.child_uuid IS NULL AND',
-    '  a2a.data_source = :data_source AND',
-    '  public.area_to_area.parent_uuid = a2a.parent_uuid AND',
-    '  public.area_to_area.child_uuid = a2a.child_uuid',
-  ].join('\n');
-
-  logger.info('Deleting deprecated area to area relations');
   const durationId = startDuration();
   await db.sequelize.query(sql, {
     replacements: {
