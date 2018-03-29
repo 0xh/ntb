@@ -130,6 +130,19 @@ async function createTempTables(handler) {
     });
   await handler.pois.TempPoiToGroupModel.sync();
 
+  tableName = `${baseTableName}_poi_pictures`;
+  handler.pois.TempPoiPicturesModel =
+    db.sequelize.define(tableName, {
+      poiLegacyId: { type: db.Sequelize.TEXT },
+      poiUuid: { type: db.Sequelize.UUID },
+      pictureLegacyId: { type: db.Sequelize.TEXT },
+      sortIndex: { type: db.Sequelize.INTEGER },
+    }, {
+      timestamps: false,
+      tableName,
+    });
+  await handler.pois.TempPoiPicturesModel.sync();
+
 
   endDuration(durationId);
 }
@@ -149,6 +162,7 @@ async function dropTempTables(handler) {
   await handler.pois.TempPoiAccessabilityModel.drop();
   await handler.pois.TempPoiToAreaModel.drop();
   await handler.pois.TempPoiToGroupModel.drop();
+  await handler.pois.TempPoiPicturesModel.drop();
 
   endDuration(durationId);
 }
@@ -192,11 +206,18 @@ async function populateTempTables(handler) {
   const poiAccessabilities = [];
   const poiToArea = [];
   const poiToGroup = [];
+  const pictures = [];
   let links = [];
   let poiTypes = [];
   handler.pois.processed.forEach((p) => {
     links = links.concat(p.links);
     poiTypes = poiTypes.concat(p.altTypes);
+
+    p.pictures.forEach((pictureLegacyId, idx) => pictures.push({
+      pictureLegacyId,
+      poiLegacyId: p.poi.idLegacyNtb,
+      sortIndex: idx,
+    }));
 
     if (p.accessibility) {
       p.accessibility.forEach((accessability) => accessabilities.push({
@@ -263,6 +284,12 @@ async function populateTempTables(handler) {
   logger.info('Inserting poi to group temporary table');
   durationId = startDuration();
   await handler.pois.TempPoiToGroupModel.bulkCreate(poiToGroup);
+  endDuration(durationId);
+
+  // Insert temp data for PoiToGroup
+  logger.info('Inserting poi pictures to temporary table');
+  durationId = startDuration();
+  await handler.pois.TempPoiPicturesModel.bulkCreate(pictures);
   endDuration(durationId);
 }
 
@@ -790,6 +817,82 @@ async function removeDepreactedPoiToGroup(handler) {
 
 
 /**
+ * Insert poi uuid into `pictures`-table
+ */
+async function setPoiPictures(handler) {
+  let sql;
+  let durationId;
+  const { tableName } = handler.pois.TempPoiPicturesModel;
+
+  // Set UUIDs on poiToPoi temp data
+  sql = [
+    `UPDATE public.${tableName} a1 SET`,
+    '  poi_uuid = a.uuid',
+    `FROM public.${tableName} a2`,
+    'INNER JOIN public.poi a ON',
+    '  a.id_legacy_ntb = a2.poi_legacy_id',
+    'WHERE',
+    '  a1.poi_legacy_id = a2.poi_legacy_id AND',
+    '  a1.picture_legacy_id = a2.picture_legacy_id',
+  ].join('\n');
+
+  logger.info('Update uuids on poi-to-picture temp data');
+  durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+
+  // Merge into prod table
+  sql = [
+    'UPDATE picture p1 SET',
+    '  poi_uuid = a.poi_uuid,',
+    '  sort_index = a.sort_index',
+    'FROM picture p2',
+    `INNER JOIN public.${tableName} a ON`,
+    '  a.picture_legacy_id = p2.id_legacy_ntb',
+    'WHERE',
+    '  p1.uuid = p2.uuid',
+  ].join('\n');
+
+  logger.info('Setting poi uuid on pictures');
+  durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Remove pictures that used to belong to an poi in legacy-ntb
+ */
+async function removeDepreactedPoiPictures(handler) {
+  const { tableName } = handler.pois.TempPoiPicturesModel;
+  const sql = [
+    'DELETE FROM public.picture',
+    'USING public.picture p2',
+    `LEFT JOIN public.${tableName} te ON`,
+    '  p2.id_legacy_ntb = te.picture_legacy_id',
+    'WHERE',
+    '  te.picture_legacy_id IS NULL AND',
+    '  p2.poi_uuid IS NOT NULL AND',
+    '  p2.data_source = :data_source AND',
+    '  public.picture.uuid = p2.uuid',
+  ].join('\n');
+
+  logger.info('Deleting deprecated poi pictures');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
  * Mark pois that no longer exist in legacy-ntb as deleted
  */
 async function removeDepreactedPoi(handler) {
@@ -843,6 +946,8 @@ const process = async (handler) => {
   await removeDepreactedPoiToArea(handler);
   await mergePoiToGroup(handler);
   await removeDepreactedPoiToGroup(handler);
+  await setPoiPictures(handler);
+  await removeDepreactedPoiPictures(handler);
   await removeDepreactedPoi(handler);
   await dropTempTables(handler);
 };

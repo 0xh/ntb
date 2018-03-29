@@ -119,6 +119,19 @@ async function createTempTables(handler, sync = false) {
     });
   await handler.trips.TempTripToPoiModel.sync();
 
+  tableName = `${baseTableName}_trip_pictures`;
+  handler.trips.TempTripPicturesModel =
+    db.sequelize.define(tableName, {
+      tripLegacyId: { type: db.Sequelize.TEXT },
+      tripUuid: { type: db.Sequelize.UUID },
+      pictureLegacyId: { type: db.Sequelize.TEXT },
+      sortIndex: { type: db.Sequelize.INTEGER },
+    }, {
+      timestamps: false,
+      tableName,
+    });
+  await handler.trips.TempTripPicturesModel.sync();
+
 
   endDuration(durationId);
 }
@@ -136,6 +149,7 @@ async function dropTempTables(handler) {
   await handler.trips.TempTripLinkModel.drop();
   await handler.trips.TempTripToGroupModel.drop();
   await handler.trips.TempTripToPoiModel.drop();
+  await handler.trips.TempTripPicturesModel.drop();
 
   endDuration(durationId);
 }
@@ -152,8 +166,11 @@ async function mapData(handler) {
   await Promise.all(
     handler.documents.turer
       .map(async (d) => {
-        const m = await legacy.turer.mapping(d, handler);
-        trips.push(m);
+        // Ignore trips without a type
+        if (d.tags && d.tags.length) {
+          const m = await legacy.turer.mapping(d, handler);
+          trips.push(m);
+        }
       })
   );
   endDuration(durationId);
@@ -176,11 +193,18 @@ async function populateTempTables(handler) {
 
   const tripToGroup = [];
   const tripToPoi = [];
+  const pictures = [];
   let links = [];
   let activitySubTypes = [];
   handler.trips.processed.forEach((p) => {
     activitySubTypes = activitySubTypes.concat(p.activitySubTypes);
     links = links.concat(p.links);
+
+    p.pictures.forEach((pictureLegacyId, idx) => pictures.push({
+      pictureLegacyId,
+      tripLegacyId: p.trip.idLegacyNtb,
+      sortIndex: idx,
+    }));
 
     if (p.groups) {
       p.groups.forEach((group) => tripToGroup.push({
@@ -219,6 +243,12 @@ async function populateTempTables(handler) {
   logger.info('Inserting trip to poi temporary table');
   durationId = startDuration();
   await handler.trips.TempTripToPoiModel.bulkCreate(tripToPoi);
+  endDuration(durationId);
+
+  // Insert temp data for TripToPoi
+  logger.info('Inserting trip pictures to temporary table');
+  durationId = startDuration();
+  await handler.trips.TempTripPicturesModel.bulkCreate(pictures);
   endDuration(durationId);
 }
 
@@ -729,6 +759,82 @@ async function removeDepreactedTripToPoi(handler) {
 
 
 /**
+ * Insert trip uuid into `pictures`-table
+ */
+async function setTripPictures(handler) {
+  let sql;
+  let durationId;
+  const { tableName } = handler.trips.TempTripPicturesModel;
+
+  // Set UUIDs on tripToTrip temp data
+  sql = [
+    `UPDATE public.${tableName} a1 SET`,
+    '  trip_uuid = a.uuid',
+    `FROM public.${tableName} a2`,
+    'INNER JOIN public.trip a ON',
+    '  a.id_legacy_ntb = a2.trip_legacy_id',
+    'WHERE',
+    '  a1.trip_legacy_id = a2.trip_legacy_id AND',
+    '  a1.picture_legacy_id = a2.picture_legacy_id',
+  ].join('\n');
+
+  logger.info('Update uuids on trip-to-picture temp data');
+  durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+
+  // Merge into prod table
+  sql = [
+    'UPDATE picture p1 SET',
+    '  trip_uuid = a.trip_uuid,',
+    '  sort_index = a.sort_index',
+    'FROM picture p2',
+    `INNER JOIN public.${tableName} a ON`,
+    '  a.picture_legacy_id = p2.id_legacy_ntb',
+    'WHERE',
+    '  p1.uuid = p2.uuid',
+  ].join('\n');
+
+  logger.info('Setting trip uuid on pictures');
+  durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Remove pictures that used to belong to an trip in legacy-ntb
+ */
+async function removeDepreactedTripPictures(handler) {
+  const { tableName } = handler.trips.TempTripPicturesModel;
+  const sql = [
+    'DELETE FROM public.picture',
+    'USING public.picture p2',
+    `LEFT JOIN public.${tableName} te ON`,
+    '  p2.id_legacy_ntb = te.picture_legacy_id',
+    'WHERE',
+    '  te.picture_legacy_id IS NULL AND',
+    '  p2.trip_uuid IS NOT NULL AND',
+    '  p2.data_source = :data_source AND',
+    '  public.picture.uuid = p2.uuid',
+  ].join('\n');
+
+  logger.info('Deleting deprecated trip pictures');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
  * Mark trips that no longer exist in legacy-ntb as deleted
  */
 async function removeDepreactedTrip(handler) {
@@ -776,6 +882,8 @@ const process = async (handler, first = false) => {
   await removeDepreactedTripToGroup(handler);
   await mergeTripToPoi(handler);
   await removeDepreactedTripToPoi(handler);
+  await setTripPictures(handler);
+  await removeDepreactedTripPictures(handler);
   await removeDepreactedTrip(handler);
   await dropTempTables(handler);
 };

@@ -144,6 +144,19 @@ async function createTempTables(handler, sync = false) {
     });
   await handler.routes.TempRouteToPoiModel.sync();
 
+  tableName = `${baseTableName}_route_pictures`;
+  handler.routes.TempRoutePicturesModel =
+    db.sequelize.define(tableName, {
+      routeLegacyId: { type: db.Sequelize.TEXT },
+      routeUuid: { type: db.Sequelize.UUID },
+      pictureLegacyId: { type: db.Sequelize.TEXT },
+      sortIndex: { type: db.Sequelize.INTEGER },
+    }, {
+      timestamps: false,
+      tableName,
+    });
+  await handler.routes.TempRoutePicturesModel.sync();
+
   endDuration(durationId);
 }
 
@@ -162,6 +175,7 @@ async function dropTempTables(handler) {
   await handler.routes.TempRouteLinkModel.drop();
   await handler.routes.TempRouteToGroupModel.drop();
   await handler.routes.TempRouteToPoiModel.drop();
+  await handler.routes.TempRoutePicturesModel.drop();
 
   endDuration(durationId);
 }
@@ -207,12 +221,19 @@ async function populateTempTables(handler) {
   const routeRouteWaymarkTypes = [];
   const routeToGroup = [];
   const routeToPoi = [];
+  const pictures = [];
   let links = [];
   let suitableActivityTypes = [];
   handler.routes.processed.forEach((p) => {
     suitableActivityTypes = suitableActivityTypes
       .concat(p.suitableActivityTypes);
     links = links.concat(p.links);
+
+    p.pictures.forEach((pictureLegacyId, idx) => pictures.push({
+      pictureLegacyId,
+      routeLegacyId: p.route.idLegacyNtb,
+      sortIndex: idx,
+    }));
 
     if (p.routeWaymarkTypes) {
       p.routeWaymarkTypes.forEach((facility) => routeWaymarkTypes.push({
@@ -279,6 +300,12 @@ async function populateTempTables(handler) {
   logger.info('Inserting route to poi temporary table');
   durationId = startDuration();
   await handler.routes.TempRouteToPoiModel.bulkCreate(routeToPoi);
+  endDuration(durationId);
+
+  // Insert temp data for RouteToPoi
+  logger.info('Inserting route pictures to temporary table');
+  durationId = startDuration();
+  await handler.routes.TempRoutePicturesModel.bulkCreate(pictures);
   endDuration(durationId);
 }
 
@@ -943,6 +970,83 @@ async function removeDepreactedRouteToPoi(handler) {
 
 
 /**
+ * Insert route uuid into `pictures`-table
+ */
+async function setRoutePictures(handler) {
+  let sql;
+  let durationId;
+  const { tableName } = handler.routes.TempRoutePicturesModel;
+
+  // Set UUIDs on routeToRoute temp data
+  sql = [
+    `UPDATE public.${tableName} a1 SET`,
+    '  route_uuid = a.uuid',
+    `FROM public.${tableName} a2`,
+    'INNER JOIN public.route a ON',
+    '  a.id_legacy_ntb_ab = a2.route_legacy_id OR',
+    '  a.id_legacy_ntb_ba = a2.route_legacy_id',
+    'WHERE',
+    '  a1.route_legacy_id = a2.route_legacy_id AND',
+    '  a1.picture_legacy_id = a2.picture_legacy_id',
+  ].join('\n');
+
+  logger.info('Update uuids on route-to-picture temp data');
+  durationId = startDuration();
+  await db.sequelize.query(sql);
+  endDuration(durationId);
+
+  // Merge into prod table
+  sql = [
+    'UPDATE picture p1 SET',
+    '  route_uuid = a.route_uuid,',
+    '  sort_index = a.sort_index',
+    'FROM picture p2',
+    `INNER JOIN public.${tableName} a ON`,
+    '  a.picture_legacy_id = p2.id_legacy_ntb',
+    'WHERE',
+    '  p1.uuid = p2.uuid',
+  ].join('\n');
+
+  logger.info('Setting route uuid on pictures');
+  durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Remove pictures that used to belong to an route in legacy-ntb
+ */
+async function removeDepreactedRoutePictures(handler) {
+  const { tableName } = handler.routes.TempRoutePicturesModel;
+  const sql = [
+    'DELETE FROM public.picture',
+    'USING public.picture p2',
+    `LEFT JOIN public.${tableName} te ON`,
+    '  p2.id_legacy_ntb = te.picture_legacy_id',
+    'WHERE',
+    '  te.picture_legacy_id IS NULL AND',
+    '  p2.route_uuid IS NOT NULL AND',
+    '  p2.data_source = :data_source AND',
+    '  public.picture.uuid = p2.uuid',
+  ].join('\n');
+
+  logger.info('Deleting deprecated route pictures');
+  const durationId = startDuration();
+  await db.sequelize.query(sql, {
+    replacements: {
+      data_source: DATASOURCE_NAME,
+    },
+  });
+  endDuration(durationId);
+}
+
+
+/**
  * Mark routes that no longer exist in legacy-ntb as deleted
  */
 async function removeDepreactedRoute(handler) {
@@ -995,6 +1099,8 @@ const process = async (handler, first = false) => {
   await removeDepreactedRouteToGroup(handler);
   await mergeRouteToPoi(handler);
   await removeDepreactedRouteToPoi(handler);
+  await setRoutePictures(handler);
+  await removeDepreactedRoutePictures(handler);
   await removeDepreactedRoute(handler);
   await dropTempTables(handler);
 };

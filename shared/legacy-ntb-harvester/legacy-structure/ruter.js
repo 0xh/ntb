@@ -248,8 +248,8 @@ async function mapping(obj, handler) {
   // Set suitable for children
   setSuitableForChildren(obj, res, handler);
 
-  // Areas, groups and photos
-  res.photos = obj.bilder || [];
+  // Areas, groups and pictures
+  res.pictures = obj.bilder || [];
   res.groups = obj.grupper || [];
   res.pois = obj.steder || [];
 

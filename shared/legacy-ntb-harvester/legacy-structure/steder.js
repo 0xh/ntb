@@ -181,9 +181,9 @@ async function mapping(obj, handler) {
   // Set links
   setLinks(obj, res, handler);
 
-  // Areas, groups and photos
+  // Areas, groups and pictures
   res.areas = obj.områder || [];
-  res.photos = obj.bilder || [];
+  res.pictures = obj.bilder || [];
   res.groups = obj.grupper || [];
 
   return res;
