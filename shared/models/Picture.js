@@ -18,6 +18,8 @@ export default (sequelize, DataTypes) => {
     routeUuid: { type: DataTypes.UUID },
     tripUuid: { type: DataTypes.UUID },
 
+    sortIndex: { type: DataTypes.INTEGER },
+
     cabinPictureType: {
       type: DataTypes.ENUM,
       values: ['summer', 'winter', 'interior', 'other'],
