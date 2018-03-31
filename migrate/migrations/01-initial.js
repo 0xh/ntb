@@ -20,6 +20,7 @@ async function modifySearchConfig(queryInterface, transaction) {
     '  (\'search_document__route\', 1.5, NULL),',
     '  (\'search_document__county\', 1, NULL),',
     '  (\'search_document__municipality\', 1, NULL),',
+    '  (\'search_document__list\', 1, NULL),',
     '  (\'area__field__name\', NULL, \'A\'),',
     '  (\'area__field__description\', NULL, \'D\'),',
     '  (\'cabin__field__name\', NULL, \'A\'),',
@@ -33,6 +34,8 @@ async function modifySearchConfig(queryInterface, transaction) {
     '  (\'route__field__description_direction\', NULL, \'D\'),',
     '  (\'group__field__name\', NULL, \'A\'),',
     '  (\'group__field__description\', NULL, \'D\'),',
+    '  (\'list__field__name\', NULL, \'A\'),',
+    '  (\'list__field__description\', NULL, \'D\'),',
     '  (\'county__field__name\', NULL, \'A\'),',
     '  (\'municipality__field__name\', NULL, \'A\');',
   ].join('\n'), { transaction });
@@ -847,6 +850,113 @@ async function modifyTagRelation(queryInterface, transaction) {
 }
 
 
+async function modifyList(queryInterface, transaction) {
+  // Add tsvector field for norwegian
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "list"',
+    'ADD COLUMN "search_nb" TSVECTOR;',
+  ].join('\n'), { transaction });
+
+  // Add index to tsvector field
+  await queryInterface.sequelize.query([
+    'CREATE INDEX list_search_nb_idx ON "list"',
+    'USING gin("search_nb");',
+  ].join('\n'), { transaction });
+
+  // Create tsvector trigger procedure for updating the norwegian vector
+  await queryInterface.sequelize.query([
+    'CREATE FUNCTION list_tsvector_trigger() RETURNS trigger AS $$',
+    'DECLARE',
+    '  name_weight CHAR;',
+    '  description_weight CHAR;',
+    'BEGIN',
+    '  SELECT sbc."weight" INTO name_weight',
+    '  FROM "search_config" AS sbc',
+    '  WHERE sbc.name = \'list__field__name\';',
+    '',
+    '  SELECT sbc."weight" INTO description_weight',
+    '  FROM "search_config" AS sbc',
+    '  WHERE sbc.name = \'list__field__description\';',
+    '',
+    '  NEW.search_nb :=',
+    '    setweight(to_tsvector(',
+    '      \'pg_catalog.norwegian\',',
+    '       coalesce(NEW.name_lower_case, \'\')',
+    '    ), name_weight::"char") ||',
+    '    setweight(to_tsvector(',
+    '      \'pg_catalog.norwegian\',',
+    '       coalesce(NEW.description_plain, \'\')',
+    '    ), description_weight::"char");',
+    '  RETURN NEW;',
+    'END',
+    '$$ LANGUAGE plpgsql;',
+  ].join('\n'), { transaction });
+
+  // Create search document trigger procedure for Area
+  await queryInterface.sequelize.query([
+    'CREATE FUNCTION list_search_document_trigger() RETURNS trigger AS $$',
+    'DECLARE',
+    '  boost FLOAT;',
+    'BEGIN',
+
+    '  SELECT sbc.boost INTO boost',
+    '  FROM search_config AS sbc',
+    '  WHERE sbc.name = \'search_document__list\';',
+
+    '  INSERT INTO search_document (',
+    '    uuid, list_uuid, status, search_nb, search_document_boost,',
+    '    search_document_type_boost, created_at, updated_at',
+    '  )',
+    '  VALUES (',
+    '    uuid_generate_v4(), NEW.uuid, NEW.status, NEW.search_nb,',
+    '    NEW.search_document_boost, boost, NEW.created_at, NEW.updated_at',
+    '  )',
+    '  ON CONFLICT ("list_uuid")',
+    '  DO UPDATE',
+    '  SET',
+    '    search_nb = EXCLUDED.search_nb,',
+    '    search_document_type_boost = boost,',
+    '    created_at = EXCLUDED.created_at,',
+    '    updated_at = EXCLUDED.updated_at;',
+
+    '  RETURN NEW;',
+    'END',
+    '$$ LANGUAGE plpgsql;',
+  ].join('\n'), { transaction });
+
+  // Use tsvector trigger before each insert or update
+  await queryInterface.sequelize.query([
+    'CREATE TRIGGER list_tsvector_update BEFORE INSERT OR UPDATE',
+    'ON "list" FOR EACH ROW EXECUTE PROCEDURE list_tsvector_trigger();',
+  ].join('\n'), { transaction });
+
+  // Use search document trigger after each insert or update
+  await queryInterface.sequelize.query([
+    'CREATE TRIGGER list_search_document_update AFTER INSERT OR UPDATE',
+    'ON "list"',
+    'FOR EACH ROW EXECUTE PROCEDURE list_search_document_trigger();',
+  ].join('\n'), { transaction });
+}
+
+
+async function modifyListType(queryInterface, transaction) {
+  // Set initial data
+  await queryInterface.sequelize.query([
+    'INSERT INTO "list_type" (name) VALUES (\'sjekkut\');',
+  ].join('\n'), { transaction });
+}
+
+
+async function modifyListRelation(queryInterface, transaction) {
+  // Create composite primary keys
+  await queryInterface.sequelize.query([
+    'ALTER TABLE "list_relation"',
+    'ADD CONSTRAINT "list_relation_primary" PRIMARY KEY (',
+    '  "list_uuid", "document_type", "document_uuid"',
+    ')',
+  ].join('\n'), { transaction });
+}
+
 
 async function harvestCountiesAndMunicipalities() {
   // Harvest counties and municipalities from kartverket
@@ -943,6 +1053,12 @@ const down = async (db) => {
   sqls.push('DROP FUNCTION IF EXISTS route_tsvector_trigger();');
   sqls.push('DROP FUNCTION IF EXISTS route_search_document_trigger();');
 
+  // Remove 'list' triggers
+  sqls.push('DROP TRIGGER IF EXISTS list_tsvector_update ON "list";');
+  sqls.push('DROP TRIGGER IF EXISTS list_search_document_update ON "list";');
+  sqls.push('DROP FUNCTION IF EXISTS list_tsvector_trigger();');
+  sqls.push('DROP FUNCTION IF EXISTS list_search_document_trigger();');
+
   await db.sequelize.query(
     sqls.join('\n')
   );
@@ -970,6 +1086,9 @@ const up = async (db) => {
     await modifyTrip(queryInterface, transaction);
     await modifyRoute(queryInterface, transaction);
     await modifyTagRelation(queryInterface, transaction);
+    await modifyList(queryInterface, transaction);
+    await modifyListType(queryInterface, transaction);
+    await modifyListRelation(queryInterface, transaction);
   }).catch((err) => {
     logger.error('TRANSACTION ERROR');
     logger.error(err);
