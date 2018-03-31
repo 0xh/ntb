@@ -20,6 +20,7 @@ import processPoi from './process/poi';
 import processTrip, { mapTripData } from './process/trip';
 import processRoute, { mapRouteData } from './process/route';
 import processPicture, { mapPictureData } from './process/picture';
+import processList, { mapListData } from './process/list';
 
 
 const logger = createLogger();
@@ -302,7 +303,7 @@ export async function harvestPictures(useTestData = false) {
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
-  // handler.timeStamp = '20180328064949549'; // TODO(Roar): REMOVE THIS!
+  // handler.timeStamp = '20180328071216667'; // TODO(Roar): REMOVE THIS!
 
   await getDocumentCountFromMongoDb('bilder', filter);
 
@@ -331,6 +332,52 @@ export async function harvestPictures(useTestData = false) {
   }
 
   await processPicture(handler);
+
+  logger.info('Harvesting complete');
+  endDuration(durationId);
+}
+
+
+/**
+ * Harvest lists
+ */
+export async function harvestLists(useTestData = false) {
+  const durationId = startDuration();
+  const handler = { documents: {} };
+  const limit = 2000;
+  const filter = { };
+  let skip = 0;
+  let first = true;
+  handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
+  // handler.timeStamp = '20180328071216667'; // TODO(Roar): REMOVE THIS!
+
+  await getDocumentCountFromMongoDb('lister', filter);
+
+  while (first || handler.documents.lister.length > 0) {
+    // eslint-disable-next-line
+    await getDocumentsFromMongoDb(handler, 'lister', skip, limit, filter);
+
+    // On a few objects, the coordines are string and not number. This causes
+    // the geojson verification to fail.
+    handler.documents.lister.forEach((t) => {
+      if (t.privat && t.privat.startpunkt && t.privat.startpunkt.coordinates) {
+        t.privat.startpunkt.coordinates = t.privat.startpunkt.coordinates
+          .map((c) => +c);
+      }
+    });
+
+    const status = verifyDocuments(handler, 'lister');
+    if (!status) {
+      throw new Error('Document verification failed for lists.');
+    }
+
+    // eslint-disable-next-line
+    await mapListData(handler, first);
+    first = false;
+    skip += limit;
+  }
+
+  await processList(handler);
 
   logger.info('Harvesting complete');
   endDuration(durationId);
