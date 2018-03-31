@@ -69,6 +69,16 @@ export default (sequelize, DataTypes) => {
       },
     },
 
+    // Foreign key to List
+    listUuid: {
+      type: DataTypes.UUID,
+      unique: true,
+      allowNull: true,
+      validate: {
+        isUUID: 4,
+      },
+    },
+
     // Foreign key to County
     countyUuid: {
       type: DataTypes.UUID,
@@ -149,6 +159,11 @@ export default (sequelize, DataTypes) => {
     models.SearchDocument.belongsTo(models.Route, {
       as: 'Route',
       foreignKey: 'routeUuid',
+    });
+
+    models.SearchDocument.belongsTo(models.List, {
+      as: 'List',
+      foreignKey: 'listUuid',
     });
 
     models.SearchDocument.belongsTo(models.County, {

@@ -11,6 +11,32 @@ export default (sequelize, DataTypes) => {
 
     idLegacyNtb: { type: DataTypes.TEXT, unique: true },
 
+    listType: { type: DataTypes.TEXT, allowNull: false },
+
+    name: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+      validate: {
+        notEmpty: true,
+      },
+    },
+
+    nameLowerCase: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+      validate: {
+        notEmpty: true,
+      },
+    },
+
+    description: { type: DataTypes.TEXT },
+    descriptionPlain: { type: DataTypes.TEXT },
+
+    coordinates: { type: DataTypes.GEOMETRY },
+
+    startDate: { type: DataTypes.DATE },
+    endDate: { type: DataTypes.DATE },
+
     license: { type: DataTypes.TEXT },
 
     provider: { type: DataTypes.TEXT },
@@ -31,6 +57,34 @@ export default (sequelize, DataTypes) => {
   }, {
     timestamps: true,
   });
+
+
+  // Associations
+
+  List.associate = (models) => {
+    models.List.belongsTo(models.ListType, {
+      as: 'ListType',
+      foreignKey: 'listType',
+    });
+
+    models.List.belongsToMany(models.County, {
+      as: 'Counties',
+      through: models.ListToCounty,
+      foreignKey: 'listUuid',
+    });
+
+    models.List.belongsToMany(models.Municipality, {
+      as: 'Municipalities',
+      through: models.ListToMunicipality,
+      foreignKey: 'listUuid',
+    });
+
+    models.List.belongsToMany(models.Group, {
+      as: 'Groups',
+      through: models.ListToGroup,
+      foreignKey: 'listUuid',
+    });
+  };
 
   return List;
 };

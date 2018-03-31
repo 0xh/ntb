@@ -195,6 +195,18 @@ export default (sequelize, DataTypes) => {
       constraints: false,
     });
 
+    models.Cabin.belongsToMany(models.List, {
+      through: {
+        model: models.ListRelation,
+        unique: false,
+        scope: {
+          documentType: 'cabin',
+        },
+      },
+      foreignKey: 'documentUuid',
+      constraints: false,
+    });
+
     models.Cabin.belongsToMany(models.Facility, {
       as: 'Facilities',
       through: { model: models.CabinFacility },

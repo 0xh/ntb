@@ -143,6 +143,18 @@ export default (sequelize, DataTypes) => {
       through: { model: models.PoiAccessability },
       foreignKey: 'poiUuid',
     });
+
+    models.Poi.belongsToMany(models.List, {
+      through: {
+        model: models.ListRelation,
+        unique: false,
+        scope: {
+          documentType: 'poi',
+        },
+      },
+      foreignKey: 'documentUuid',
+      constraints: false,
+    });
   };
 
 

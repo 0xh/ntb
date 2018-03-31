@@ -57,6 +57,12 @@ export default (sequelize, DataTypes) => {
       through: models.AreaToCounty,
       foreignKey: 'countyUuid',
     });
+
+    models.County.belongsToMany(models.List, {
+      as: 'Lists',
+      through: models.ListToCounty,
+      foreignKey: 'countyUuid',
+    });
   };
 
 

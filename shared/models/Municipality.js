@@ -70,6 +70,12 @@ export default (sequelize, DataTypes) => {
       through: models.AreaToMunicipality,
       foreignKey: 'municipalityUuid',
     });
+
+    models.Municipality.belongsToMany(models.List, {
+      as: 'Lists',
+      through: models.ListToMunicipality,
+      foreignKey: 'municipalityUuid',
+    });
   };
 
 

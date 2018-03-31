@@ -99,6 +99,12 @@ export default (sequelize, DataTypes) => {
       through: models.PoiToGroup,
       foreignKey: 'groupUuid',
     });
+
+    models.Group.belongsToMany(models.List, {
+      as: 'Lists',
+      through: models.ListToGroup,
+      foreignKey: 'groupUuid',
+    });
   };
 
   // Class methods :: Search
