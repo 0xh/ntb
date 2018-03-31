@@ -5,7 +5,6 @@ import {
   startDuration,
   endDuration,
 } from '@turistforeningen/ntb-shared-utils';
-import db from '@turistforeningen/ntb-shared-models';
 
 import * as legacy from './legacy-structure';
 import verify from './lib/verify';
@@ -66,48 +65,6 @@ function verifyDocuments(handler, type) {
 
 
 /**
- * Verify structure of documents from legacy-ntb towards the defined structure.
- */
-function verifyAllDocuments(handler) {
-  let verified = true;
-
-  if (!handler.documents) {
-    return false;
-  }
-
-  Object.keys(handler.documents).forEach((type) => {
-    if (!verifyDocuments(handler, type)) {
-      verified = false;
-    }
-  });
-
-  return verified;
-}
-
-
-/**
- * Get all Counties and Municipalities
- */
-async function getAllCM(handler) {
-  let durationId;
-
-  const where = {
-    status: 'public',
-  };
-
-  logger.info('Fetching all counties from postgres');
-  durationId = startDuration();
-  handler.counties = await db.County.findAll({ where });
-  endDuration(durationId);
-
-  logger.info('Fetching all municipalities from postgres');
-  durationId = startDuration();
-  handler.municipalities = await db.Municipality.findAll({ where });
-  endDuration(durationId);
-}
-
-
-/**
  * Harvest areas
  */
 export async function harvestAreas(useTestData = false) {
@@ -121,7 +78,6 @@ export async function harvestAreas(useTestData = false) {
     throw new Error('Document verification failed for areas.');
   }
 
-  await getAllCM(handler);
   await processArea(handler);
 
   logger.info('Harvesting complete');
@@ -143,7 +99,6 @@ export async function harvestGroups(useTestData = false) {
     throw new Error('Document verification failed for groups.');
   }
 
-  await getAllCM(handler);
   await processGroup(handler);
 
   logger.info('Harvesting complete');
@@ -167,7 +122,6 @@ export async function harvestCabin(useTestData = false) {
     throw new Error('Document verification failed for cabins');
   }
 
-  await getAllCM(handler);
   await processCabin(handler);
 
   logger.info('Harvesting complete');
@@ -188,7 +142,6 @@ export async function harvestPoi(useTestData = false) {
     throw new Error('Document verification failed for pois');
   }
 
-  await getAllCM(handler);
   await processPoi(handler);
 
   logger.info('Harvesting complete');
@@ -209,7 +162,6 @@ export async function harvestRoute(useTestData = false) {
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
 
-  await getAllCM(handler);
   await getDocumentCountFromMongoDb('turer', filter);
 
   while (first || handler.documents.turer.length > 0) {
@@ -258,7 +210,6 @@ export async function harvestTrip(useTestData = false) {
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
 
-  await getAllCM(handler);
   await getDocumentCountFromMongoDb('turer', filter);
 
   while (first || handler.documents.turer.length > 0) {
@@ -303,22 +254,12 @@ export async function harvestPictures(useTestData = false) {
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
-  // handler.timeStamp = '20180328071216667'; // TODO(Roar): REMOVE THIS!
 
   await getDocumentCountFromMongoDb('bilder', filter);
 
   while (first || handler.documents.bilder.length > 0) {
     // eslint-disable-next-line
     await getDocumentsFromMongoDb(handler, 'bilder', skip, limit, filter);
-
-    // On a few objects, the coordines are string and not number. This causes
-    // the geojson verification to fail.
-    handler.documents.bilder.forEach((t) => {
-      if (t.privat && t.privat.startpunkt && t.privat.startpunkt.coordinates) {
-        t.privat.startpunkt.coordinates = t.privat.startpunkt.coordinates
-          .map((c) => +c);
-      }
-    });
 
     const status = verifyDocuments(handler, 'bilder');
     if (!status) {
@@ -356,15 +297,6 @@ export async function harvestLists(useTestData = false) {
   while (first || handler.documents.lister.length > 0) {
     // eslint-disable-next-line
     await getDocumentsFromMongoDb(handler, 'lister', skip, limit, filter);
-
-    // On a few objects, the coordines are string and not number. This causes
-    // the geojson verification to fail.
-    handler.documents.lister.forEach((t) => {
-      if (t.privat && t.privat.startpunkt && t.privat.startpunkt.coordinates) {
-        t.privat.startpunkt.coordinates = t.privat.startpunkt.coordinates
-          .map((c) => +c);
-      }
-    });
 
     const status = verifyDocuments(handler, 'lister');
     if (!status) {
