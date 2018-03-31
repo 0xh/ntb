@@ -132,7 +132,12 @@ export async function harvestCabin(useTestData = false) {
 export async function harvestPoi(useTestData = false) {
   const durationId = startDuration();
   const handler = { documents: {} };
-  const filter = { 'tags.0': { $ne: 'Hytte' } };
+  const filter = {
+    $or: [
+      { 'tags.0': { $ne: 'Hytte' } },
+      { tags: null },
+    ],
+  };
 
   // await getAllDocuments(handler, ['steder'], useTestData);
   await getDocumentsFromMongoDb(handler, 'steder', null, null, filter);
