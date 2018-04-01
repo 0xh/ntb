@@ -1,11 +1,17 @@
-import { createLogger } from '@turistforeningen/ntb-shared-utils';
+import { createLogger, isNumber } from '@turistforeningen/ntb-shared-utils';
 import { harvestLists } from
   '@turistforeningen/ntb-shared-legacy-ntb-harvester';
 
 
 const logger = createLogger();
 
-harvestLists()
+
+let limit = 2000;
+if (process.argv.length > 2 && isNumber(process.argv[2])) {
+  limit = +process.argv[2];
+}
+
+harvestLists(limit)
   .then(() => process.exit(0))
   .catch((err) => {
     logger.error('UNCAUGHT ERROR');

@@ -1,4 +1,4 @@
-import { createLogger } from '@turistforeningen/ntb-shared-utils';
+import { createLogger, isNumber } from '@turistforeningen/ntb-shared-utils';
 import { harvestPoi } from
   '@turistforeningen/ntb-shared-legacy-ntb-harvester';
 
@@ -6,12 +6,12 @@ import { harvestPoi } from
 const logger = createLogger();
 
 
-let useTestData = false;
-if (process.argv.length > 2 && process.argv[2].trim() === 'testdata') {
-  useTestData = true;
+let limit = 2000;
+if (process.argv.length > 2 && isNumber(process.argv[2])) {
+  limit = +process.argv[2];
 }
 
-harvestPoi(useTestData)
+harvestPoi(limit)
   .then(() => process.exit(0))
   .catch((err) => {
     logger.error('UNCAUGHT ERROR');
