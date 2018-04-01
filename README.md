@@ -27,26 +27,59 @@ node migrate.js up
 
 # Cronjobs
 
-## 01-harvest-counties-municipalities
+## 01-harvest-legacy-ntb-pictures
 Execute:
-`node cronjobs/01-harvest-counties-municipalities/index.js`
+`node cronjobs/01-harvest-legacy-ntb-pictures/index.js`
 
-Harvest counties and municipalities from Kartverket and update in Neo4j.
+Harvest picture documents from legacy-ntb mongo database and convert them to the new structure.
 
-## 02-harvest-legacy-ntb
+## 02-harvest-legacy-ntb-areas
 Execute:
-`node cronjobs/02-harvest-legacy-ntb/index.js`
+`node cronjobs/02-harvest-legacy-ntb-areas/index.js`
 
-Harvest documents from legacy-ntb mongo database and convert them to the new
-structure.
+Harvest area documents from legacy-ntb mongo database and convert them to the new structure.
 
-#### For testing: MondoDB documents locally
-If you run `babel-node cronjobs/02-harvest-legacy-ntb/download-test-data.js`
-all documents will be fetched from the mongodb and stored in `.json` files inside a `test-files` folder.
+## 03-harvest-legacy-ntb-groups
+Execute:
+`node cronjobs/03-harvest-legacy-ntb-groups/index.js`
 
-You can then run the cronjob with `testdata` parameter to use the files for fetching the documents.
+Harvest group documents from legacy-ntb mongo database and convert them to the new structure.
 
-`babel-node cronjobs/02-harvest-legacy-ntb/index.js testdata`
+## 04-harvest-legacy-ntb-cabins
+Execute:
+`node cronjobs/04-harvest-legacy-ntb-cabins/index.js`
+
+Harvest cabin documents from legacy-ntb mongo database and convert them to the new structure.
+
+## 05-harvest-legacy-ntb-pois
+Execute:
+`node cronjobs/05-harvest-legacy-ntb-pois/index.js`
+
+Harvest poi documents from legacy-ntb mongo database and convert them to the new structure.
+
+## 06-harvest-legacy-ntb-routes
+Execute:
+`node cronjobs/06-harvest-legacy-ntb-routes/index.js`
+
+Harvest route documents from legacy-ntb mongo database and convert them to the new structure.
+
+## 07-harvest-legacy-ntb-trips
+Execute:
+`node cronjobs/07-harvest-legacy-ntb-trips/index.js`
+
+Harvest trip documents from legacy-ntb mongo database and convert them to the new structure.
+
+## 08-harvest-legacy-ntb-lists
+Execute:
+`node cronjobs/08-harvest-legacy-ntb-lists/index.js`
+
+Harvest list documents from legacy-ntb mongo database and convert them to the new structure.
+
+## 09-harvest-counties-municipalities
+Execute:
+`node cronjobs/09-harvest-counties-municipalities/index.js`
+
+Harvest counties and municipalities from Kartverket and update in the database.
 
 ----
 
@@ -122,7 +155,7 @@ lerna bootstrap
 
 # Lerna
 
-Uses Lerna and Yarn to handle cross dependencies between multiple internal modules. For instance, anything under `./shared/` can be «installed» as package dependencies in other modules. `shared/umzug-neo4j-storage/package.json` has a reference to `@turistforeningen/ntb-shared-neo4j-utils`
+Uses Lerna and Yarn to handle cross dependencies between multiple internal modules. For instance, anything under `./shared/` can be «installed» as package dependencies in other modules. `shared/db-utils/package.json` has a reference to `@turistforeningen/ntb-shared-utils`
 
 ----
 
