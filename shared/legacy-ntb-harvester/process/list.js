@@ -13,7 +13,7 @@ const DATASOURCE_NAME = 'legacy-ntb';
  * Create temporary tables that will hold the processed data harvested from
  * legacy-ntb
  */
-async function createTempTables(handler) {
+async function createTempTables(handler, first = false) {
   logger.info('Creating temporary tables');
   const durationId = startDuration();
 
@@ -40,7 +40,7 @@ async function createTempTables(handler) {
     timestamps: false,
     tableName,
   });
-  await handler.lists.TempListModel.sync();
+  if (first) await handler.lists.TempListModel.sync();
 
   tableName = `${baseTableName}_list_links`;
   handler.lists.TempListLinkModel =
@@ -58,7 +58,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName,
     });
-  await handler.lists.TempListLinkModel.sync();
+  if (first) await handler.lists.TempListLinkModel.sync();
 
   tableName = `${baseTableName}_list_to_cabinpoi`;
   handler.lists.TempListCabinPoi =
@@ -73,7 +73,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName,
     });
-  await handler.lists.TempListCabinPoi.sync();
+  if (first) await handler.lists.TempListCabinPoi.sync();
 
   tableName = `${baseTableName}_list_to_group`;
   handler.lists.TempListToGroupModel =
@@ -86,7 +86,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName,
     });
-  await handler.lists.TempListToGroupModel.sync();
+  if (first) await handler.lists.TempListToGroupModel.sync();
 
   tableName = `${baseTableName}_list_pictures`;
   handler.lists.TempListPicturesModel =
@@ -99,8 +99,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName,
     });
-  await handler.lists.TempListPicturesModel.sync();
-
+  if (first) await handler.lists.TempListPicturesModel.sync();
 
   endDuration(durationId);
 }
@@ -115,6 +114,7 @@ async function dropTempTables(handler) {
 
   await handler.lists.TempListModel.drop();
   await handler.lists.TempListLinkModel.drop();
+  await handler.lists.TempListCabinPoi.drop();
   await handler.lists.TempListToGroupModel.drop();
   await handler.lists.TempListPicturesModel.drop();
 

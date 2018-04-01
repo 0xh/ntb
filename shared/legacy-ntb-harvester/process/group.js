@@ -1,5 +1,3 @@
-import moment from 'moment';
-
 import db from '@turistforeningen/ntb-shared-models';
 import { createLogger, startDuration, endDuration } from
   '@turistforeningen/ntb-shared-utils';
@@ -15,12 +13,11 @@ const DATASOURCE_NAME = 'legacy-ntb';
  * Create temporary tables that will hold the processed data harvested from
  * legacy-ntb
  */
-async function createTempTables(handler) {
+async function createTempTables(handler, first = false) {
   logger.info('Creating temporary tables');
   const durationId = startDuration();
 
-  const date = moment().format('YYYYMMDDHHmmssSSS');
-  const baseTableName = `_temp_legacy_ntb_harvest_${date}`;
+  const baseTableName = `_temp_legacy_ntb_harvest_${handler.timeStamp}`;
 
   handler.groups.TempGroupModel = db.sequelize.define(`${baseTableName}_g`, {
     uuid: { type: db.Sequelize.UUID, primaryKey: true },
@@ -52,7 +49,7 @@ async function createTempTables(handler) {
     timestamps: false,
     tableName: `${baseTableName}_g`,
   });
-  await handler.groups.TempGroupModel.sync();
+  if (first) await handler.groups.TempGroupModel.sync();
 
   handler.groups.TempGroupLinkModel =
     db.sequelize.define(`${baseTableName}_gl`, {
@@ -69,7 +66,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName: `${baseTableName}_gl`,
     });
-  await handler.groups.TempGroupLinkModel.sync();
+  if (first) await handler.groups.TempGroupLinkModel.sync();
 
   endDuration(durationId);
 }
@@ -381,15 +378,26 @@ const process = async (handler) => {
   logger.info('Processing groups');
   handler.groups = {};
 
-  await mapData(handler);
-  await createTempTables(handler);
-  await populateTempTables(handler);
+  await createTempTables(handler, false);
   await createGroupTypes(handler);
   await mergeGroups(handler);
   await mergeGroupLinks(handler);
   await removeDepreactedGroupLinks(handler);
   await removeDepreactedGroups(handler);
   await dropTempTables(handler);
+};
+
+
+/**
+ * Map group data
+ */
+export const mapGroupData = async (handler, first = false) => {
+  logger.info('Mapping groups');
+  handler.groups = {};
+
+  await mapData(handler);
+  await createTempTables(handler, first);
+  await populateTempTables(handler);
 };
 
 

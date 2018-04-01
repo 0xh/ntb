@@ -1,5 +1,3 @@
-import moment from 'moment';
-
 import db from '@turistforeningen/ntb-shared-models';
 import { createLogger, startDuration, endDuration } from
   '@turistforeningen/ntb-shared-utils';
@@ -15,12 +13,11 @@ const DATASOURCE_NAME = 'legacy-ntb';
  * Create temporary tables that will hold the processed data harvested from
  * legacy-ntb
  */
-async function createTempTables(handler) {
+async function createTempTables(handler, first = false) {
   logger.info('Creating temporary tables');
   const durationId = startDuration();
 
-  const date = moment().format('YYYYMMDDHHmmssSSS');
-  const baseTableName = `_temp_legacy_ntb_harvest_${date}`;
+  const baseTableName = `_temp_legacy_ntb_harvest_${handler.timeStamp}`;
 
   let tableName = `${baseTableName}_poi`;
   handler.pois.TempPoiModel = db.sequelize.define(tableName, {
@@ -44,7 +41,7 @@ async function createTempTables(handler) {
     timestamps: false,
     tableName,
   });
-  await handler.pois.TempPoiModel.sync();
+  if (first) await handler.pois.TempPoiModel.sync();
 
   tableName = `${baseTableName}_poi_types`;
   handler.pois.TempPoiTypeModel =
@@ -60,7 +57,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName,
     });
-  await handler.pois.TempPoiTypeModel.sync();
+  if (first) await handler.pois.TempPoiTypeModel.sync();
 
   tableName = `${baseTableName}_poi_links`;
   handler.pois.TempPoiLinkModel =
@@ -77,7 +74,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName,
     });
-  await handler.pois.TempPoiLinkModel.sync();
+  if (first) await handler.pois.TempPoiLinkModel.sync();
 
   tableName = `${baseTableName}_poi_accessability`;
   handler.pois.TempAccessabilityModel =
@@ -87,7 +84,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName,
     });
-  await handler.pois.TempAccessabilityModel.sync();
+  if (first) await handler.pois.TempAccessabilityModel.sync();
 
   tableName = `${baseTableName}_poi_accessabilities`;
   handler.pois.TempPoiAccessabilityModel =
@@ -100,7 +97,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName,
     });
-  await handler.pois.TempPoiAccessabilityModel.sync();
+  if (first) await handler.pois.TempPoiAccessabilityModel.sync();
 
   tableName = `${baseTableName}_poi_to_area`;
   handler.pois.TempPoiToAreaModel =
@@ -113,7 +110,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName,
     });
-  await handler.pois.TempPoiToAreaModel.sync();
+  if (first) await handler.pois.TempPoiToAreaModel.sync();
 
   tableName = `${baseTableName}_poi_to_group`;
   handler.pois.TempPoiToGroupModel =
@@ -126,7 +123,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName,
     });
-  await handler.pois.TempPoiToGroupModel.sync();
+  if (first) await handler.pois.TempPoiToGroupModel.sync();
 
   tableName = `${baseTableName}_poi_pictures`;
   handler.pois.TempPoiPicturesModel =
@@ -139,7 +136,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName,
     });
-  await handler.pois.TempPoiPicturesModel.sync();
+  if (first) await handler.pois.TempPoiPicturesModel.sync();
 
 
   endDuration(durationId);
@@ -921,10 +918,7 @@ const process = async (handler) => {
   logger.info('Processing POIs');
   handler.pois = {};
 
-
-  await mapData(handler);
-  await createTempTables(handler);
-  await populateTempTables(handler);
+  await createTempTables(handler, false);
   await mergePoiTypes(handler);
   await mergePoi(handler);
   await mergePoiToPoiTypes(handler);
@@ -942,6 +936,19 @@ const process = async (handler) => {
   await removeDepreactedPoiPictures(handler);
   await removeDepreactedPoi(handler);
   await dropTempTables(handler);
+};
+
+
+/**
+ * Map poi data
+ */
+export const mapPoiData = async (handler, first = false) => {
+  logger.info('Mapping pois');
+  handler.pois = {};
+
+  await mapData(handler);
+  await createTempTables(handler, first);
+  await populateTempTables(handler);
 };
 
 

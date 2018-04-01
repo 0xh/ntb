@@ -1,5 +1,3 @@
-import moment from 'moment';
-
 import db from '@turistforeningen/ntb-shared-models';
 import { createLogger, startDuration, endDuration } from
   '@turistforeningen/ntb-shared-utils';
@@ -15,12 +13,11 @@ const DATASOURCE_NAME = 'legacy-ntb';
  * Create temporary tables that will hold the processed data harvested from
  * legacy-ntb
  */
-async function createTempTables(handler) {
+async function createTempTables(handler, first = false) {
   logger.info('Creating temporary tables');
   const durationId = startDuration();
 
-  const date = moment().format('YYYYMMDDHHmmssSSS');
-  const baseTableName = `_temp_legacy_ntb_harvest_${date}`;
+  const baseTableName = `_temp_legacy_ntb_harvest_${handler.timeStamp}`;
 
   handler.areas.TempAreaModel = db.sequelize.define(`${baseTableName}_a`, {
     uuid: { type: db.Sequelize.UUID, primaryKey: true },
@@ -41,7 +38,7 @@ async function createTempTables(handler) {
     timestamps: false,
     tableName: `${baseTableName}_a`,
   });
-  await handler.areas.TempAreaModel.sync();
+  if (first) await handler.areas.TempAreaModel.sync();
 
   handler.areas.TempAreaAreaModel = db.sequelize.define(
     `${baseTableName}_aa`, {
@@ -54,7 +51,7 @@ async function createTempTables(handler) {
       tableName: `${baseTableName}_aa`,
     }
   );
-  await handler.areas.TempAreaAreaModel.sync();
+  if (first) await handler.areas.TempAreaAreaModel.sync();
 
   handler.areas.TempAreaPicturesModel = db.sequelize.define(
     `${baseTableName}_ap`, {
@@ -67,7 +64,7 @@ async function createTempTables(handler) {
       tableName: `${baseTableName}_ap`,
     }
   );
-  await handler.areas.TempAreaPicturesModel.sync();
+  if (first) await handler.areas.TempAreaPicturesModel.sync();
 
   endDuration(durationId);
 }
@@ -400,9 +397,7 @@ const process = async (handler) => {
   handler.areas = {};
 
 
-  await mapData(handler);
-  await createTempTables(handler);
-  await populateTempTables(handler);
+  await createTempTables(handler, false);
   await mergeAreas(handler);
   await mergeAreaToArea(handler);
   await removeDepreactedAreaToArea(handler);
@@ -410,6 +405,19 @@ const process = async (handler) => {
   await removeDepreactedAreaPictures(handler);
   await removeDepreactedArea(handler);
   await dropTempTables(handler);
+};
+
+
+/**
+ * Map area data
+ */
+export const mapAreaData = async (handler, first = false) => {
+  logger.info('Mapping areas');
+  handler.areas = {};
+
+  await mapData(handler);
+  await createTempTables(handler, first);
+  await populateTempTables(handler);
 };
 
 

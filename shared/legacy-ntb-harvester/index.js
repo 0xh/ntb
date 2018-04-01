@@ -8,14 +8,14 @@ import {
 
 import * as legacy from './legacy-structure';
 import verify from './lib/verify';
-import getAllDocuments, {
+import {
   getDocumentCountFromMongoDb,
   getDocumentsFromMongoDb,
 } from './lib/mongodb-collections';
-import processArea from './process/area';
-import processGroup from './process/group';
-import processCabin from './process/cabin';
-import processPoi from './process/poi';
+import processArea, { mapAreaData } from './process/area';
+import processGroup, { mapGroupData } from './process/group';
+import processCabin, { mapCabinData } from './process/cabin';
+import processPoi, { mapPoiData } from './process/poi';
 import processTrip, { mapTripData } from './process/trip';
 import processRoute, { mapRouteData } from './process/route';
 import processPicture, { mapPictureData } from './process/picture';
@@ -67,15 +67,30 @@ function verifyDocuments(handler, type) {
 /**
  * Harvest areas
  */
-export async function harvestAreas(useTestData = false) {
+export async function harvestAreas() {
   const durationId = startDuration();
-  const handler = {};
+  const handler = { documents: {} };
+  const limit = 2000;
+  const filter = { };
+  let skip = 0;
+  let first = true;
+  handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
 
-  await getAllDocuments(handler, ['områder'], useTestData);
+  await getDocumentCountFromMongoDb('områder', filter);
 
-  const status = verifyDocuments(handler, 'områder');
-  if (!status) {
-    throw new Error('Document verification failed for areas.');
+  while (first || handler.documents.områder.length > 0) {
+    // eslint-disable-next-line
+    await getDocumentsFromMongoDb(handler, 'områder', skip, limit, filter);
+
+    const status = verifyDocuments(handler, 'områder');
+    if (!status) {
+      throw new Error('Document verification failed for areas.');
+    }
+
+    // eslint-disable-next-line
+    await mapAreaData(handler, first);
+    first = false;
+    skip += limit;
   }
 
   await processArea(handler);
@@ -88,15 +103,30 @@ export async function harvestAreas(useTestData = false) {
 /**
  * Harvest groups
  */
-export async function harvestGroups(useTestData = false) {
+export async function harvestGroups() {
   const durationId = startDuration();
-  const handler = {};
+  const handler = { documents: {} };
+  const limit = 2000;
+  const filter = { };
+  let skip = 0;
+  let first = true;
+  handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
 
-  await getAllDocuments(handler, ['grupper'], useTestData);
+  await getDocumentCountFromMongoDb('grupper', filter);
 
-  const status = verifyDocuments(handler, 'grupper');
-  if (!status) {
-    throw new Error('Document verification failed for groups.');
+  while (first || handler.documents.grupper.length > 0) {
+    // eslint-disable-next-line
+    await getDocumentsFromMongoDb(handler, 'grupper', skip, limit, filter);
+
+    const status = verifyDocuments(handler, 'grupper');
+    if (!status) {
+      throw new Error('Document verification failed for groups.');
+    }
+
+    // eslint-disable-next-line
+    await mapGroupData(handler, first);
+    first = false;
+    skip += limit;
   }
 
   await processGroup(handler);
@@ -109,17 +139,30 @@ export async function harvestGroups(useTestData = false) {
 /**
  * Harvest cabins
  */
-export async function harvestCabin(useTestData = false) {
+export async function harvestCabin() {
   const durationId = startDuration();
   const handler = { documents: {} };
+  const limit = 2000;
   const filter = { 'tags.0': 'Hytte' };
+  let skip = 0;
+  let first = true;
+  handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
 
-  // await getAllDocuments(handler, ['steder'], useTestData);
-  await getDocumentsFromMongoDb(handler, 'steder', null, null, filter);
+  await getDocumentCountFromMongoDb('steder', filter);
 
-  const status = verifyDocuments(handler, 'steder');
-  if (!status) {
-    throw new Error('Document verification failed for cabins');
+  while (first || handler.documents.steder.length > 0) {
+    // eslint-disable-next-line
+    await getDocumentsFromMongoDb(handler, 'steder', skip, limit, filter);
+
+    const status = verifyDocuments(handler, 'steder');
+    if (!status) {
+      throw new Error('Document verification failed for cabins.');
+    }
+
+    // eslint-disable-next-line
+    await mapCabinData(handler, first);
+    first = false;
+    skip += limit;
   }
 
   await processCabin(handler);
@@ -129,22 +172,35 @@ export async function harvestCabin(useTestData = false) {
 }
 
 
-export async function harvestPoi(useTestData = false) {
+export async function harvestPoi() {
   const durationId = startDuration();
   const handler = { documents: {} };
+  const limit = 1000;
   const filter = {
     $or: [
       { 'tags.0': { $ne: 'Hytte' } },
       { tags: null },
     ],
   };
+  let skip = 0;
+  let first = true;
+  handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
 
-  // await getAllDocuments(handler, ['steder'], useTestData);
-  await getDocumentsFromMongoDb(handler, 'steder', null, null, filter);
+  await getDocumentCountFromMongoDb('steder', filter);
 
-  const status = verifyDocuments(handler, 'steder');
-  if (!status) {
-    throw new Error('Document verification failed for pois');
+  while (first || handler.documents.steder.length > 0) {
+    // eslint-disable-next-line
+    await getDocumentsFromMongoDb(handler, 'steder', skip, limit, filter);
+
+    const status = verifyDocuments(handler, 'steder');
+    if (!status) {
+      throw new Error('Document verification failed for pois.');
+    }
+
+    // eslint-disable-next-line
+    await mapPoiData(handler, first);
+    first = false;
+    skip += limit;
   }
 
   await processPoi(handler);
@@ -157,7 +213,7 @@ export async function harvestPoi(useTestData = false) {
 /**
  * Harvest routes
  */
-export async function harvestRoute(useTestData = false) {
+export async function harvestRoute() {
   const durationId = startDuration();
   const handler = { documents: {} };
   const limit = 5000;
@@ -206,7 +262,7 @@ export async function harvestRoute(useTestData = false) {
 /**
  * Harvest trips
  */
-export async function harvestTrip(useTestData = false) {
+export async function harvestTrip() {
   const durationId = startDuration();
   const handler = { documents: {} };
   const limit = 1000;
@@ -251,7 +307,7 @@ export async function harvestTrip(useTestData = false) {
 /**
  * Harvest pictures
  */
-export async function harvestPictures(useTestData = false) {
+export async function harvestPictures() {
   const durationId = startDuration();
   const handler = { documents: {} };
   const limit = 2000;
@@ -287,7 +343,7 @@ export async function harvestPictures(useTestData = false) {
 /**
  * Harvest lists
  */
-export async function harvestLists(useTestData = false) {
+export async function harvestLists() {
   const durationId = startDuration();
   const handler = { documents: {} };
   const limit = 2000;
@@ -295,7 +351,6 @@ export async function harvestLists(useTestData = false) {
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
-  // handler.timeStamp = '20180328071216667'; // TODO(Roar): REMOVE THIS!
 
   await getDocumentCountFromMongoDb('lister', filter);
 

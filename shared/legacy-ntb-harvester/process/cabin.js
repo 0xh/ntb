@@ -1,5 +1,3 @@
-import moment from 'moment';
-
 import db from '@turistforeningen/ntb-shared-models';
 import { createLogger, startDuration, endDuration } from
   '@turistforeningen/ntb-shared-utils';
@@ -15,12 +13,11 @@ const DATASOURCE_NAME = 'legacy-ntb';
  * Create temporary tables that will hold the processed data harvested from
  * legacy-ntb
  */
-async function createTempTables(handler) {
+async function createTempTables(handler, first = false) {
   logger.info('Creating temporary tables');
   const durationId = startDuration();
 
-  const date = moment().format('YYYYMMDDHHmmssSSS');
-  const baseTableName = `_temp_legacy_ntb_harvest_${date}`;
+  const baseTableName = `_temp_legacy_ntb_harvest_${handler.timeStamp}`;
 
   let tableName = `${baseTableName}_cabin`;
   handler.cabins.TempCabinModel = db.sequelize.define(tableName, {
@@ -85,7 +82,7 @@ async function createTempTables(handler) {
     timestamps: false,
     tableName,
   });
-  await handler.cabins.TempCabinModel.sync();
+  if (first) await handler.cabins.TempCabinModel.sync();
 
   tableName = `${baseTableName}_cabin_service_level`;
   handler.cabins.TempServiceLevelModel =
@@ -95,7 +92,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName,
     });
-  await handler.cabins.TempServiceLevelModel.sync();
+  if (first) await handler.cabins.TempServiceLevelModel.sync();
 
   tableName = `${baseTableName}_cabin_translation`;
   handler.cabins.TempTranslationModel = db.sequelize.define(tableName, {
@@ -111,7 +108,7 @@ async function createTempTables(handler) {
     timestamps: false,
     tableName,
   });
-  await handler.cabins.TempTranslationModel.sync();
+  if (first) await handler.cabins.TempTranslationModel.sync();
 
   tableName = `${baseTableName}_cabin_links`;
   handler.cabins.TempCabinLinkModel =
@@ -129,7 +126,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName,
     });
-  await handler.cabins.TempCabinLinkModel.sync();
+  if (first) await handler.cabins.TempCabinLinkModel.sync();
 
   tableName = `${baseTableName}_cabin_facility`;
   handler.cabins.TempFacilityModel =
@@ -139,7 +136,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName,
     });
-  await handler.cabins.TempFacilityModel.sync();
+  if (first) await handler.cabins.TempFacilityModel.sync();
 
   tableName = `${baseTableName}_cabin_facilities`;
   handler.cabins.TempCabinFacilityModel =
@@ -152,7 +149,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName,
     });
-  await handler.cabins.TempCabinFacilityModel.sync();
+  if (first) await handler.cabins.TempCabinFacilityModel.sync();
 
   tableName = `${baseTableName}_cabin_accessability`;
   handler.cabins.TempAccessabilityModel =
@@ -162,7 +159,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName,
     });
-  await handler.cabins.TempAccessabilityModel.sync();
+  if (first) await handler.cabins.TempAccessabilityModel.sync();
 
   tableName = `${baseTableName}_cabin_accessabilities`;
   handler.cabins.TempCabinAccessabilityModel =
@@ -175,7 +172,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName,
     });
-  await handler.cabins.TempCabinAccessabilityModel.sync();
+  if (first) await handler.cabins.TempCabinAccessabilityModel.sync();
 
   tableName = `${baseTableName}_cabin_opening_hours`;
   handler.cabins.TempCabinOHoursModel =
@@ -195,7 +192,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName,
     });
-  await handler.cabins.TempCabinOHoursModel.sync();
+  if (first) await handler.cabins.TempCabinOHoursModel.sync();
 
   tableName = `${baseTableName}_cabin_to_area`;
   handler.cabins.TempCabinToAreaModel =
@@ -208,7 +205,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName,
     });
-  await handler.cabins.TempCabinToAreaModel.sync();
+  if (first) await handler.cabins.TempCabinToAreaModel.sync();
 
   tableName = `${baseTableName}_cabin_pictures`;
   handler.cabins.TempCabinPicturesModel =
@@ -221,7 +218,7 @@ async function createTempTables(handler) {
       timestamps: false,
       tableName,
     });
-  await handler.cabins.TempCabinPicturesModel.sync();
+  if (first) await handler.cabins.TempCabinPicturesModel.sync();
 
   endDuration(durationId);
 }
@@ -1272,9 +1269,7 @@ const process = async (handler) => {
   logger.info('Processing cabins');
   handler.cabins = {};
 
-  await mapData(handler);
-  await createTempTables(handler);
-  await populateTempTables(handler);
+  await createTempTables(handler, false);
   await mergeServiceLevel(handler);
   await mergeCabin(handler);
   await mergeCabinTranslation(handler);
@@ -1294,6 +1289,19 @@ const process = async (handler) => {
   await removeDepreactedCabinPictures(handler);
   await removeDepreactedCabin(handler);
   await dropTempTables(handler);
+};
+
+
+/**
+ * Map cabin data
+ */
+export const mapCabinData = async (handler, first = false) => {
+  logger.info('Mapping cabins');
+  handler.cabins = {};
+
+  await mapData(handler);
+  await createTempTables(handler, first);
+  await populateTempTables(handler);
 };
 
 
