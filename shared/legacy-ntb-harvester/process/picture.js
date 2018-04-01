@@ -6,7 +6,6 @@ import * as legacy from '../legacy-structure/';
 
 
 const logger = createLogger();
-const DATASOURCE_NAME = 'legacy-ntb';
 
 
 /**
@@ -19,7 +18,7 @@ async function createTempTables(handler, sync = false) {
 
   const baseTableName = `_temp_legacy_ntb_harvest_${handler.timeStamp}`;
 
-  let tableName = `${baseTableName}_picture`;
+  const tableName = `${baseTableName}_picture`;
   handler.pictures.TempPictureModel = db.sequelize.define(tableName, {
     uuid: { type: db.Sequelize.UUID, primaryKey: true },
     idLegacyNtb: { type: db.Sequelize.TEXT },
@@ -187,7 +186,7 @@ const process = async (handler, first = false) => {
 
   await createTempTables(handler, false);
   await mergePictures(handler);
-  // await dropTempTables(handler);
+  await dropTempTables(handler);
 };
 
 

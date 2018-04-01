@@ -155,7 +155,7 @@ async function mapping(obj, handler) {
     description: obj.beskrivelse ? sanitizeHtml(obj.beskrivelse) : null,
     descriptionPlain: obj.beskrivelse ? stripHtml(obj.beskrivelse) : null,
 
-    geojson: obj.geojson,
+    coordinate: obj.geojson,
 
     season: obj.sesong || [],
     open: obj.åpen,

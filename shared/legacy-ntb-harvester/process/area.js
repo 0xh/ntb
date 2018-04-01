@@ -29,7 +29,7 @@ async function createTempTables(handler) {
     nameLowerCase: { type: db.Sequelize.TEXT },
     description: { type: db.Sequelize.TEXT },
     descriptionPlain: { type: db.Sequelize.TEXT },
-    geojson: { type: db.Sequelize.GEOMETRY },
+    geometry: { type: db.Sequelize.GEOMETRY },
     map: { type: db.Sequelize.TEXT },
     url: { type: db.Sequelize.TEXT },
     license: { type: db.Sequelize.TEXT },
@@ -56,30 +56,6 @@ async function createTempTables(handler) {
   );
   await handler.areas.TempAreaAreaModel.sync();
 
-  handler.areas.TempAreaCountyModel = db.sequelize.define(
-    `${baseTableName}_ac`, {
-      areaLegacyId: { type: db.Sequelize.TEXT },
-      areaUuid: { type: db.Sequelize.UUID },
-      countyUuid: { type: db.Sequelize.UUID },
-    }, {
-      timestamps: false,
-      tableName: `${baseTableName}_ac`,
-    }
-  );
-  await handler.areas.TempAreaCountyModel.sync();
-
-  handler.areas.TempAreaMunicipalityModel = db.sequelize.define(
-    `${baseTableName}_am`, {
-      areaLegacyId: { type: db.Sequelize.TEXT },
-      areaUuid: { type: db.Sequelize.UUID },
-      municipalityUuid: { type: db.Sequelize.UUID },
-    }, {
-      timestamps: false,
-      tableName: `${baseTableName}_am`,
-    }
-  );
-  await handler.areas.TempAreaMunicipalityModel.sync();
-
   handler.areas.TempAreaPicturesModel = db.sequelize.define(
     `${baseTableName}_ap`, {
       areaLegacyId: { type: db.Sequelize.TEXT },
@@ -105,8 +81,6 @@ async function dropTempTables(handler) {
 
   await handler.areas.TempAreaModel.drop();
   await handler.areas.TempAreaAreaModel.drop();
-  await handler.areas.TempAreaCountyModel.drop();
-  await handler.areas.TempAreaMunicipalityModel.drop();
   await handler.areas.TempAreaPicturesModel.drop();
 
   endDuration(durationId);
@@ -145,18 +119,8 @@ async function populateTempTables(handler) {
 
   // Process data for counties, minucipalities and area relations
   const areaArea = [];
-  const areaCounty = [];
-  const areaMunicipality = [];
   const pictures = [];
   handler.areas.processed.forEach((p) => {
-    p.counties.forEach((countyUuid) => areaCounty.push({
-      areaLegacyId: p.area.idLegacyNtb,
-      countyUuid,
-    }));
-    p.municipalities.forEach((municipalityUuid) => areaMunicipality.push({
-      areaLegacyId: p.area.idLegacyNtb,
-      municipalityUuid,
-    }));
     p.areaRelations.forEach((parentLegacyId) => areaArea.push({
       parentLegacyId,
       childLegacyId: p.area.idLegacyNtb,
@@ -167,18 +131,6 @@ async function populateTempTables(handler) {
       sortIndex: idx,
     }));
   });
-
-  // Insert temp data for AreaCounty
-  logger.info('Inserting area county to temporary table');
-  durationId = startDuration();
-  await handler.areas.TempAreaCountyModel.bulkCreate(areaCounty);
-  endDuration(durationId);
-
-  // Insert temp data for AreaMunicipality
-  logger.info('Inserting area municipality to temporary table');
-  durationId = startDuration();
-  await handler.areas.TempAreaMunicipalityModel.bulkCreate(areaMunicipality);
-  endDuration(durationId);
 
   // Insert temp data for AreaArea
   logger.info('Inserting area<>area to temporary table');
@@ -200,15 +152,40 @@ async function populateTempTables(handler) {
 async function mergeAreas(handler) {
   const sql = [
     'INSERT INTO area (',
-    '  uuid, id_legacy_ntb, name, name_lower_case, description,',
-    '  description_plain, geojson, map, url, license, provider, status,',
-    '  data_source, search_document_boost, created_at, updated_at',
+    '  uuid,',
+    '  id_legacy_ntb,',
+    '  name,',
+    '  name_lower_case,',
+    '  description,',
+    '  description_plain,',
+    '  geometry,',
+    '  map,',
+    '  url,',
+    '  license,',
+    '  provider,',
+    '  status,',
+    '  data_source,',
+    '  search_document_boost,',
+    '  created_at,',
+    '  updated_at',
     ')',
     'SELECT',
-    '  uuid, id_legacy_ntb, name, name_lower_case, description,',
+    '  uuid,',
+    '  id_legacy_ntb,',
+    '  name,',
+    '  name_lower_case,',
+    '  description,',
     '  description_plain,',
-    '  geojson, map, url, license, provider, status::enum_area_status,',
-    '  data_source, 1, updated_at, updated_at',
+    '  geometry,',
+    '  map,',
+    '  url,',
+    '  license,',
+    '  provider,',
+    '  status::enum_area_status,',
+    '  data_source,',
+    '  1,',
+    '  updated_at,',
+    '  updated_at',
     `FROM public.${handler.areas.TempAreaModel.tableName}`,
     'ON CONFLICT (id_legacy_ntb) DO UPDATE',
     'SET',
@@ -216,7 +193,7 @@ async function mergeAreas(handler) {
     '  name_lower_case = EXCLUDED.name_lower_case,',
     '  description = EXCLUDED.description,',
     '  description_plain = EXCLUDED.description_plain,',
-    '  geojson = EXCLUDED.geojson,',
+    '  geometry = EXCLUDED.geometry,',
     '  map = EXCLUDED.map,',
     '  url = EXCLUDED.url,',
     '  license = EXCLUDED.license,',

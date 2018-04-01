@@ -423,7 +423,7 @@ async function mapping(obj, handler) {
     url: obj.url,
     yearOfConstruction: obj.byggeår,
 
-    geojson: obj.geojson,
+    coordinate: obj.geojson,
 
     serviceLevel: mapServiceLevel(obj.betjeningsgrad, obj),
 

@@ -138,76 +138,6 @@ function setLinks(obj, res, handler) {
 }
 
 
-function mapCounties(obj, res, handler) {
-  res.counties = [];
-  if (obj.fylker) {
-    res.counties = obj.fylker
-      .map((f) => {
-        let cleanName = f.trim().toLowerCase();
-
-        if (cleanName.endsWith('trøndelag')) {
-          cleanName = 'trøndelag';
-        }
-
-        if (cleanName.startsWith('finnmark')) {
-          cleanName = 'finnmark';
-        }
-
-        const match = handler.counties
-          .filter((c) => c.nameLowerCase === cleanName.toLowerCase().trim());
-        if (match.length === 1) {
-          return match[0].uuid;
-        }
-        else if (match.length > 1) {
-          logger.warn(
-            'Found multiple counties for name ' +
-            `"${cleanName}" - trip.id_legacy_ntb=${obj._id}`
-          );
-        }
-
-        // logger.warn(
-        //   'Unable to find a county for name ' +
-        //   `"${cleanName}" - trip.id_legacy_ntb=${obj._id}`
-        // );
-
-        return null;
-      })
-      .filter((c) => c !== null);
-  }
-}
-
-
-function mapMunicipalities(obj, res, handler) {
-  res.municipalities = [];
-  if (obj.kommuner) {
-    res.municipalities = obj.kommuner
-      .map((f) => {
-        const cleanName = f.trim().toLowerCase();
-
-        const match = handler.municipalities
-          .filter((c) => c.nameLowerCase === cleanName);
-        if (match.length === 1) {
-          return match[0].uuid;
-        }
-        else if (match.length > 1) {
-          logger.warn(
-            'Found multiple municipalities for name ' +
-            `"${cleanName}" - trip.id_legacy_ntb=${obj._id}`
-          );
-        }
-
-        // logger.warn(
-        //   'Unable to find a municipality for name ' +
-        //   `"${cleanName}" - trip.id_legacy_ntb=${obj._id}`
-        // );
-
-        return null;
-      })
-      .filter((c) => c !== null);
-  }
-}
-
-
 function mapGrading(obj) {
   if (!obj.gradering) {
     return 'moderate';
@@ -346,12 +276,6 @@ async function mapping(obj, handler) {
 
   // Set alternative types
   setActivitySubTypes(obj, res, handler);
-
-  // Set county relations
-  mapCounties(obj, res, handler);
-
-  // Set municipality relations
-  mapMunicipalities(obj, res, handler);
 
   // Set links
   setLinks(obj, res, handler);
