@@ -67,10 +67,9 @@ function verifyDocuments(handler, type) {
 /**
  * Harvest areas
  */
-export async function harvestAreas() {
+export async function harvestAreas(limit = 2000) {
   const durationId = startDuration();
   const handler = { documents: {} };
-  const limit = 2000;
   const filter = { };
   let skip = 0;
   let first = true;
@@ -103,10 +102,9 @@ export async function harvestAreas() {
 /**
  * Harvest groups
  */
-export async function harvestGroups() {
+export async function harvestGroups(limit = 2000) {
   const durationId = startDuration();
   const handler = { documents: {} };
-  const limit = 2000;
   const filter = { };
   let skip = 0;
   let first = true;
@@ -139,10 +137,9 @@ export async function harvestGroups() {
 /**
  * Harvest cabins
  */
-export async function harvestCabin() {
+export async function harvestCabin(limit = 2000) {
   const durationId = startDuration();
   const handler = { documents: {} };
-  const limit = 2000;
   const filter = { 'tags.0': 'Hytte' };
   let skip = 0;
   let first = true;
@@ -172,10 +169,9 @@ export async function harvestCabin() {
 }
 
 
-export async function harvestPoi() {
+export async function harvestPoi(limit = 2000) {
   const durationId = startDuration();
   const handler = { documents: {} };
-  const limit = 1000;
   const filter = {
     $or: [
       { 'tags.0': { $ne: 'Hytte' } },
@@ -213,10 +209,9 @@ export async function harvestPoi() {
 /**
  * Harvest routes
  */
-export async function harvestRoute() {
+export async function harvestRoute(limit = 2000) {
   const durationId = startDuration();
   const handler = { documents: {} };
-  const limit = 5000;
   const filter = { 'rute.kode': { $ne: null } };
   const project = { geojson: 0 };
   let skip = 0;
@@ -262,10 +257,9 @@ export async function harvestRoute() {
 /**
  * Harvest trips
  */
-export async function harvestTrip() {
+export async function harvestTrip(limit = 2000) {
   const durationId = startDuration();
   const handler = { documents: {} };
-  const limit = 1000;
   const filter = { 'rute.kode': null };
   let skip = 0;
   let first = true;
@@ -307,10 +301,9 @@ export async function harvestTrip() {
 /**
  * Harvest pictures
  */
-export async function harvestPictures() {
+export async function harvestPictures(limit = 2000) {
   const durationId = startDuration();
   const handler = { documents: {} };
-  const limit = 2000;
   const filter = { status: 'Offentlig' };
   let skip = 0;
   let first = true;
@@ -343,10 +336,9 @@ export async function harvestPictures() {
 /**
  * Harvest lists
  */
-export async function harvestLists() {
+export async function harvestLists(limit = 2000) {
   const durationId = startDuration();
   const handler = { documents: {} };
-  const limit = 2000;
   const filter = { };
   let skip = 0;
   let first = true;
