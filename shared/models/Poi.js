@@ -66,7 +66,7 @@ export default (sequelize, DataTypes) => {
     description: { type: DataTypes.TEXT },
     descriptionPlain: { type: DataTypes.TEXT },
 
-    geojson: { type: DataTypes.GEOMETRY },
+    coordinate: { type: DataTypes.GEOMETRY },
     season: { type: DataTypes.ARRAY(DataTypes.INTEGER) },
     open: { type: DataTypes.BOOLEAN },
 

@@ -30,7 +30,7 @@ export default (sequelize, DataTypes) => {
     description: { type: DataTypes.TEXT },
     descriptionPlain: { type: DataTypes.TEXT },
 
-    geojson: { type: DataTypes.GEOMETRY },
+    geometry: { type: DataTypes.GEOMETRY },
     map: { type: DataTypes.TEXT },
     url: { type: DataTypes.TEXT },
 
@@ -112,7 +112,7 @@ export default (sequelize, DataTypes) => {
       uuid: instance.uuid,
       name: instance.name,
       description: instance.description,
-      geojson: instance.geojson,
+      geometry: instance.geometry,
       map: instance.map,
       url: instance.url,
       license: instance.license,

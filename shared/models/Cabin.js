@@ -72,7 +72,7 @@ export default (sequelize, DataTypes) => {
 
     yearOfConstruction: { type: DataTypes.INTEGER },
 
-    geojson: { type: DataTypes.GEOMETRY },
+    coordinate: { type: DataTypes.GEOMETRY },
 
     countyUuid: {
       type: DataTypes.UUID,

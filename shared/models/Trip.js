@@ -54,8 +54,8 @@ export default (sequelize, DataTypes) => {
     durationDays: { type: DataTypes.INTEGER },
 
     startingPoint: { type: DataTypes.GEOMETRY },
-    geojson: { type: DataTypes.GEOMETRY },
-    polyline: { type: DataTypes.TEXT },
+    pathGeojson: { type: DataTypes.GEOMETRY },
+    pathPolyline: { type: DataTypes.TEXT },
 
     season: { type: DataTypes.ARRAY(DataTypes.INTEGER) },
 

@@ -73,10 +73,10 @@ export default (sequelize, DataTypes) => {
 
     pointA: { type: DataTypes.GEOMETRY },
     pointB: { type: DataTypes.GEOMETRY },
-    geojson_ab: { type: DataTypes.GEOMETRY },
-    geojson_ba: { type: DataTypes.GEOMETRY },
-    polyline_ab: { type: DataTypes.TEXT },
-    polyline_ba: { type: DataTypes.TEXT },
+    pathAbGeojson: { type: DataTypes.GEOMETRY },
+    pathBaGeojson: { type: DataTypes.GEOMETRY },
+    pathAbPolyline: { type: DataTypes.TEXT },
+    pathBaPolyline: { type: DataTypes.TEXT },
 
     season: { type: DataTypes.ARRAY(DataTypes.INTEGER) },
 
