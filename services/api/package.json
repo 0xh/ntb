@@ -8,16 +8,10 @@
   "dependencies": {
     "@turistforeningen/ntb-shared-utils": "*",
     "@turistforeningen/ntb-shared-models": "*",
-    "babel-eslint": "^8.2.1",
     "body-parser": "^1.18.2",
-    "eslint": "^4.16.0",
     "express": "^4.16.2",
-    "lerna": "^2.5.1",
     "morgan": "^1.9.0",
     "response-time": "^2.3.2",
     "swagger-jsdoc": "^1.9.7"
-  },
-  "devDependencies": {
-    "nodemon": "^1.14.11"
   }
 }
