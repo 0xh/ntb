@@ -1,32 +1,3 @@
-// const VALID_POI_TYPES = [
-//   'attraction',
-//   'bathing spot',
-//   'bridge',
-//   'campground',
-//   'climbing',
-//   'public transport stop',
-//   'food service',
-//   'fishing',
-//   'geocaching',
-//   'grotto',
-//   'kiting area',
-//   'lookout point',
-//   'mountain peak',
-//   'orienteering',
-//   'parking',
-//   'picnic area',
-//   'hut',
-//   'fording place',
-//   'shelter',
-//   'sign point',
-//   'ski lift',
-//   'sledding hill',
-//   'toilet',
-//   'train station',
-//   'trip record',
-// ];
-
-
 export default (sequelize, DataTypes) => {
   const Poi = sequelize.define('Poi', {
     uuid: {
@@ -89,8 +60,8 @@ export default (sequelize, DataTypes) => {
     provider: { type: DataTypes.TEXT },
 
     status: {
-      type: DataTypes.ENUM,
-      values: ['draft', 'public', 'deleted', 'private'],
+      type: DataTypes.TEXT,
+      allowNull: false,
     },
 
     dataSource: { type: DataTypes.TEXT },
@@ -108,6 +79,10 @@ export default (sequelize, DataTypes) => {
   // Associations
 
   Poi.associate = (models) => {
+    models.Poi.belongsTo(models.DocumentStatus, {
+      foreignKey: 'status',
+    });
+
     models.Poi.belongsTo(models.County, {
       foreignKey: 'countyUuid',
     });

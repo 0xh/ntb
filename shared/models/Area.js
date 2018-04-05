@@ -38,9 +38,8 @@ export default (sequelize, DataTypes) => {
     provider: { type: DataTypes.TEXT, allowNull: false },
 
     status: {
-      type: DataTypes.ENUM,
+      type: DataTypes.TEXT,
       allowNull: false,
-      values: ['draft', 'public', 'deleted', 'private'],
     },
 
     dataSource: { type: DataTypes.TEXT },
@@ -58,6 +57,10 @@ export default (sequelize, DataTypes) => {
   // Associations
 
   Area.associate = (models) => {
+    models.Area.belongsTo(models.DocumentStatus, {
+      foreignKey: 'status',
+    });
+
     models.Area.belongsToMany(models.Area, {
       as: 'Children',
       through: models.AreaToArea,

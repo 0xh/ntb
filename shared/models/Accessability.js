@@ -30,12 +30,5 @@ export default (sequelize, DataTypes) => {
     });
   };
 
-
-  // HOOKS
-
-  Accessability.hook('beforeSave', (instance) => {
-    instance.nameLowerCase = instance.name.toLowerCase();
-  });
-
   return Accessability;
 };

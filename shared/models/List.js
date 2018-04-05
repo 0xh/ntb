@@ -42,9 +42,8 @@ export default (sequelize, DataTypes) => {
     provider: { type: DataTypes.TEXT },
 
     status: {
-      type: DataTypes.ENUM,
+      type: DataTypes.TEXT,
       allowNull: false,
-      values: ['draft', 'public', 'deleted', 'private'],
     },
 
     dataSource: { type: DataTypes.TEXT },
@@ -62,6 +61,10 @@ export default (sequelize, DataTypes) => {
   // Associations
 
   List.associate = (models) => {
+    models.List.belongsTo(models.DocumentStatus, {
+      foreignKey: 'status',
+    });
+
     models.List.belongsTo(models.ListType, {
       as: 'ListType',
       foreignKey: 'listType',

@@ -34,9 +34,8 @@ export default (sequelize, DataTypes) => {
     },
 
     status: {
-      type: DataTypes.ENUM,
+      type: DataTypes.TEXT,
       allowNull: false,
-      values: ['draft', 'public', 'deleted', 'private'],
     },
 
     dataSource: { type: DataTypes.TEXT },
@@ -59,6 +58,10 @@ export default (sequelize, DataTypes) => {
   // Associations
 
   Municipality.associate = (models) => {
+    models.Municipality.belongsTo(models.DocumentStatus, {
+      foreignKey: 'status',
+    });
+
     models.Municipality.belongsTo(models.County);
 
     models.Municipality.hasMany(models.MunicipalityTranslation, {

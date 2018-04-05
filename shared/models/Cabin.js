@@ -128,8 +128,8 @@ export default (sequelize, DataTypes) => {
     provider: { type: DataTypes.TEXT },
 
     status: {
-      type: DataTypes.ENUM,
-      values: ['draft', 'public', 'deleted', 'private'],
+      type: DataTypes.TEXT,
+      allowNull: false,
     },
 
     dataSource: { type: DataTypes.TEXT },
@@ -147,6 +147,10 @@ export default (sequelize, DataTypes) => {
   // Associations
 
   Cabin.associate = (models) => {
+    models.Cabin.belongsTo(models.DocumentStatus, {
+      foreignKey: 'status',
+    });
+
     models.Cabin.belongsTo(models.Group, {
       as: 'MaintainerGroup',
       foreignKey: 'maintainerGroupUuid',

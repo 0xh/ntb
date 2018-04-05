@@ -50,9 +50,8 @@ export default (sequelize, DataTypes) => {
     provider: { type: DataTypes.TEXT },
 
     status: {
-      type: DataTypes.ENUM,
+      type: DataTypes.TEXT,
       allowNull: false,
-      values: ['draft', 'public', 'deleted', 'private'],
     },
 
     dataSource: { type: DataTypes.TEXT },
@@ -70,6 +69,10 @@ export default (sequelize, DataTypes) => {
   // Associations
 
   Group.associate = (models) => {
+    models.Group.belongsTo(models.DocumentStatus, {
+      foreignKey: 'status',
+    });
+
     models.Group.belongsTo(models.GroupType, {
       as: 'GroupType',
       foreignKey: 'groupType',

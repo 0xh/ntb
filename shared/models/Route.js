@@ -47,10 +47,8 @@ export default (sequelize, DataTypes) => {
     source: { type: DataTypes.TEXT },
     notes: { type: DataTypes.TEXT },
 
-    grading: {
-      type: DataTypes.ENUM,
-      values: ['easy', 'moderate', 'tough', 'very tough'],
-    },
+    grading: { type: DataTypes.TEXT },
+
     suitableForChildren: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
@@ -85,8 +83,8 @@ export default (sequelize, DataTypes) => {
     provider: { type: DataTypes.TEXT },
 
     status: {
-      type: DataTypes.ENUM,
-      values: ['draft', 'public', 'deleted', 'private'],
+      type: DataTypes.TEXT,
+      allowNull: false,
     },
 
     dataSource: { type: DataTypes.TEXT },
@@ -104,6 +102,14 @@ export default (sequelize, DataTypes) => {
   // Associations
 
   Route.associate = (models) => {
+    models.Route.belongsTo(models.DocumentStatus, {
+      foreignKey: 'status',
+    });
+
+    models.Route.belongsTo(models.Grading, {
+      foreignKey: 'grading',
+    });
+
     models.Route.belongsToMany(models.ActivityType, {
       as: 'SuitableActivityTypes',
       through: models.RouteToActivityType,

@@ -37,17 +37,14 @@ export default (sequelize, DataTypes) => {
     descriptionPlain: { type: DataTypes.TEXT },
     url: { type: DataTypes.TEXT },
 
-    grading: {
-      type: DataTypes.ENUM,
-      values: ['easy', 'moderate', 'tough', 'very tough'],
-    },
+    grading: { type: DataTypes.TEXT },
     suitableForChildren: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
       allowNull: false,
     },
     distance: { type: DataTypes.INTEGER },
-    direction: { type: DataTypes.ENUM, values: ['ab', 'aba'] },
+    direction: { type: DataTypes.TEXT },
 
     durationMinutes: { type: DataTypes.INTEGER },
     durationHours: { type: DataTypes.INTEGER },
@@ -73,8 +70,8 @@ export default (sequelize, DataTypes) => {
     provider: { type: DataTypes.TEXT },
 
     status: {
-      type: DataTypes.ENUM,
-      values: ['draft', 'public', 'deleted', 'private'],
+      type: DataTypes.TEXT,
+      allowNull: false,
     },
 
     dataSource: { type: DataTypes.TEXT },
@@ -92,6 +89,18 @@ export default (sequelize, DataTypes) => {
   // Associations
 
   Trip.associate = (models) => {
+    models.Trip.belongsTo(models.DocumentStatus, {
+      foreignKey: 'status',
+    });
+
+    models.Trip.belongsTo(models.Grading, {
+      foreignKey: 'grading',
+    });
+
+    models.Trip.belongsTo(models.TripDirection, {
+      foreignKey: 'direction',
+    });
+
     models.Trip.belongsTo(models.ActivityType, {
       as: 'ActivityType',
       foreignKey: 'activityType',

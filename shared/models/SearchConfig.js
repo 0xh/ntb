@@ -9,16 +9,12 @@ export default (sequelize, DataTypes) => {
     },
 
     // Numeric boost - field used for document type boost
-    boost: {
-      type: DataTypes.FLOAT,
-    },
+    boost: { type: DataTypes.FLOAT },
 
     // field used for defining different weight for different fields for
     // each document type
-    weight: {
-      type: DataTypes.ENUM,
-      values: ['A', 'B', 'C', 'D'],
-    },
+    // A, B, C, D
+    weight: { type: DataTypes.CHAR(1) },
   }, {
     timestamps: false,
   });

@@ -21,8 +21,7 @@ export default (sequelize, DataTypes) => {
     sortIndex: { type: DataTypes.INTEGER },
 
     cabinPictureType: {
-      type: DataTypes.ENUM,
-      values: ['summer', 'winter', 'interior', 'other'],
+      type: DataTypes.TEXT,
     },
 
     photographerName: { type: DataTypes.TEXT },
@@ -44,9 +43,8 @@ export default (sequelize, DataTypes) => {
     legacyTags: { type: DataTypes.ARRAY(DataTypes.TEXT) },
 
     status: {
-      type: DataTypes.ENUM,
+      type: DataTypes.TEXT,
       allowNull: false,
-      values: ['draft', 'public', 'deleted', 'private'],
     },
 
     dataSource: { type: DataTypes.TEXT },
@@ -58,6 +56,14 @@ export default (sequelize, DataTypes) => {
   // Associations
 
   Picture.associate = (models) => {
+    models.Picture.belongsTo(models.DocumentStatus, {
+      foreignKey: 'status',
+    });
+
+    models.Picture.belongsTo(models.CabinPictureType, {
+      foreignKey: 'cabinPictureType',
+    });
+
     models.Picture.belongsTo(models.Area, {
       foreignKey: 'areaUuid',
     });

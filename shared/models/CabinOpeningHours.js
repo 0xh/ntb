@@ -27,12 +27,7 @@ export default (sequelize, DataTypes) => {
     },
 
     key: {
-      type: DataTypes.ENUM,
-      values: [
-        'unlocked',
-        'dnt-key',
-        'special key',
-      ],
+      type: DataTypes.TEXT,
     },
 
     sortIndex: {
@@ -49,6 +44,10 @@ export default (sequelize, DataTypes) => {
   // Associations
 
   CabinOpeningHours.associate = (models) => {
+    models.CabinOpeningHours.belongsTo(models.CabinOpeningHoursKeyType, {
+      foreignKey: 'key',
+    });
+
     models.CabinOpeningHours.belongsTo(models.Cabin);
 
     models.CabinOpeningHours.belongsTo(models.CabinServiceLevel, {
