@@ -146,7 +146,7 @@ async function mergePictures(handler) {
     '  legacy_tags,',
     '  license,',
     '  provider,',
-    '  status::enum_picture_status,',
+    '  status,',
     '  data_source,',
     '  updated_at,',
     '  updated_at',

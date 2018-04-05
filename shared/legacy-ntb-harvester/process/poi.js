@@ -352,7 +352,7 @@ async function mergePoi(handler) {
     '  open,',
     '  license,',
     '  provider,',
-    '  status::enum_poi_status,',
+    '  status,',
     '  :data_source,',
     '  updated_at,',
     '  updated_at,',

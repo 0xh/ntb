@@ -178,7 +178,7 @@ async function mergeAreas(handler) {
     '  url,',
     '  license,',
     '  provider,',
-    '  status::enum_area_status,',
+    '  status,',
     '  data_source,',
     '  1,',
     '  updated_at,',

@@ -247,7 +247,7 @@ async function mergeList(handler) {
     '  end_date,',
     '  license,',
     '  provider,',
-    '  status::enum_list_status,',
+    '  status,',
     '  :data_source,',
     '  updated_at,',
     '  updated_at,',

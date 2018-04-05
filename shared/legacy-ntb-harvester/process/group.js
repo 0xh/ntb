@@ -221,7 +221,7 @@ async function mergeGroups(handler) {
     '  postal_name,',
     '  license,',
     '  provider,',
-    '   status::enum_group_status,',
+    '  status,',
     '  data_source,',
     '  updated_at,',
     '  updated_at,',
