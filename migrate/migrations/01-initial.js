@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 
 import CMharvest from
   '@turistforeningen/ntb-shared-counties-municipalities-harvester';
@@ -38,6 +40,63 @@ async function modifySearchConfig(queryInterface, transaction) {
     '  (\'list__field__description\', NULL, \'D\'),',
     '  (\'county__field__name\', NULL, \'A\'),',
     '  (\'municipality__field__name\', NULL, \'A\');',
+  ].join('\n'), { transaction });
+}
+
+
+async function modifyCabinOpeningHoursKeyType(queryInterface, transaction) {
+  // Set initial data
+  await queryInterface.sequelize.query([
+    'INSERT INTO "cabin_opening_hours_key_type" (name) VALUES',
+    '  (\'unlocked\'),',
+    '  (\'dnt-key\'),',
+    '  (\'special key\');',
+  ].join('\n'), { transaction });
+}
+
+
+async function modifyDocumentStatus(queryInterface, transaction) {
+  // Set initial data
+  await queryInterface.sequelize.query([
+    'INSERT INTO "document_status" (name) VALUES',
+    '  (\'private\'),',
+    '  (\'draft\'),',
+    '  (\'deleted\'),',
+    '  (\'public\');',
+  ].join('\n'), { transaction });
+}
+
+
+async function modifyCabinPictureType(queryInterface, transaction) {
+  // Set initial data
+  await queryInterface.sequelize.query([
+    'INSERT INTO "cabin_picture_type" (name) VALUES',
+    '  (\'summer\'),',
+    '  (\'winter\'),',
+    '  (\'interior\'),',
+    '  (\'other\');',
+  ].join('\n'), { transaction });
+}
+
+
+async function modifyGrading(queryInterface, transaction) {
+  // Set initial data
+  await queryInterface.sequelize.query([
+    'INSERT INTO "grading" (name) VALUES',
+    '  (\'easy\'),',
+    '  (\'moderate\'),',
+    '  (\'tough\'),',
+    '  (\'very tough\');',
+  ].join('\n'), { transaction });
+}
+
+
+async function modifyTripDirection(queryInterface, transaction) {
+  // Set initial data
+  await queryInterface.sequelize.query([
+    'INSERT INTO "trip_direction" (name) VALUES',
+    '  (\'ab\'),',
+    '  (\'aba\');',
   ].join('\n'), { transaction });
 }
 
@@ -958,36 +1017,81 @@ async function modifyListRelation(queryInterface, transaction) {
 }
 
 
-async function harvestCountiesAndMunicipalities() {
-  // Harvest counties and municipalities from kartverket
-  await CMharvest()
-    .then((status) => {
-      if (status) {
-        logger.info('CM Harvester: Done with success!');
-      }
-      else {
-        logger.error('CM Harvester: Done with error!');
-        throw new Error('CM harvester reported failure');
-      }
-    })
-    .catch((err) => {
-      logger.error('UNCAUGHT ERROR');
-      logger.error(err.stack);
-      throw err;
-    });
-}
-
-
 const down = async (db) => {
   logger.info('Unset all the things');
+
+  const tables = [
+    'accessability',
+    'activity_type',
+    'activity_type_to_activity_type',
+    'area',
+    'area_to_area',
+    'area_to_county',
+    'area_to_municipality',
+    'cabin',
+    'cabin_accessability',
+    'cabin_facility',
+    'cabin_link',
+    'cabin_opening_hours',
+    'cabin_opening_hours_key_type',
+    'cabin_picture_type',
+    'cabin_service_level',
+    'cabin_to_area',
+    'cabin_translation',
+    'county',
+    'county_translation',
+    'document_status',
+    'facility',
+    'geography_columns',
+    'geometry_columns',
+    'grading',
+    'group',
+    'group_link',
+    'group_type',
+    'list',
+    'list_link',
+    'list_relation',
+    'list_to_county',
+    'list_to_group',
+    'list_to_municipality',
+    'list_type',
+    'municipality',
+    'municipality_translation',
+    'picture',
+    'poi',
+    'poi_accessability',
+    'poi_link',
+    'poi_to_area',
+    'poi_to_group',
+    'poi_to_poi_type',
+    'poi_type',
+    'raster_columns',
+    'raster_overviews',
+    'route',
+    'route_link',
+    'route_to_activity_type',
+    'route_to_county',
+    'route_to_group',
+    'route_to_poi',
+    'route_to_route_waymark_type',
+    'route_waymark_type',
+    'search_config',
+    'search_document',
+    'tag',
+    'tag_relation',
+    'trip',
+    'trip_direction',
+    'trip_link',
+    'trip_to_activity_type',
+    'trip_to_group',
+    'trip_to_poi',
+    'uuid',
+  ];
   const sqls = [];
-  Object.keys(db.sequelize.models).forEach((modelName) => {
-    const { tableName } = db.sequelize.models[modelName];
-    if (tableName !== 'sequelize_meta') {
-      sqls.push(
-        `DROP TABLE IF EXISTS "public"."${tableName}" CASCADE;`,
-      );
-    }
+  tables.forEach((tableName) => {
+    sqls.push(
+      `DROP TABLE IF EXISTS "public"."${tableName}" CASCADE;`,
+    );
   });
 
   // Remove 'area' triggers
@@ -1069,11 +1173,21 @@ const down = async (db) => {
 const up = async (db) => {
   logger.info('Sync database');
 
-  await db.sequelize.sync();
+  // await db.sequelize.sync();
   const queryInterface = db.sequelize.getQueryInterface();
+
+  const sqlFilePath = path.resolve(__dirname, 'assets', '01-initial.sql');
+  const sql = fs.readFileSync(sqlFilePath, 'utf8');
+  await queryInterface.sequelize.query(sql);
 
   await queryInterface.sequelize.transaction(async (transaction) => {
     await modifySearchConfig(queryInterface, transaction);
+    await modifyCabinOpeningHoursKeyType(queryInterface, transaction);
+    await modifyDocumentStatus(queryInterface, transaction);
+    await modifyCabinPictureType(queryInterface, transaction);
+    await modifyGrading(queryInterface, transaction);
+    await modifyTripDirection(queryInterface, transaction);
+
     await modifySearchDocument(queryInterface, transaction);
     await modifyArea(queryInterface, transaction);
     await modifyGroup(queryInterface, transaction);
@@ -1097,7 +1211,7 @@ const up = async (db) => {
   });
 
   // Harvest counties and municipalities from kartverket
-  await harvestCountiesAndMunicipalities();
+  // await harvestCountiesAndMunicipalities();
 
   logger.info('Done!');
 };
