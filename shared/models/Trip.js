@@ -64,6 +64,7 @@ export default (sequelize, DataTypes) => {
     htgtCarSummer: { type: DataTypes.BOOLEAN },
     htgtBicycle: { type: DataTypes.BOOLEAN },
     htgtPublicTransportAvailable: { type: DataTypes.BOOLEAN },
+    htgtBoatTransportAvailable: { type: DataTypes.BOOLEAN },
 
     license: { type: DataTypes.TEXT },
 

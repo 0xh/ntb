@@ -119,6 +119,7 @@ export default (sequelize, DataTypes) => {
     htgtCarSummer: { type: DataTypes.BOOLEAN },
     htgtBicycle: { type: DataTypes.BOOLEAN },
     htgtPublicTransportAvailable: { type: DataTypes.BOOLEAN },
+    htgtBoatTransportAvailable: { type: DataTypes.BOOLEAN },
 
     map: { type: DataTypes.TEXT },
     mapAlt: { type: DataTypes.ARRAY(DataTypes.TEXT) },
@@ -177,7 +178,7 @@ export default (sequelize, DataTypes) => {
     });
 
     models.Cabin.belongsTo(models.CabinServiceLevel, {
-      as: 'nServiceLevel',
+      as: 'ServiceLevel',
       foreignKey: 'serviceLevel',
     });
 
