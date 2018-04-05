@@ -134,6 +134,8 @@ function mapFacilityType(type, res) {
       return 'canoe';
     case 'kortbetaling':
       return 'credit card payment';
+    case 'lokalmat':
+      return 'local food';
     case 'mobildekning':
       return 'mobile coverage';
     case 'peis':
@@ -194,6 +196,7 @@ export function mapAccessability(type, res) {
       return 'dog';
     case 'rullestol':
       return 'wheelchair';
+    case 'skolehytte':
     case 'skoleklasser':
       return 'school classes';
     default:
@@ -333,6 +336,12 @@ function processTags(obj, res, handler) {
         description: null,
       });
     }
+    else if (cleanName === 'lokalmat') {
+      res.facilities.push({
+        name: mapFacilityType(cleanName),
+        description: null,
+      });
+    }
     else if (cleanName === 'bade') {
       res.facilities.push({
         name: mapFacilityType(cleanName),
@@ -356,8 +365,28 @@ function processTags(obj, res, handler) {
         });
       }
     }
+    else if (cleanName === 'skolehytte') {
+      let exists = false;
+      const accessabilityName = mapAccessability('skolehytte');
+
+      res.accessibility.forEach((a) => {
+        if (a.name === accessabilityName) {
+          exists = true;
+        }
+      });
+
+      if (!exists) {
+        res.accessibility.push({
+          name: accessabilityName,
+          description: null,
+        });
+      }
+    }
     else if (cleanName === 'kollektiv') {
       res.cabin.htgtPublicTransportAvailable = true;
+    }
+    else if (cleanName === 'båttransport') {
+      res.cabin.htgtBoatTransportAvailable = true;
     }
     else if (cleanName === 'sykkel') {
       res.cabin.htgtBicycle = true;
@@ -455,6 +484,7 @@ async function mapping(obj, handler) {
     htgtCarSummer: false,
     htgtBicycle: false,
     htgtPublicTransportAvailable: false,
+    htgtBoatTransportAvailable: false,
 
     map: obj.kart,
     mapAlt: obj.turkart
