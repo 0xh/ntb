@@ -14,11 +14,7 @@ export default (sequelize, DataTypes) => {
 
     code: { type: DataTypes.TEXT, unique: true, allowNull: false },
 
-    type: {
-      type: DataTypes.ENUM,
-      allowNull: false,
-      values: ['summer', 'winter'],
-    },
+    isWinter: { type: DataTypes.BOOLEAN, allowNull: false, default: false },
 
     name: {
       type: DataTypes.TEXT,
