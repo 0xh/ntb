@@ -1,6 +1,20 @@
 version: '2'
 
 services:
+
+  postgres:
+    build: tools/docker-compose-assets/postgres
+    network_mode: 'bridge'
+    ports:
+      - '5400:5432'
+    environment:
+      - POSTGRES_PASSWORD=ntb
+      - POSTGRES_USER=ntb
+      - POSTGRES_DB=ntb
+    logging:
+      options:
+        max-size: "10k"
+
   api:
     build: .
     network_mode: 'bridge'
@@ -26,19 +40,5 @@ services:
       - VIRTUAL_PORT=3000
       - VIRTUAL_PATH=/
     command: /build/tools/docker-compose-assets/service-api-init.sh
-    # command: nodemon -w services/api --w shared --w settings-dev.json --inspect=0.0.0.0:9229 services/api/index.js
     extra_hosts:
       - "api.dnt.local:${DOCKER_IP}"
-
-  postgres:
-    build: tools/docker-compose-assets/postgres
-    network_mode: 'bridge'
-    ports:
-      - '5400:5432'
-    environment:
-      - POSTGRES_PASSWORD=ntb
-      - POSTGRES_USER=ntb
-      - POSTGRES_DB=ntb
-    logging:
-      options:
-        max-size: "10k"
