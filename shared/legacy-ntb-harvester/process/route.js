@@ -24,7 +24,7 @@ async function createTempTables(handler, sync = false) {
     uuid: { type: db.Sequelize.UUID, primaryKey: true },
     idLegacyNtb: { type: db.Sequelize.TEXT },
     code: { type: db.Sequelize.TEXT },
-    isWinter: { type: db.Sequelize.TEXT },
+    isWinter: { type: db.Sequelize.BOOLEAN },
     name: { type: db.Sequelize.TEXT },
     nameLowerCase: { type: db.Sequelize.TEXT },
     description: { type: db.Sequelize.TEXT },
