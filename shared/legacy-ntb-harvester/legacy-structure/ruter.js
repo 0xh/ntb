@@ -189,7 +189,7 @@ async function mapping(obj, handler) {
   res.route = {
     uuid: uuid4(),
     idLegacyNtb: obj._id,
-    is_winter: obj.rute.type !== 'Sommer',
+    isWinter: obj.rute.type !== 'Sommer',
     code: obj.rute.kode,
 
     name: obj.navn || 'mangler navn',
