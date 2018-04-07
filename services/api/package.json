@@ -1,17 +1,29 @@
 {
-  "private": true,
-  "name": "@turistforeningen/ntb-services-api",
-  "version": "0.0.0",
-  "scripts": {
-    "test": "jest"
-  },
-  "dependencies": {
-    "@turistforeningen/ntb-shared-utils": "*",
-    "@turistforeningen/ntb-shared-models": "*",
-    "body-parser": "^1.18.2",
-    "express": "^4.16.2",
-    "morgan": "^1.9.0",
-    "response-time": "^2.3.2",
-    "swagger-jsdoc": "^1.9.7"
+ "private": true,
+ "name": "@turistforeningen/ntb-services-api",
+ "version": "0.0.0",
+ "scripts": {
+  "test": "ava"
+ },
+ "dependencies": {
+  "@turistforeningen/ntb-shared-models": "*",
+  "@turistforeningen/ntb-shared-utils": "*",
+  "body-parser": "^1.18.2",
+  "express": "^4.16.2",
+  "morgan": "^1.9.0",
+  "response-time": "^2.3.2",
+  "swagger-jsdoc": "^1.9.7"
+ },
+ "ava": {
+  "babel": {
+   "testOptions": {
+    "presets": [
+     [
+      "module:ava/stage-4",
+      false
+     ]
+    ]
+   }
   }
+ }
 }
