@@ -89,9 +89,14 @@ Harvest counties and municipalities from Kartverket and update in the database.
 
 All secrets without defaults are **required**
 
-`LEGACY_MONGO_DB_URI` - MongoDB-uri to the legacy NTB database
+`NODE_ENV` : string - Node and application environment. Valid values are
+`production`, `development`, and `test`. `test` is used for unit testing.
 
-`LEGACY_MONGO_DB_NAME` - MongoDB-name to the legacy NTB database
+**legacy-ntb**
+
+`LEGACY_MONGO_DB_URI` : MongoDB-uri to the legacy NTB database
+
+`LEGACY_MONGO_DB_NAME` : MongoDB-name to the legacy NTB database
 
 **Postgres options**
 
@@ -105,15 +110,17 @@ All secrets without defaults are **required**
 
 `DB_NAME`: string - Database name
 
-`DB_POOL_MIN`: number, default 0 - Minimum number of connection in pool
+`DB_POOL_MIN`: number, default `0` - Minimum number of connection in pool
 
-`DB_POOL_MAX`: number, default 5 - Maximum number of connection in pool
+`DB_POOL_MAX`: number, default `5` - Maximum number of connection in pool
 
-`DB_POOL_IDLE`: number, default 10000 - The maximum time, in milliseconds, that a connection can be idle before being released. Use with combination of evict for proper working.
+`DB_POOL_IDLE`: number, default `10000` - The maximum time, in milliseconds, that a connection can be idle before being released. Use with combination of evict for proper working.
 
-`DB_POOL_ACQUIRE`: number, default 10000 - The maximum time, in milliseconds, that pool will try to get connection before throwing error
+`DB_POOL_ACQUIRE`: number, default `10000` - The maximum time, in milliseconds, that pool will try to get connection before throwing error
 
-`DB_POOL_EVICT`: number, default 10000 - The time interval, in milliseconds, for evicting stale connections. Set it to 0 to disable this feature.
+`DB_POOL_EVICT`: number, default `10000` - The time interval, in milliseconds, for evicting stale connections. Set it to 0 to disable this feature.
+
+`DB_DIALECT`: string, default `postgres`
 
 
 **Logging**
