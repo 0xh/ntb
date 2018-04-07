@@ -42,3 +42,4 @@ services:
     command: /build/tools/docker-compose-assets/service-api-init.sh
     extra_hosts:
       - "api.dnt.local:${DOCKER_IP}"
+      - "postgres.ntb.local:${DOCKER_IP}"
