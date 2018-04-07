@@ -111,64 +111,70 @@ function cmdResetPrev() {
 }
 
 
-const cmd = process.argv[2].trim();
-let executedCmd;
+export default function migrate(cmd) {
+  let executedCmd;
 
 
-logger.info(`${cmd.toUpperCase()} BEGIN`);
+  logger.info(`${cmd.toUpperCase()} BEGIN`);
 
-switch (cmd) {
-  case 'status':
-    executedCmd = cmdStatus();
-    break;
+  switch (cmd) {
+    case 'status':
+      executedCmd = cmdStatus();
+      break;
 
-  case 'up':
-  case 'migrate':
-    executedCmd = cmdMigrate();
-    break;
+    case 'up':
+    case 'migrate':
+      executedCmd = cmdMigrate();
+      break;
 
-  case 'next':
-  case 'migrate-next':
-    executedCmd = cmdMigrateNext();
-    break;
+    case 'next':
+    case 'migrate-next':
+      executedCmd = cmdMigrateNext();
+      break;
 
-  case 'down':
-  case 'reset':
-    executedCmd = cmdReset();
-    break;
+    case 'down':
+    case 'reset':
+      executedCmd = cmdReset();
+      break;
 
-  case 'prev':
-  case 'reset-prev':
-    executedCmd = cmdResetPrev();
-    break;
+    case 'prev':
+    case 'reset-prev':
+      executedCmd = cmdResetPrev();
+      break;
 
-  default:
-    logger.info(`invalid cmd: ${cmd}`);
-    process.exit(1);
+    default:
+      logger.info(`invalid cmd: ${cmd}`);
+      process.exit(1);
+  }
+
+  if (executedCmd) {
+    executedCmd
+      .then((result) => {
+        const doneStr = `${cmd.toUpperCase()} DONE`;
+        logger.info(doneStr);
+        logger.info('='.repeat(doneStr.length));
+      })
+      .catch((err) => {
+        const errorStr = `${cmd.toUpperCase()} ERROR`;
+        logger.error(errorStr);
+        logger.error('='.repeat(errorStr.length));
+        logger.error(err);
+        logger.error(err.stack);
+        logger.error('='.repeat(errorStr.length));
+      })
+      .then(() => {
+        if (cmd !== 'status' && cmd !== 'reset-hard') {
+          return cmdStatus();
+        }
+        return Promise.resolve();
+      })
+      .then(() => {
+        process.exit(0);
+      });
+  }
 }
 
-if (executedCmd) {
-  executedCmd
-    .then((result) => {
-      const doneStr = `${cmd.toUpperCase()} DONE`;
-      logger.info(doneStr);
-      logger.info('='.repeat(doneStr.length));
-    })
-    .catch((err) => {
-      const errorStr = `${cmd.toUpperCase()} ERROR`;
-      logger.error(errorStr);
-      logger.error('='.repeat(errorStr.length));
-      logger.error(err);
-      logger.error(err.stack);
-      logger.error('='.repeat(errorStr.length));
-    })
-    .then(() => {
-      if (cmd !== 'status' && cmd !== 'reset-hard') {
-        return cmdStatus();
-      }
-      return Promise.resolve();
-    })
-    .then(() => {
-      process.exit(0);
-    });
+if (!module.parent) {
+  const cmd = process.argv[2].trim();
+  migrate(cmd);
 }
