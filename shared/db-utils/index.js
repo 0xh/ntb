@@ -1,3 +1,4 @@
+import path from 'path';
 import _Sequelize from 'sequelize';
 import _ from 'lodash';
 
@@ -20,38 +21,50 @@ const { Op } = Sequelize;
 
 
 // Create and export sequelize instance
-export const sequelize = new _Sequelize(
-  settings.DB_NAME,
-  settings.DB_USER,
-  settings.DB_PASSWORD,
-  {
-    host: settings.DB_HOST,
-    port: settings.DB_PORT,
-    dialect: 'postgres',
+export const sequelize = settings.DB_DIALECT === 'postgres'
+  ? new _Sequelize(
+    settings.DB_NAME,
+    settings.DB_USER,
+    settings.DB_PASSWORD,
+    {
+      host: settings.DB_HOST,
+      port: settings.DB_PORT,
+      dialect: 'postgres',
 
-    pool: {
-      max: settings.DB_POOL_MAX,
-      min: settings.DB_POOL_MIN,
-      idle: settings.DB_POOL_IDLE,
-      acquire: settings.DB_POOL_ACQUIRE,
-      evict: settings.DB_POOL_EVICT,
-    },
+      pool: {
+        max: settings.DB_POOL_MAX,
+        min: settings.DB_POOL_MIN,
+        idle: settings.DB_POOL_IDLE,
+        acquire: settings.DB_POOL_ACQUIRE,
+        evict: settings.DB_POOL_EVICT,
+      },
 
-    operatorsAliases: Op,
-    benchmark: true,
+      operatorsAliases: Op,
+      benchmark: true,
 
-    logging: (sql, duration) => {
-      if (duration >= settings.DB_MIN_QUERY_TIME_FOR_LOGGING) {
-        logger.info(`SQL QUERY :: ${duration}ms execution time`);
-        let msg = sql;
-        if (msg.length > 500) {
-          msg = `${msg.substr(0, 500)} ... [TRUNCATED]`;
+      logging: (sql, duration) => {
+        if (duration >= settings.DB_MIN_QUERY_TIME_FOR_LOGGING) {
+          logger.info(`SQL QUERY :: ${duration}ms execution time`);
+          let msg = sql;
+          if (msg.length > 500) {
+            msg = `${msg.substr(0, 500)} ... [TRUNCATED]`;
+          }
+          logger.info(msg);
         }
-        logger.info(msg);
-      }
-    },
-  }
-);
+      },
+    }
+  )
+  // Database used for testing
+  : new _Sequelize(
+    settings.DB_NAME,
+    null,
+    null,
+    {
+      storage: path.resolve(__dirname, '..', '..', 'test.sqlite'),
+      dialect: 'sqlite',
+      operatorsAliases: Op,
+    }
+  );
 
 
 // Use snake case for all the tings in the database
