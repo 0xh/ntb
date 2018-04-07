@@ -29,7 +29,7 @@ export function validateLimit(query) {
  * @param {object} query
  */
 export function validateOffset(query) {
-  if (query.offset === 'undefined') {
+  if (query.offset === undefined) {
     return 0;
   }
 
