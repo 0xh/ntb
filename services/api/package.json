@@ -8,22 +8,11 @@
  "dependencies": {
   "@turistforeningen/ntb-shared-models": "*",
   "@turistforeningen/ntb-shared-utils": "*",
+  "@turistforeningen/ntb-shared-settings": "*",
   "body-parser": "^1.18.2",
   "express": "^4.16.2",
   "morgan": "^1.9.0",
   "response-time": "^2.3.2",
   "swagger-jsdoc": "^1.9.7"
- },
- "ava": {
-  "babel": {
-   "testOptions": {
-    "presets": [
-     [
-      "module:ava/stage-4",
-      false
-     ]
-    ]
-   }
-  }
  }
 }

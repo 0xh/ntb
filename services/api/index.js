@@ -1,8 +1,10 @@
 import bodyParser from 'body-parser';
 import express from 'express';
 
+import { ENV_IS_DEVELOPMENT } from '@turistforeningen/ntb-shared-settings';
 import { createLogger } from '@turistforeningen/ntb-shared-utils';
 
+import APIError from './lib/APIError';
 import controllers from './controllers';
 
 
@@ -24,9 +26,21 @@ app.use('/', controllers);
 
 // Error handler
 app.use((err, req, res, next) => {
-  res.status(500).json({
-    error: err.message,
-  });
+  const data = {};
+
+  // If it's an APIError
+  data.error = err instanceof APIError
+    ? err.message
+    : 'Oops, an unknown error occured! We\'re on it!';
+
+  if (ENV_IS_DEVELOPMENT) {
+    data.debug = {
+      message: err.message,
+      stack: err.stack.split(/\n/g),
+    };
+  }
+
+  res.status(500).json(data);
 });
 
 
