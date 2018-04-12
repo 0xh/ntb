@@ -268,7 +268,6 @@ function setFields(handler) {
   const {
     config,
     queryObject,
-    requestParameters,
     trace,
   } = handler;
 
@@ -278,7 +277,7 @@ function setFields(handler) {
 
   let validFieldKeys = Object.keys(config.validFields);
   validFieldKeys = validFieldKeys.concat(Object.keys(config.include || {}));
-  requestParameters.fields = Object.keys(config.validFields)
+  handler.fields = Object.keys(config.validFields)
     .filter((f) => config.validFields[f]);
 
   const queryFields = getKeyValue(queryObject, 'fields');
@@ -326,10 +325,21 @@ function setFields(handler) {
 
       // All fields validated
       if (valid && fields.length) {
-        requestParameters.fields = fields;
+        handler.fields = fields;
       }
     }
   }
+}
+
+
+/**
+ * Use a list of fields to process which attributes shouldb e returned from
+ * the database
+ */
+function setAttributes(handler) {
+  handler.requestParameters.attrubutes = handler.model.fieldsToAttributes(
+    handler.fields
+  );
 }
 
 
@@ -350,7 +360,7 @@ function processRequestParameters(model, referrer, handler) {
   setPaginationValues(handler);
   setOrdering(handler);
   setFields(handler);
-
+  setAttributes(handler);
   return handler.requestParameters;
 }
 
@@ -365,8 +375,10 @@ function processRequestParameters(model, referrer, handler) {
 export default function (entryModel, queryObject) {
   const handler = {
     requestParameters: {},
+    fields: [],
     errors: [],
     trace: '',
+    model: entryModel,
     queryObject,
   };
   processRequestParameters(entryModel, '*onEntry', handler);
