@@ -276,11 +276,10 @@ function setFields(handler) {
     throw new Error('validFields is not set in apiConfig');
   }
 
-  let validFieldKeys = config.validFields.map((f) => f[0]);
+  let validFieldKeys = Object.keys(config.validFields);
   validFieldKeys = validFieldKeys.concat(Object.keys(config.include || {}));
-  requestParameters.fields = config.validFields
-    .filter((f) => f[1])
-    .map((f) => f[0]);
+  requestParameters.fields = Object.keys(config.validFields)
+    .filter((f) => config.validFields[f]);
 
   const queryFields = getKeyValue(queryObject, 'fields');
   if (queryFields && queryFields[0].value) {
