@@ -115,6 +115,9 @@ const _dbMinQueryTimeForLogging = +(
 
 
 export const ENV = _env;
+export const ENV_IS_DEVELOPMENT = _env === 'development';
+export const ENV_IS_TEST = _env === 'test';
+export const ENV_IS_PRODUCTION = !ENV_IS_DEVELOPMENT && !ENV_IS_TEST;
 
 export const LEGACY_MONGO_DB_URI = _legacyMongoDbUri;
 export const LEGACY_MONGO_DB_NAME = _legacyMongoDbName;
