@@ -152,7 +152,7 @@ export default (sequelize, DataTypes) => {
           // association: 'Parents',
           model: models.Area,
           includeByDefault: true,
-          getSequelizeOptions: (refs) => ({
+          getBaseSequelizeOptions: (refs) => ({
             include: [{
               model: models.AreaToArea,
               attributes: [],
@@ -168,7 +168,7 @@ export default (sequelize, DataTypes) => {
           // association: 'Children',
           model: models.Area,
           includeByDefault: true,
-          getSequelizeOptions: (refs) => ({
+          getBaseSequelizeOptions: (refs) => ({
             include: [{
               model: models.AreaToArea,
               attributes: [],
