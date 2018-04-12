@@ -7,10 +7,11 @@
  },
  "dependencies": {
   "@turistforeningen/ntb-shared-models": "*",
-  "@turistforeningen/ntb-shared-utils": "*",
   "@turistforeningen/ntb-shared-settings": "*",
+  "@turistforeningen/ntb-shared-utils": "*",
   "body-parser": "^1.18.2",
   "express": "^4.16.2",
+  "lodash": "^4.17.5",
   "morgan": "^1.9.0",
   "response-time": "^2.3.2",
   "swagger-jsdoc": "^1.9.7"

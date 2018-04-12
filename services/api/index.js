@@ -26,13 +26,21 @@ app.use('/', controllers);
 
 // Error handler
 app.use((err, req, res, next) => {
-  const data = {};
+  const data = { error: 'Oops, an unknown error occured! We\'re on it!' };
+  let code = 500;
 
   // If it's an APIError
-  data.error = err instanceof APIError
-    ? err.message
-    : 'Oops, an unknown error occured! We\'re on it!';
+  if (err instanceof APIError) {
+    code = 400;
+    data.error = err.message;
 
+    // Add any listed API errors
+    if (err.apiErrors) {
+      data.errorDetails = err.apiErrors;
+    }
+  }
+
+  // Add stack trace if it's the development environment
   if (ENV_IS_DEVELOPMENT) {
     data.debug = {
       message: err.message,
@@ -40,7 +48,7 @@ app.use((err, req, res, next) => {
     };
   }
 
-  res.status(500).json(data);
+  res.status(code).json(data);
 });
 
 

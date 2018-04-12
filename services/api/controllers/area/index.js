@@ -3,10 +3,13 @@ import { Router } from 'express';
 import db from '@turistforeningen/ntb-shared-models';
 import { createLogger } from '@turistforeningen/ntb-shared-utils';
 
+import APIError from '../../lib/APIError';
 import {
   validateLimit,
   validateOffset,
-} from '../../lib/query-validator';
+} from '../../lib/request-options-validator';
+import requestProcesser from '../../lib/request-processer';
+import asyncHandler from '../../lib/express-async-handler';
 
 
 const logger = createLogger();
@@ -19,11 +22,13 @@ const orderMapping = {
 };
 
 
-function getValidOrderMapping(query) {
+function getValidOrderMapping(requestOptions) {
   const valid = Object.keys(orderMapping);
-  const order = query.order ? query.order.toLowerCase() : null;
-  const direction = query.order_direction
-    ? query.order_direction.toUpperCase()
+  const order = requestOptions.order
+    ? requestOptions.order.toLowerCase()
+    : null;
+  const direction = requestOptions.order_direction
+    ? requestOptions.order_direction.toUpperCase()
     : 'ASC';
 
   if (!['ASC', 'DESC'].includes(direction)) {
@@ -42,26 +47,75 @@ function getValidOrderMapping(query) {
 }
 
 
-// Find areas
-router.get('/', (req, res, next) => {
-  const queryOptions = {
-    limit: validateLimit(req.query),
-    offset: validateOffset(req.query),
-    order: getValidOrderMapping(req.query),
+function processFields(requestOptions) {
+  const areaApiConfig = db.Area.getAPIConfig(db);
+  let attributes;
 
-    logging: (sql, duration, options) => {
-      logger.debug(sql);
-      logger.debug(JSON.stringify(options));
-    },
+  if (!requestOptions.fields) {
+    attributes = areaApiConfig.fields.filter((f) => f !== 'uri');
+  }
+  else {
+    // Validate that the fields exist
+    attributes = requestOptions.fields.map((field) => {
+      if (!areaApiConfig.fields.includes(field)) {
+        throw new Error(`Invalid field '${field}'`);
+      }
+
+      return field;
+    });
+  }
+
+  return {
+    attributes,
   };
+}
 
-  db.Area.findAll(queryOptions).then((areas) => {
-    const result = {
-      areas: areas.map((area) => db.Area.format(area)),
-    };
 
-    res.json(result);
-  });
-});
+const requestParameters = {
+  limit: 3,
+  offset: 0,
+  order: 'updated_at',
+  fields: [
+    'name',
+    'uuid',
+  ],
+  e: {
+    parent: {
+      fields: [
+        'name',
+        'description',
+      ],
+    },
+  },
+};
+
+
+// Find areas
+router.get('/', asyncHandler(async (req, res, next) => {
+  // const { attributes } = processFields(requestOptions);
+
+  // const queryOptions = {
+  //   limit: validateLimit(requestOptions),
+  //   offset: validateOffset(requestOptions),
+  //   order: getValidOrderMapping(requestOptions),
+  //   attributes,
+
+  //   logging: (sql, duration, options) => {
+  //     logger.debug(sql);
+  //     logger.debug(JSON.stringify(options));
+  //   },
+  // };
+
+  // db.Area.findAll(queryOptions).then((areas) => {
+  //   const result = {
+  //     areas: areas.map((area) => db.Area.format(area)),
+  //   };
+
+  //   res.json(result);
+  // });
+
+  const data = await requestProcesser(requestParameters, db.Area);
+  res.json(data);
+}));
 
 module.exports = router;
