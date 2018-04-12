@@ -1,5 +1,5 @@
 export default (sequelize, DataTypes) => {
-  const Area = sequelize.define('Area', {
+  const attributeConfig = {
     uuid: {
       type: DataTypes.UUID,
       primaryKey: true,
@@ -49,9 +49,13 @@ export default (sequelize, DataTypes) => {
       default: 1,
       allowNull: false,
     },
-  }, {
+  };
+
+  const modelConfig = {
     timestamps: true,
-  });
+  };
+
+  const Area = sequelize.define('Area', attributeConfig, modelConfig);
 
 
   // Associations
@@ -110,21 +114,6 @@ export default (sequelize, DataTypes) => {
 
   // API presentation
 
-  Area.fields = [
-    'uri',
-    'uuid',
-    'name',
-    'description',
-    'geometry',
-    'map',
-    'url',
-    'license',
-    'provider',
-    'status',
-    'updated_at',
-    'created_at',
-  ];
-
   Area.getAPIConfig = (models) => {
     const config = { byReferrer: {} };
 
@@ -159,27 +148,43 @@ export default (sequelize, DataTypes) => {
         createdAt: false,
       },
       include: {
-        parents: { association: 'Parents' },
-        children: { association: 'Children' },
+        parents: {
+          association: 'Parents',
+          returnedByDefault: true,
+        },
+        children: {
+          association: 'Children',
+          returnedByDefault: true,
+        },
       },
     };
 
-    // Configuration when included through Area.Parents
-    config.byReferrer['Area.Parents'] = {
-      ...config.byReferrer['*onEntry'],
-      include: null,
-    };
+    // // Configuration when included through Area.Parents
+    // config.byReferrer['Area.Parents'] = {
+    //   ...config.byReferrer['*onEntry'],
+    //   include: null,
+    // };
 
-    // Configuration when included through Area.Parents
-    config.byReferrer['Area.Children'] = {
-      ...config.byReferrer['*onEntry'],
-      include: null,
-    };
+    // // Configuration when included through Area.Parents
+    // config.byReferrer['Area.Children'] = {
+    //   ...config.byReferrer['*onEntry'],
+    //   include: null,
+    // };
 
     // Default configuration when included from another model
     config.byReferrer.default = {
       ...config.byReferrer['*onEntry'],
-      include: null,
+
+      include: {
+        parents: {
+          ...config.byReferrer['*onEntry'].include.parents,
+          returnedByDefault: false,
+        },
+        children: {
+          ...config.byReferrer['*onEntry'].include.children,
+          returnedByDefault: false,
+        },
+      },
     };
 
     return config;
@@ -190,8 +195,14 @@ export default (sequelize, DataTypes) => {
       switch (field) {
         case 'uri':
           return null;
+        case 'createdAt':
+        case 'updatedAt':
+          if (modelConfig.timestamps) {
+            return field;
+          }
+          throw new Error(`Unable to translate field ${field} on Area model`);
         default:
-          if (Area.fields.includes(field)) {
+          if (Object.keys(attributeConfig).includes(field)) {
             return field;
           }
           throw new Error(`Unable to translate field ${field} on Area model`);
