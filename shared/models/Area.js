@@ -149,24 +149,48 @@ export default (sequelize, DataTypes) => {
       },
       include: {
         parents: {
-          association: 'Parents',
-          returnedByDefault: true,
+          // association: 'Parents',
+          model: models.Area,
+          includeByDefault: true,
+          getSequelizeOptions: (refs) => ({
+            include: [{
+              model: models.AreaToArea,
+              attributes: [],
+              where: {
+                child_uuid: {
+                  in: refs.map((r) => r.uuid),
+                },
+              },
+            }],
+          }),
         },
         children: {
-          association: 'Children',
-          returnedByDefault: true,
+          // association: 'Children',
+          model: models.Area,
+          includeByDefault: true,
+          getSequelizeOptions: (refs) => ({
+            include: [{
+              model: models.AreaToArea,
+              attributes: [],
+              where: {
+                parent_uuid: {
+                  in: refs.map((r) => r.uuid),
+                },
+              },
+            }],
+          }),
         },
       },
     };
 
     // // Configuration when included through Area.Parents
-    // config.byReferrer['Area.Parents'] = {
+    // config.byReferrer['Area.parents'] = {
     //   ...config.byReferrer['*onEntry'],
     //   include: null,
     // };
 
     // // Configuration when included through Area.Parents
-    // config.byReferrer['Area.Children'] = {
+    // config.byReferrer['Area.parents'] = {
     //   ...config.byReferrer['*onEntry'],
     //   include: null,
     // };
@@ -178,11 +202,11 @@ export default (sequelize, DataTypes) => {
       include: {
         parents: {
           ...config.byReferrer['*onEntry'].include.parents,
-          returnedByDefault: false,
+          includeByDefault: false,
         },
         children: {
           ...config.byReferrer['*onEntry'].include.children,
-          returnedByDefault: false,
+          includeByDefault: false,
         },
       },
     };
