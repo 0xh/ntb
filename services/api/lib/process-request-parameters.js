@@ -1,9 +1,37 @@
+import _ from 'lodash';
+
 import db from '@turistforeningen/ntb-shared-models';
 import { isNumber } from '@turistforeningen/ntb-shared-utils';
 
 import APIError from './APIError';
 
+/**
+ * Get the value(s) from the specified key from the queryObject. This is a
+ * case insensitive way of parsing the query object.
+ * @param {object} queryObject
+ * @param {string} key
+ */
+function getKeyValue(queryObject, key) {
+  const values = [];
+  Object.keys(queryObject).forEach((rawKey) => {
+    const k = _.camelCase(rawKey.split('.', 1)[0].toLowerCase().trim());
+    if (k === key) {
+      values.push({
+        originalKey: rawKey,
+        value: queryObject[rawKey],
+      });
+    }
+  });
 
+  return values.length ? values : null;
+}
+
+
+/**
+ * Using the specified APIConfig, this funciton returns a lists of all valid
+ * query parameters
+ * @param {object} handler
+ */
 function setValidKeys(handler) {
   const validKeys = ['fields'];
   const { config } = handler;
@@ -33,33 +61,26 @@ function setValidKeys(handler) {
 }
 
 
+/**
+ * General key validation. Reports error on any unknown key.
+ * @param {*} handler
+ */
 function validateKeys(handler) {
   const keys = Object.keys(handler.queryObject);
 
-  keys.forEach((key) => {
+  keys.forEach((rawKey) => {
+    const key = _.camelCase(rawKey.split('.', 1)[0].toLowerCase().trim());
     if (!handler.validKeys.includes(key)) {
       // Add errors on invalid query parameters (?queryparam)
-      const queryStringKeys = Object.keys(
-        handler.trace.queryStringObject || {}
+      handler.errors.push(
+        `Invalid query parameter: ${handler.trace}${rawKey}`
       );
-      const invalidKeys = queryStringKeys
-        .filter((k) => k.startsWith(`${key}.`));
-      if (invalidKeys.length) {
-        invalidKeys.forEach((invalid) => {
-          handler.errors.push(`Invalid query parameter: ${invalid}`);
-        });
-      }
-      // Add generic error
-      else {
-        handler.errors.push(
-          `Invalid query parameter: ${handler.trace.parent}${key}`
-        );
-      }
 
       delete handler.queryObject[key];
     }
   });
 }
+
 
 /**
  * Validate limit option
@@ -67,7 +88,7 @@ function validateKeys(handler) {
  * @param {object} handler
  */
 function validateLimit(queryObject, handler) {
-  const { config, trace } = handler;
+  const { config } = handler;
 
   if (!config.defaultLimit) {
     throw new Error('defaultLimit is not set in apiConfig');
@@ -77,45 +98,59 @@ function validateLimit(queryObject, handler) {
     throw new Error('maxLimit is not set in apiConfig');
   }
 
-  if (isNumber(queryObject.limit)) {
-    const limit = +queryObject.limit;
-    if (limit > 0 && limit <= config.maxLimit) {
-      return limit;
+  const queryLimit = getKeyValue(queryObject, 'limit');
+  if (queryLimit) {
+    const qLimit = queryLimit[0];
+    if (isNumber(qLimit.value)) {
+      const limit = +qLimit.value;
+      if (limit > 0 && limit <= config.maxLimit) {
+        return limit;
+      }
     }
-  }
 
-  if (queryObject.limit) {
-    handler.errors.push(`Invalid ${trace.parent}limit value`);
+    if (qLimit.value) {
+      const { trace } = handler;
+      handler.errors.push(
+        `Invalid ${trace}${qLimit.originalKey} value "${qLimit.value}"`
+      );
+    }
   }
 
   return config.defaultLimit;
 }
 
+
 /**
  * Validate offset option
- * @param {object} requestOptions
+ * @param {object} queryObject
  * @param {object} handler
  */
 function validateOffset(queryObject, handler) {
-  const { offset } = queryObject;
-  if (!queryObject.offset) {
-    return 0;
-  }
+  const queryOffset = getKeyValue(queryObject, 'offset');
+  if (queryOffset) {
+    const qOffset = queryOffset[0];
 
-  if (isNumber(offset)) {
-    const numOffset = +queryObject.offset;
-    if (numOffset >= 0 && numOffset <= Number.MAX_SAFE_INTEGER) {
-      return numOffset;
+    if (isNumber(qOffset.value)) {
+      const numOffset = +qOffset.value;
+      if (numOffset >= 0 && numOffset <= Number.MAX_SAFE_INTEGER) {
+        return numOffset;
+      }
     }
-  }
 
-  const { trace } = handler;
-  handler.errors.push(`Invalid ${trace.parent}offset value`);
+    const { trace } = handler;
+    handler.errors.push(
+      `Invalid ${trace}${qOffset.originalKey} value "${qOffset.value}"`
+    );
+  }
 
   return 0;
 }
 
 
+/**
+ * Sets the pagination values (limit and offset)
+ * @param {*} handler
+ */
 function setPaginationValues(handler) {
   const { config } = handler;
   if (config.paginate) {
@@ -126,6 +161,10 @@ function setPaginationValues(handler) {
 }
 
 
+/**
+ * Validates and sets database ordering from the ?order=... query parameter
+ * @param {object} handler
+ */
 function setOrdering(handler) {
   const {
     config,
@@ -144,34 +183,87 @@ function setOrdering(handler) {
 
   requestParameters.order = config.defaultOrder;
 
-  if (config.ordering && queryObject.order) {
-    if (!Array.isArray(queryObject.order)) {
-      handler.errors.push(`Invalid ${trace.parent}order value`);
-    }
-    else {
-      let valid = true;
-      queryObject.order.forEach((o) => {
-        if (
-          !Array.isArray(o)
-          || o.length !== 2
-          || !config.validOrderFields.includes(o[0])
-          || (o[1] !== 'asc' && o[2] !== 'desc')
-        ) {
-          valid = false;
-        }
-      });
+  if (config.ordering) {
+    const queryOrder = getKeyValue(queryObject, 'order');
+    if (queryOrder && queryOrder[0].value) {
+      const qOrder = queryOrder[0];
+      let values = qOrder.value;
 
-      if (valid) {
-        requestParameters.order = queryObject.order;
+      // Convert to array
+      if (!Array.isArray(values)) {
+        values = values.split(',').map((v) => v.trim());
+      }
+
+      // Filter empty values
+      values = values.filter((v) => v);
+
+      // Used for reporting errors
+      qOrder.errorReportingValue = Array.isArray(qOrder.value)
+        ? qOrder.value.join(', ')
+        : qOrder.value;
+
+      // If empty, the parameter is invalid
+      if (!values.length) {
+        handler.errors.push(
+          `Invalid ${trace}${qOrder.originalKey} value ` +
+          `"${qOrder.errorReportingValue}"`
+        );
       }
       else {
-        handler.errors.push(`Invalid ${trace.parent}order value`);
+        let valid = false;
+        const order = [];
+        values.forEach((orderExpression) => {
+          const o = orderExpression.split(' ');
+
+          if (o.length !== 2) {
+            handler.errors.push(
+              `Invalid ${trace}${qOrder.originalKey} value ` +
+              `"${qOrder.errorReportingValue}"` +
+              `${values.length > 1 ? ` on "${orderExpression}".` : '. '}` +
+              'The correct format is "<field_name> asc|desc"'
+            );
+            valid = false;
+          }
+          else {
+            o[0] = _.camelCase(o[0].toLowerCase().trim());
+            o[1] = o[1].toLowerCase().trim();
+
+            if (!config.validOrderFields.includes(o[0])) {
+              handler.errors.push(
+                `Invalid ${trace}${qOrder.originalKey} value ` +
+                `"${qOrder.errorReportingValue}"` +
+                `${values.length > 1 ? ` on "${orderExpression}".` : '. '}` +
+                'The field name is not a valid order field.'
+              );
+              valid = false;
+            }
+            if (o[1] !== 'asc' && o[2] !== 'desc') {
+              handler.errors.push(
+                `Invalid ${trace}${qOrder.originalKey} value ` +
+                `"${qOrder.errorReportingValue}"` +
+                `${values.length > 1 ? ` on "${orderExpression}".` : '. '}` +
+                'The order direction must be either "asc" or "desc".'
+              );
+              valid = false;
+            }
+
+            order.push([o[0], o[1]]);
+          }
+        });
+
+        if (valid && order.length) {
+          requestParameters.order = order;
+        }
       }
     }
   }
 }
 
 
+/**
+ * Validates and sets fields from the ?fields=... parameter.
+ * @param {object} handler
+ */
 function setFields(handler) {
   const {
     config,
@@ -190,41 +282,65 @@ function setFields(handler) {
     .filter((f) => f[1])
     .map((f) => f[0]);
 
-  if (queryObject.fields) {
-    if (!Array.isArray(queryObject.fields)) {
-      handler.errors.push(`Invalid ${trace.parent}field value`);
+  const queryFields = getKeyValue(queryObject, 'fields');
+  if (queryFields && queryFields[0].value) {
+    const qFields = queryFields[0];
+    let values = qFields.value;
+
+    // Convert to array
+    if (!Array.isArray(values)) {
+      values = values.split(',').map((v) => v.trim());
+    }
+
+    // Filter empty values
+    values = values.filter((v) => v);
+
+    // Used for reporting errors
+    qFields.errorReportingValue = Array.isArray(qFields.value)
+      ? qFields.value.join(', ')
+      : qFields.value;
+
+    // If empty, the parameter is invalid
+    if (!values.length) {
+      handler.errors.push(
+        `Invalid ${trace}${qFields.originalKey} value ` +
+        `"${qFields.errorReportingValue}"`
+      );
     }
     else {
       let valid = false;
-      queryObject.fields.forEach((field) => {
-        if (!validFieldKeys.includes(field)) {
-          handler.errors.push(`Invalid ${trace.parent}field value "${field}"`);
+      const fields = [];
+      values.forEach((fieldExpression) => {
+        const f = _.camelCase(fieldExpression.toLowerCase().trim());
+        if (!validFieldKeys.includes(f)) {
+          handler.errors.push(
+            `Invalid ${trace}${qFields.originalKey} value ` +
+            `"${qFields.errorReportingValue}"` +
+            `${values.length > 1 ? ` on "${fieldExpression}".` : '. '}` +
+            'This is not a valid field.'
+          );
           valid = false;
         }
+
+        fields.push(f);
       });
 
-      if (valid) {
-        requestParameters.fields = queryObject.fields;
+      // All fields validated
+      if (valid && fields.length) {
+        requestParameters.fields = fields;
       }
     }
   }
 }
 
 
-function processRequestParameters(
-  model,
-  referrer,
-  queryObject,
-  trace,
-  errors
-) {
-  const handler = {
-    requestParameters: {},
-    queryObject,
-    errors,
-    trace,
-  };
-
+/**
+ * Used as a recursive function to process models and any extend-models
+ * @param {object} model
+ * @param {string} referrer
+ * @param {object} handler
+ */
+function processRequestParameters(model, referrer, handler) {
   const { byReferrer } = model.getAPIConfig(db);
   handler.config = Object.keys(byReferrer).includes(referrer)
     ? byReferrer[referrer]
@@ -244,22 +360,24 @@ function processRequestParameters(
  * Validate and processes queryObject into request parameters used by the
  * process-request module.
  * @param {object} entryModel The entry db.model
- * @param {object} input a preconfigured nested query object
- * @param {object} trace
+ * @param {object} queryObject a preconfigured nested query object or the
+ *                             ExpressJS req.query object
  */
-export default function (entryModel, queryObject, queryStringObject) {
-  const errors = [];
-  const trace = {
-    queryStringObject,
-    parent: '',
+export default function (entryModel, queryObject) {
+  const handler = {
+    requestParameters: {},
+    errors: [],
+    trace: '',
+    queryObject,
   };
-  const requestParameters = processRequestParameters(
-    entryModel, '*onEntry', queryObject, trace, errors
-  );
+  processRequestParameters(entryModel, '*onEntry', handler);
 
-  if (errors.length) {
-    throw new APIError('The query is not valid', { apiErrors: errors });
+  if (handler.errors.length) {
+    throw new APIError(
+      'The query is not valid',
+      { apiErrors: handler.errors }
+    );
   }
 
-  return requestParameters;
+  return handler.requestParameters;
 }
