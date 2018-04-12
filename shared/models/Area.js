@@ -110,8 +110,98 @@ export default (sequelize, DataTypes) => {
 
   // API presentation
 
+  Area.fields = [
+    'uri',
+    'uuid',
+    'name',
+    'description',
+    'geometry',
+    'map',
+    'url',
+    'license',
+    'provider',
+    'status',
+    'updated_at',
+    'created_at',
+  ];
+
+  Area.getAPIConfig = (models) => {
+    const config = { byReferrer: {} };
+
+    // Configuration when it's the entry model
+    config.byReferrer['*onEntry'] = {
+      paginate: true,
+      fullTextSearch: true,
+      ordering: true,
+
+      defaultLimit: 10,
+      maxLimit: 50,
+      validOrderFields: [
+        'name',
+        'updatedAt',
+        'createdAt',
+      ],
+      defaultOrder: [['name', 'DESC']],
+      validFields: [
+        ['uri', true],
+        ['uuid', true],
+        ['name', true],
+        ['description', true],
+        ['geometry', true],
+        ['map', true],
+        ['url', true],
+        ['license', true],
+        ['provider', true],
+        ['status', true],
+        ['updatedAt', true],
+        ['createdAt', false],
+      ],
+      include: {
+        parents: { association: 'Parents' },
+        children: { association: 'Children' },
+      },
+    };
+
+    // Configuration when included through Area.Parents
+    config.byReferrer['Area.Parents'] = {
+      ...config.byReferrer['*onEntry'],
+      include: null,
+    };
+
+    // Configuration when included through Area.Parents
+    config.byReferrer['Area.Children'] = {
+      ...config.byReferrer['*onEntry'],
+      include: null,
+    };
+
+    // Default configuration when included from another model
+    config.byReferrer.default = {
+      ...config.byReferrer['*onEntry'],
+      include: null,
+    };
+
+    return config;
+  };
+
+  Area.fieldsToAttributes = (fields) => {
+    const attributes = fields.map((field) => {
+      switch (field) {
+        case 'uri':
+          return null;
+        default:
+          if (Area.fields.includes(field)) {
+            return field;
+          }
+          throw new Error(`Unable to translate field ${field} on Area model`);
+      }
+    }).filter((field) => field !== null);
+
+    return attributes;
+  };
+
   Area.format = (instance) => (
     {
+      uri: `area/${instance.uuid}`,
       uuid: instance.uuid,
       name: instance.name,
       description: instance.description,
