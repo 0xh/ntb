@@ -154,9 +154,9 @@ function validateOffset(queryObject, handler) {
 function setPaginationValues(handler) {
   const { config } = handler;
   if (config.paginate) {
-    const { requestParameters, queryObject } = handler;
-    requestParameters.limit = validateLimit(queryObject, handler);
-    requestParameters.offset = validateOffset(queryObject, handler);
+    const { sequelizeOptions, queryObject } = handler;
+    sequelizeOptions.limit = validateLimit(queryObject, handler);
+    sequelizeOptions.offset = validateOffset(queryObject, handler);
   }
 }
 
@@ -169,7 +169,7 @@ function setOrdering(handler) {
   const {
     config,
     queryObject,
-    requestParameters,
+    sequelizeOptions,
     trace,
   } = handler;
 
@@ -181,7 +181,7 @@ function setOrdering(handler) {
     throw new Error('validOrderFields is not set in apiConfig');
   }
 
-  requestParameters.order = config.defaultOrder;
+  sequelizeOptions.order = config.defaultOrder;
 
   if (config.ordering) {
     const queryOrder = getKeyValue(queryObject, 'order');
@@ -252,7 +252,7 @@ function setOrdering(handler) {
         });
 
         if (valid && order.length) {
-          requestParameters.order = order;
+          sequelizeOptions.order = order;
         }
       }
     }
@@ -306,7 +306,7 @@ function setFields(handler) {
       );
     }
     else {
-      let valid = false;
+      let valid = true;
       const fields = [];
       values.forEach((fieldExpression) => {
         const f = _.camelCase(fieldExpression.toLowerCase().trim());
@@ -337,9 +337,97 @@ function setFields(handler) {
  * the database
  */
 function setAttributes(handler) {
-  handler.requestParameters.attrubutes = handler.model.fieldsToAttributes(
+  // translate fields to attributes for fields which are not includes/extends
+  handler.sequelizeOptions.attributes = handler.model.fieldsToAttributes(
     handler.fields
+      .filter((f) => !Object.keys(handler.config.include).includes(f))
   );
+}
+
+
+/**
+ * Set list of associations to be included
+ * @param {object} handler
+ */
+function setIncludes(handler) {
+  const { queryObject, config } = handler;
+
+  // Do nothing if the model api configuration does not define any
+  if (!config.include || !Object.keys(config.include).length) {
+    return;
+  }
+
+  // Use defaults if not fields value is set
+  let useDefaults = true;
+  const queryFields = getKeyValue(queryObject, 'fields');
+  if (queryFields && queryFields[0].value) {
+    useDefaults = false;
+  }
+
+  if (useDefaults) {
+    Object.keys(config.include).forEach((key) => {
+      const includeOptions = config.include[key];
+      if (includeOptions.includeByDefault) {
+        handler.include[key] = includeOptions;
+      }
+    });
+  }
+  // Include only those specified in fields
+  else {
+    Object.keys(config.include).forEach((key) => {
+      if (handler.fields.includes(key)) {
+        handler.include[key] = config.include[key];
+      }
+    });
+  }
+}
+
+
+function getExtendQueryObject(handler, key) {
+  let extendQueryObject = {};
+  const values = getKeyValue(handler.queryObject, 'e');
+  if (values && values.length) {
+    // If its a formatted object
+    if (values.length === 1 && values[0].originalKey === 'e') {
+      if (values[0].value[key]) {
+        extendQueryObject = values[0].value[key];
+      }
+    }
+    // If it's string named e.[key].<opt_name>
+    else {
+      values.forEach((value) => {
+        const prefix = `e.${key}.`;
+        if (value.originalKey.startsWith(prefix)) {
+          const k = value.originalKey.substr(prefix.length);
+          extendQueryObject[k] = value.value;
+        }
+      });
+    }
+  }
+
+  return extendQueryObject;
+}
+
+
+function getDefaultHandler(model, queryObject, errors = [], trace = '') {
+  return {
+    sequelizeOptions: {},
+    fields: [],
+    include: {},
+    errors,
+    trace,
+    model,
+    queryObject,
+  };
+}
+
+
+function returnFromHandler(handler) {
+  return {
+    fields: handler.fields,
+    include: handler.include,
+    sequelizeOptions: handler.sequelizeOptions,
+  };
 }
 
 
@@ -349,8 +437,8 @@ function setAttributes(handler) {
  * @param {string} referrer
  * @param {object} handler
  */
-function processRequestParameters(model, referrer, handler) {
-  const { byReferrer } = model.getAPIConfig(db);
+function processRequestParameters(referrer, handler) {
+  const { byReferrer } = handler.model.getAPIConfig(db);
   handler.config = Object.keys(byReferrer).includes(referrer)
     ? byReferrer[referrer]
     : byReferrer.default;
@@ -361,7 +449,45 @@ function processRequestParameters(model, referrer, handler) {
   setOrdering(handler);
   setFields(handler);
   setAttributes(handler);
-  return handler.requestParameters;
+  setIncludes(handler);
+
+
+  // Update sequelizeOptions with includes and recursive request parameter
+  // processing
+  if (Object.keys(handler.include).length) {
+    const { sequelizeOptions } = handler;
+    sequelizeOptions.include = [];
+    Object.keys(handler.include).forEach((key) => {
+      const extendQueryObject = getExtendQueryObject(handler, key);
+      const { association } = handler.include[key];
+      const extendModel = association
+        ? handler.model.associations[association].target
+        : handler.include[key].model;
+
+      const extendHandler = getDefaultHandler(
+        extendModel,
+        extendQueryObject,
+        handler.errors,
+        `e.${handler.trace}${key}.`
+      );
+      processRequestParameters(`${handler.model.name}.${key}`, extendHandler);
+
+      // If it should be included in the main query
+      if (association) {
+        sequelizeOptions.include.push({
+          association: handler.include[key].association,
+          ...extendHandler.sequelizeOptions,
+        });
+      }
+      // Add options to handler.include
+      else {
+        handler.include[key] = {
+          ...handler.include[key],
+          ...returnFromHandler(extendHandler),
+        };
+      }
+    });
+  }
 }
 
 
@@ -373,15 +499,8 @@ function processRequestParameters(model, referrer, handler) {
  *                             ExpressJS req.query object
  */
 export default function (entryModel, queryObject) {
-  const handler = {
-    requestParameters: {},
-    fields: [],
-    errors: [],
-    trace: '',
-    model: entryModel,
-    queryObject,
-  };
-  processRequestParameters(entryModel, '*onEntry', handler);
+  const handler = getDefaultHandler(entryModel, queryObject);
+  processRequestParameters('*onEntry', handler);
 
   if (handler.errors.length) {
     throw new APIError(
@@ -390,5 +509,5 @@ export default function (entryModel, queryObject) {
     );
   }
 
-  return handler.requestParameters;
+  return returnFromHandler(handler);
 }
