@@ -105,6 +105,9 @@ sequelize.addHook('beforeDefine', (attributes, options) => {
   if (options.otherKey) {
     options.otherKey = _.snakeCase(options.otherKey);
   }
+  if (options.sourceKey) {
+    options.sourceKey = _.snakeCase(options.sourceKey);
+  }
 });
 
 
