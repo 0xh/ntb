@@ -1,6 +1,7 @@
 import path from 'path';
 import _Sequelize from 'sequelize';
 import _ from 'lodash';
+import uuid4 from 'uuid/v4';
 
 import * as settings from '@turistforeningen/ntb-shared-settings';
 import { createLogger } from '@turistforeningen/ntb-shared-utils';
@@ -138,3 +139,29 @@ sequelize.addHook('beforeFindAfterOptions', (options) => {
     }
   }
 });
+
+
+// HELPERS
+
+
+export function getSqlFromFindAll(Model, options) {
+  const id = uuid4();
+
+  return new Promise((resolve, reject) => {
+    Model.addHook('beforeFindAfterOptions', id, (opts) => {
+      Model.removeHook('beforeFindAfterOptions', id);
+
+      resolve(
+        Model.sequelize.dialect.QueryGenerator.selectQuery(
+          Model.getTableName(),
+          opts,
+          Model
+        ).slice(0, -1)
+      );
+
+      return new Promise(() => {});
+    });
+
+    return Model.findAll(options).catch(reject);
+  });
+}
