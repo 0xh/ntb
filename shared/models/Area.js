@@ -79,6 +79,18 @@ export default (sequelize, DataTypes) => {
       otherKey: 'parentUuid',
     });
 
+    models.Area.hasMany(models.AreaToArea, {
+      as: 'AreaToAreaParent',
+      foreignKey: 'parentUuid',
+      sourceKey: 'uuid',
+    });
+
+    models.Area.hasMany(models.AreaToArea, {
+      as: 'AreaToAreaChild',
+      foreignKey: 'childUuid',
+      sourceKey: 'uuid',
+    });
+
     models.Area.belongsToMany(models.County, {
       as: 'Counties',
       through: models.AreaToCounty,
@@ -144,41 +156,26 @@ export default (sequelize, DataTypes) => {
         license: true,
         provider: true,
         status: true,
+        dataSource: true,
         updatedAt: true,
         createdAt: false,
       },
       include: {
         parents: {
-          // association: 'Parents',
-          model: models.Area,
           includeByDefault: true,
-          getBaseSequelizeOptions: (refs) => ({
-            include: [{
-              model: models.AreaToArea,
-              attributes: [],
-              where: {
-                child_uuid: {
-                  in: refs.map((r) => r.uuid),
-                },
-              },
-            }],
-          }),
+          model: models.Area,
+          through: {
+            association: 'AreaToAreaParent',
+            foreignKey: 'child_uuid',
+          },
         },
         children: {
-          // association: 'Children',
-          model: models.Area,
           includeByDefault: true,
-          getBaseSequelizeOptions: (refs) => ({
-            include: [{
-              model: models.AreaToArea,
-              attributes: [],
-              where: {
-                parent_uuid: {
-                  in: refs.map((r) => r.uuid),
-                },
-              },
-            }],
-          }),
+          model: models.Area,
+          through: {
+            association: 'AreaToAreaChild',
+            foreignKey: 'parent_uuid',
+          },
         },
       },
     };
