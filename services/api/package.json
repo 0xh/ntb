@@ -9,6 +9,7 @@
   "@turistforeningen/ntb-shared-models": "*",
   "@turistforeningen/ntb-shared-settings": "*",
   "@turistforeningen/ntb-shared-utils": "*",
+  "@turistforeningen/ntb-shared-db-utils": "*",
   "body-parser": "^1.18.2",
   "express": "^4.16.2",
   "lodash": "^4.17.5",

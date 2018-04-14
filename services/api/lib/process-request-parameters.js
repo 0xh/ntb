@@ -2,6 +2,7 @@ import _ from 'lodash';
 
 import db from '@turistforeningen/ntb-shared-models';
 import { isNumber } from '@turistforeningen/ntb-shared-utils';
+import { getSqlFromFindAll } from '@turistforeningen/ntb-shared-db-utils';
 
 import APIError from './APIError';
 
@@ -383,6 +384,11 @@ function setIncludes(handler) {
 }
 
 
+/**
+ * Process current queryObject and get values defined for the extend model
+ * @param {object} handler
+ * @param {key} key
+ */
 function getExtendQueryObject(handler, key) {
   let extendQueryObject = {};
   const values = getKeyValue(handler.queryObject, 'e');
@@ -409,6 +415,13 @@ function getExtendQueryObject(handler, key) {
 }
 
 
+/**
+ * Get handler object with default values
+ * @param {object} model
+ * @param {object} queryObject
+ * @param {array} errors
+ * @param {string} trace
+ */
 function getDefaultHandler(model, queryObject, errors = [], trace = '') {
   return {
     sequelizeOptions: {},
@@ -422,9 +435,15 @@ function getDefaultHandler(model, queryObject, errors = [], trace = '') {
 }
 
 
-function returnFromHandler(handler) {
+/**
+ * Pick relevant keys from the handler object
+ * @param {object} handler
+ */
+function pickFromHandlerObject(handler) {
   return {
     fields: handler.fields,
+    model: handler.model,
+    config: handler.config,
     include: handler.include,
     sequelizeOptions: handler.sequelizeOptions,
   };
@@ -433,7 +452,6 @@ function returnFromHandler(handler) {
 
 /**
  * Used as a recursive function to process models and any extend-models
- * @param {object} model
  * @param {string} referrer
  * @param {object} handler
  */
@@ -483,11 +501,120 @@ function processRequestParameters(referrer, handler) {
       else {
         handler.include[key] = {
           ...handler.include[key],
-          ...returnFromHandler(extendHandler),
+          ...pickFromHandlerObject(extendHandler),
         };
       }
     });
   }
+}
+
+
+async function createIncludeSqlQuery(handler, include) {
+  const originModel = handler.model;
+  const { model, through } = include;
+  const throughModel = originModel.associations[through.association].target;
+
+  let sql = await getSqlFromFindAll(model, {
+    ...include.sequelizeOptions,
+    include: [{
+      association: through.association,
+      attributes: [],
+    }],
+  });
+
+  // Replace existing limits and offsets
+  sql = sql.replace(/LIMIT [0-9]+ OFFSET [0-9]+/g, '');
+
+  // Replace "LEFT OUTER JOIN" WITH "INNER JOIN"
+  sql = sql.replace(
+    `LEFT OUTER JOIN "${throughModel.tableName}"`,
+    `INNER JOIN "${throughModel.tableName}"`
+  );
+
+  // Inject WHERE clause to connect outer table with the lateral join
+  const innerJoinByPos = sql.lastIndexOf(' INNER JOIN ');
+  const orderByPos = sql.lastIndexOf(' ORDER BY ');
+  let wherePos = sql.indexOf(' WHERE ', innerJoinByPos);
+  if (wherePos === -1) {
+    wherePos = null;
+  }
+
+  sql = (
+    `${sql.substr(0, wherePos || orderByPos)} WHERE ` +
+    `"${through.association}"."${through.foreignKey}" = "outer"."uuid" ` +
+    `${wherePos ? 'AND' : ''} ${sql.substr(orderByPos)} ` +
+    `LIMIT ${include.sequelizeOptions.limit} ` +
+    `OFFSET ${include.sequelizeOptions.offset} `
+  );
+
+  // Add outer sql an lateral join the main sql
+  sql = (
+    'SELECT "outer"."uuid" AS "outerid", "Area".* ' +
+    `FROM "public"."area" AS "outer", LATERAL (${sql}) AS "Area" ` +
+    'WHERE "outer"."uuid" IN (?) ORDER BY "outer"."uuid"'
+  );
+
+  return sql;
+}
+
+
+async function executeIncludeQueries(handler, outerInstances) {
+  await Promise.all(
+    Object.keys(handler.include).map(async (key) => {
+      // Create the inclide sql
+      const include = handler.include[key];
+      const sqlQuery = await createIncludeSqlQuery(handler, include);
+
+      // Run the query
+      const rows = await db.sequelize.query(sqlQuery, {
+        type: db.sequelize.QueryTypes.SELECT,
+        replacements: [
+          outerInstances.map((r) => r.uuid),
+        ],
+      });
+
+      // Map the results to the include model
+      const includeInstances = [];
+      rows.forEach((row) => {
+        // Find the main row
+        const outerInstance = _.head(
+          outerInstances.filter((r) => r.uuid === row.outerid)
+        );
+        if (!outerInstance) {
+          throw new Error('Unable to map include.row with outer.row');
+        }
+
+        // Initiate include array
+        if (!outerInstance[key]) {
+          outerInstance[key] = { count: null, rows: [] };
+        }
+
+        // Append the instance
+        const instance = new include.model(row);
+        includeInstances.push(instance);
+        outerInstance[key].rows.push(instance);
+      });
+
+      // Recursive include
+      if (Object.keys(include.include).length) {
+        await executeIncludeQueries(include, includeInstances);
+      }
+    })
+  );
+}
+
+
+/**
+ * Process the defined queries and return data
+ * @param {object} handler
+ */
+async function executeQuery(handler) {
+  const result = await handler.model.findAndCountAll(handler.sequelizeOptions);
+  console.log(result.rows.map(async (r) => r.uuid));
+
+  // Run any include queries
+  await executeIncludeQueries(handler, result.rows);
+  debugger;
 }
 
 
@@ -498,7 +625,7 @@ function processRequestParameters(referrer, handler) {
  * @param {object} queryObject a preconfigured nested query object or the
  *                             ExpressJS req.query object
  */
-export default function (entryModel, queryObject) {
+export default async function (entryModel, queryObject) {
   const handler = getDefaultHandler(entryModel, queryObject);
   processRequestParameters('*onEntry', handler);
 
@@ -509,5 +636,7 @@ export default function (entryModel, queryObject) {
     );
   }
 
-  return returnFromHandler(handler);
+  const result = await executeQuery(pickFromHandlerObject(handler));
+
+  return pickFromHandlerObject(handler);
 }
