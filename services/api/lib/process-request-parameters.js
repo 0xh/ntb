@@ -1,7 +1,7 @@
 import _ from 'lodash';
 
 import db from '@turistforeningen/ntb-shared-models';
-import { isNumber } from '@turistforeningen/ntb-shared-utils';
+import { isNumber, isObject } from '@turistforeningen/ntb-shared-utils';
 import { getSqlFromFindAll } from '@turistforeningen/ntb-shared-db-utils';
 
 import APIError from './APIError';
@@ -53,7 +53,7 @@ function setValidKeys(handler) {
     validKeys.push('q');
   }
 
-  // Full text search key
+  // Extend key
   if (config.include && Object.keys(config.include).length) {
     validKeys.push('e');
   }
@@ -68,16 +68,34 @@ function setValidKeys(handler) {
  */
 function validateKeys(handler) {
   const keys = Object.keys(handler.queryObject);
+  const keysWithValidDots = ['e'];
 
   keys.forEach((rawKey) => {
     const key = _.camelCase(rawKey.split('.', 1)[0].toLowerCase().trim());
-    if (!handler.validKeys.includes(key)) {
+    if (
+      !handler.validKeys.includes(key)
+      || (
+        rawKey.includes('.')
+        && !keysWithValidDots.includes(key)
+      )
+    ) {
       // Add errors on invalid query parameters (?queryparam)
       handler.errors.push(
         `Invalid query parameter: ${handler.trace}${rawKey}`
       );
 
       delete handler.queryObject[key];
+    }
+
+    if (key === 'e') {
+      const dotCount = (rawKey.match(/\./g) || []).length;
+      if (dotCount < 2 && !isObject(handler.queryObject.e)) {
+        handler.errors.push(
+          `Invalid query parameter format: ${handler.trace}${rawKey}`
+        );
+      }
+
+      delete handler.queryObject.e;
     }
   });
 }
@@ -276,10 +294,15 @@ function setFields(handler) {
     throw new Error('validFields is not set in apiConfig');
   }
 
-  let validFieldKeys = Object.keys(config.validFields);
-  validFieldKeys = validFieldKeys.concat(Object.keys(config.include || {}));
+  const validFieldKeys = Object.keys(config.validFields);
+  const validIncludeKeys = Object.keys(config.include || {});
+
+  // Set default fields
   handler.fields = Object.keys(config.validFields)
     .filter((f) => config.validFields[f]);
+  handler.includeFields = (
+    validIncludeKeys.filter((k) => config.include[k].includeByDefault)
+  );
 
   const queryFields = getKeyValue(queryObject, 'fields');
   if (queryFields && queryFields[0].value) {
@@ -309,9 +332,10 @@ function setFields(handler) {
     else {
       let valid = true;
       const fields = [];
+      const includeFields = [];
       values.forEach((fieldExpression) => {
         const f = _.camelCase(fieldExpression.toLowerCase().trim());
-        if (!validFieldKeys.includes(f)) {
+        if (!validFieldKeys.includes(f) && !validIncludeKeys.includes(f)) {
           handler.errors.push(
             `Invalid ${trace}${qFields.originalKey} value ` +
             `"${qFields.errorReportingValue}"` +
@@ -321,15 +345,61 @@ function setFields(handler) {
           valid = false;
         }
 
-        fields.push(f);
+        if (validIncludeKeys.includes(f)) {
+          includeFields.push(f);
+        }
+        else {
+          fields.push(f);
+        }
       });
 
       // All fields validated
       if (valid && fields.length) {
         handler.fields = fields;
+        handler.includeFields = includeFields;
       }
     }
   }
+}
+
+
+function validateIncludeKeys(handler) {
+  const keys = Object.keys(handler.queryObject);
+
+  keys.forEach((rawKey) => {
+    const key = rawKey.split('.', 1)[0].toLowerCase().trim();
+    if (key === 'e') {
+      let includeKeys = [];
+
+      // String extend key
+      if (rawKey.includes('.')) {
+        includeKeys.push(
+          rawKey.split('.')[1].trim()
+        );
+      }
+      // Query objects
+      else if (isObject(handler.queryObject)) {
+        includeKeys = Object.keys((handler.queryObject.e || {}))
+          .map((k) => k.trim());
+      }
+
+      includeKeys.forEach((rawIncludeKey) => {
+        const includeKey = _.camelCase(rawIncludeKey.toLowerCase());
+        if (!handler.config.include[includeKey]) {
+          handler.errors.push(
+            `Invalid query parameter: ${handler.trace}${rawKey}. ` +
+            `"${rawIncludeKey}" is not a valid extend field."`
+          );
+        }
+        else if (!handler.includeFields.includes(includeKey)) {
+          handler.errors.push(
+            `Invalid query parameter: ${handler.trace}${rawKey}. ` +
+            `"${rawIncludeKey}" is not a included in fields."`
+          );
+        }
+      });
+    }
+  });
 }
 
 
@@ -358,29 +428,9 @@ function setIncludes(handler) {
     return;
   }
 
-  // Use defaults if not fields value is set
-  let useDefaults = true;
-  const queryFields = getKeyValue(queryObject, 'fields');
-  if (queryFields && queryFields[0].value) {
-    useDefaults = false;
-  }
-
-  if (useDefaults) {
-    Object.keys(config.include).forEach((key) => {
-      const includeOptions = config.include[key];
-      if (includeOptions.includeByDefault) {
-        handler.include[key] = includeOptions;
-      }
-    });
-  }
-  // Include only those specified in fields
-  else {
-    Object.keys(config.include).forEach((key) => {
-      if (handler.fields.includes(key)) {
-        handler.include[key] = config.include[key];
-      }
-    });
-  }
+  handler.includeFields.forEach((key) => {
+    handler.include[key] = config.include[key];
+  });
 }
 
 
@@ -426,6 +476,7 @@ function getDefaultHandler(model, queryObject, errors = [], trace = '') {
   return {
     sequelizeOptions: {},
     fields: [],
+    includeFields: [],
     include: {},
     errors,
     trace,
@@ -442,6 +493,7 @@ function getDefaultHandler(model, queryObject, errors = [], trace = '') {
 function pickFromHandlerObject(handler) {
   return {
     fields: handler.fields,
+    includeFields: handler.includeFields,
     model: handler.model,
     config: handler.config,
     include: handler.include,
@@ -466,6 +518,7 @@ function processRequestParameters(referrer, handler) {
   setPaginationValues(handler);
   setOrdering(handler);
   setFields(handler);
+  validateIncludeKeys(handler);
   setAttributes(handler);
   setIncludes(handler);
 
