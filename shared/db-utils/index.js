@@ -112,19 +112,26 @@ sequelize.addHook('beforeDefine', (attributes, options) => {
 });
 
 
-sequelize.addHook('beforeFindAfterOptions', (options) => {
-  // We need to reset udated_at and created_at back to camel case
-  if (options && options.attributes) {
-    options.attributes.forEach((attr, idx) => {
-      if (attr === 'created_at') {
-        options.attributes[idx] = [attr, 'createdAt'];
-      }
-      else if (attr === 'updated_at') {
-        options.attributes[idx] = [attr, 'updatedAt'];
-      }
-    });
+sequelize.addHook('afterDefine', (factory) => {
+  // Set camel case on createdAt and updatedAt for retrieval
+  if (factory.rawAttributes.created_at) {
+    factory.rawAttributes.createdAt = {
+      ...factory.rawAttributes.created_at,
+      fieldName: 'createdAt',
+    };
+    delete factory.rawAttributes.created_at;
   }
+  if (factory.rawAttributes.updated_at) {
+    factory.rawAttributes.updatedAt = {
+      ...factory.rawAttributes.updated_at,
+      fieldName: 'updatedAt',
+    };
+    delete factory.rawAttributes.updated_at;
+  }
+});
 
+
+sequelize.addHook('beforeFindAfterOptions', (options) => {
   // Snake case column names in order satement
   if (options.order) {
     if (Array.isArray(options.order)) {
