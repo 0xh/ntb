@@ -640,27 +640,27 @@ async function executeIncludeQueries(handler, outerInstances) {
       // Map the results to the include model
       const includeInstances = [];
       rows.forEach((row) => {
-        // Find the main row
-        const outerInstance = _.head(
-          outerInstances.filter((r) => r.uuid === row.outerid)
-        );
-        if (!outerInstance) {
+        // Find the main rows
+        const outers = outerInstances.filter((r) => r.uuid === row.outerid);
+        if (!outers) {
           throw new Error('Unable to map include.row with outer.row');
         }
 
-        // Initiate include array
-        if (!outerInstance[key]) {
-          outerInstance[key] = { count: null, rows: [] };
-        }
+        outers.forEach((outer) => {
+          // Initiate include array
+          if (!outer[key]) {
+            outer[key] = { count: null, rows: [] };
+          }
 
-        // Append the instance
-        const instance = new include.model(row);
-        includeInstances.push(instance);
-        outerInstance[key].rows.push(instance);
+          // Append the instance
+          const instance = new include.model(row);
+          includeInstances.push(instance);
+          outer[key].rows.push(instance);
+        });
       });
 
       // Recursive include
-      if (Object.keys(include.include).length) {
+      if (Object.keys(include.include).length && rows.length) {
         await executeIncludeQueries(include, includeInstances);
       }
 
