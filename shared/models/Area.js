@@ -147,7 +147,7 @@ export default (sequelize, DataTypes) => {
       // default if no ?fields=.. parameter is specified
       validFields: {
         uri: true,
-        uuid: true,
+        id: true,
         name: true,
         description: true,
         geometry: true,
@@ -186,12 +186,6 @@ export default (sequelize, DataTypes) => {
     //   include: null,
     // };
 
-    // // Configuration when included through Area.Parents
-    // config.byReferrer['Area.parents'] = {
-    //   ...config.byReferrer['*onEntry'],
-    //   include: null,
-    // };
-
     // Default configuration when included from another model
     config.byReferrer.default = {
       ...config.byReferrer['*onEntry'],
@@ -216,6 +210,8 @@ export default (sequelize, DataTypes) => {
       switch (field) {
         case 'uri':
           return null;
+        case 'id':
+          return 'uuid';
         case 'createdAt':
         case 'updatedAt':
           if (modelConfig.timestamps) {
