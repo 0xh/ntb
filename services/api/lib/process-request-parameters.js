@@ -354,7 +354,7 @@ function setFields(handler) {
       });
 
       // All fields validated
-      if (valid && fields.length) {
+      if (valid && (fields.length || includeFields.length)) {
         handler.fields = fields;
         handler.includeFields = includeFields;
       }
