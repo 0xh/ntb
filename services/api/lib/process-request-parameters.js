@@ -413,6 +413,13 @@ function setAttributes(handler) {
     handler.fields
       .filter((f) => !Object.keys(handler.config.include).includes(f))
   );
+
+  // Make sure the primary keys are always selected
+  Object.keys(handler.model.primaryKeys).forEach((key) => {
+    if (!handler.sequelizeOptions.attributes.includes(key)) {
+      handler.sequelizeOptions.attributes.push(key);
+    }
+  });
 }
 
 
