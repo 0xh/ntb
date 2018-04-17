@@ -619,6 +619,10 @@ async function createIncludeSqlQuery(handler, include) {
 
 
 async function executeIncludeQueries(handler, outerInstances) {
+  if (!Object.keys(handler.include).length) {
+    return;
+  }
+
   await Promise.all(
     Object.keys(handler.include).map(async (key) => {
       // Create the inclide sql
@@ -659,6 +663,8 @@ async function executeIncludeQueries(handler, outerInstances) {
       if (Object.keys(include.include).length) {
         await executeIncludeQueries(include, includeInstances);
       }
+
+      return Promise.resolve();
     })
   );
 }
@@ -670,11 +676,12 @@ async function executeIncludeQueries(handler, outerInstances) {
  */
 async function executeQuery(handler) {
   const result = await handler.model.findAndCountAll(handler.sequelizeOptions);
-  console.log(result.rows.map(async (r) => r.uuid));
+  console.log(result.rows.map((r) => r.uuid));
 
   // Run any include queries
   await executeIncludeQueries(handler, result.rows);
-  debugger;
+
+  return result;
 }
 
 
@@ -698,5 +705,5 @@ export default async function (entryModel, queryObject) {
 
   const result = await executeQuery(pickFromHandlerObject(handler));
 
-  return pickFromHandlerObject(handler);
+  return result;
 }
