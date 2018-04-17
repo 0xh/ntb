@@ -229,22 +229,22 @@ export default (sequelize, DataTypes) => {
     return attributes;
   };
 
-  Area.format = (instance) => (
-    {
-      uri: `area/${instance.uuid}`,
-      uuid: instance.uuid,
-      name: instance.name,
-      description: instance.description,
-      geometry: instance.geometry,
-      map: instance.map,
-      url: instance.url,
-      license: instance.license,
-      provider: instance.provider,
-      status: instance.status,
-      updatedAt: instance.updatedAt,
-      createdAt: instance.createdAt,
-    }
-  );
+  Area.prototype.format = function format() {
+    return {
+      uri: `area/${this.uuid}`,
+      id: this.uuid,
+      name: this.name,
+      description: this.description,
+      geometry: this.geometry,
+      map: this.map,
+      url: this.url,
+      license: this.license,
+      provider: this.provider,
+      status: this.status,
+      updatedAt: this.updatedAt,
+      createdAt: this.createdAt,
+    };
+  };
 
   return Area;
 };
