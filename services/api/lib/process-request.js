@@ -685,6 +685,39 @@ async function executeQuery(handler) {
 }
 
 
+function formatResults(handler, results) {
+  const formattedResult = {
+    count: results.count,
+    documents: [],
+  };
+
+  results.rows.forEach((row) => {
+    const document = row.format();
+
+    // Only return requested fields
+    Object.keys(document).forEach((key) => {
+      if (!handler.fields.includes(key)) {
+        delete document[key];
+      }
+    });
+
+    // Process includes
+    Object.keys(handler.include).forEach((includeKey) => {
+      if (row[includeKey]) {
+        document[includeKey] = formatResults(
+          handler.include[includeKey],
+          row[includeKey]
+        );
+      }
+    });
+
+    formattedResult.documents.push(document);
+  });
+
+  return formattedResult;
+}
+
+
 /**
  * Validate and processes queryObject into request parameters used by the
  * process-request module.
@@ -705,5 +738,5 @@ export default async function (entryModel, queryObject) {
 
   const result = await executeQuery(pickFromHandlerObject(handler));
 
-  return result;
+  return formatResults(handler, result);
 }
