@@ -428,7 +428,7 @@ function setAttributes(handler) {
  * @param {object} handler
  */
 function setIncludes(handler) {
-  const { queryObject, config } = handler;
+  const { config } = handler;
 
   // Do nothing if the model api configuration does not define any
   if (!config.include || !Object.keys(config.include).length) {
