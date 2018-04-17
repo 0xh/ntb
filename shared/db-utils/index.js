@@ -153,22 +153,27 @@ sequelize.addHook('beforeFindAfterOptions', (options) => {
 
 export function getSqlFromFindAll(Model, options) {
   const id = uuid4();
-
   return new Promise((resolve, reject) => {
     Model.addHook('beforeFindAfterOptions', id, (opts) => {
-      Model.removeHook('beforeFindAfterOptions', id);
+      Model.removeHook('beforeFindAfterOptions', opts._hookId);
 
-      resolve(
-        Model.sequelize.dialect.QueryGenerator.selectQuery(
-          Model.getTableName(),
-          opts,
-          Model
-        ).slice(0, -1)
-      );
-
-      return new Promise(() => {});
+      try {
+        opts._hookResolver(
+          Model.sequelize.dialect.QueryGenerator.selectQuery(
+            Model.getTableName(),
+            opts,
+            Model
+          ).slice(0, -1)
+        );
+      }
+      catch (err) {
+        opts._hookRejecter(err);
+      }
     });
 
-    return Model.findAll(options).catch(reject);
+    options._hookId = id;
+    options._hookResolver = resolve;
+    options._hookRejecter = reject;
+    Model.findAll(options).catch(reject);
   });
 }
