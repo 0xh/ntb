@@ -184,15 +184,25 @@ export default (sequelize, DataTypes) => {
       },
     };
 
-    // // Configuration when included through Area.Parents
-    // config.byReferrer['Area.parents'] = {
-    //   ...config.byReferrer['*onEntry'],
-    //   include: null,
-    // };
-
     // Default configuration when included from another model
     config.byReferrer.default = {
       ...config.byReferrer['*onEntry'],
+
+      validFields: {
+        // Allow the same fields as '*onEntry' but set them to default false
+        ...Object.assign(
+          {},
+          ...(
+            Object.keys(config.byReferrer['*onEntry'].validFields)
+              .map((f) => ({
+                [f]: false,
+              }))
+          )
+        ),
+        uri: true,
+        id: true,
+        name: true,
+      },
 
       include: {
         parents: {
@@ -205,6 +215,24 @@ export default (sequelize, DataTypes) => {
         },
       },
     };
+
+    // // Configuration when included through Area.Parents
+    // config.byReferrer['Area.children'] = {
+    //   ...config.byReferrer.default,
+    //   include: null,
+    //   validFields: {
+    //     // Allow the same fields as 'default' but set them to default false
+    //     ...Object.assign(
+    //       {},
+    //       ...(Object.keys(config.byReferrer.default.validFields).map((f) => ({
+    //         [f]: false,
+    //       })))
+    //     ),
+    //     uri: true,
+    //     id: true,
+    //     name: true,
+    //   },
+    // };
 
     return config;
   };
