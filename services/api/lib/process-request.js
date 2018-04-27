@@ -36,6 +36,7 @@ function getKeyValue(queryObject, key) {
  */
 function setValidKeys(handler) {
   const validKeys = ['fields'];
+  const validDotKeys = [];
   const { config } = handler;
 
   // Pagination keys
@@ -55,11 +56,13 @@ function setValidKeys(handler) {
   }
 
   // Extend key
-  if (config.include && Object.keys(config.include).length) {
-    validKeys.push('e');
-  }
+  Object.keys(config.include || {}).forEach((key) => {
+    validKeys.push(key);
+    validDotKeys.push(key);
+  });
 
   handler.validKeys = validKeys;
+  handler.validDotKeys = validDotKeys;
 }
 
 
@@ -69,7 +72,6 @@ function setValidKeys(handler) {
  */
 function validateKeys(handler) {
   const keys = Object.keys(handler.queryObject);
-  const keysWithValidDots = ['e'];
 
   keys.forEach((rawKey) => {
     const key = _.camelCase(rawKey.split('.', 1)[0].toLowerCase().trim());
@@ -77,7 +79,7 @@ function validateKeys(handler) {
       !handler.validKeys.includes(key)
       || (
         rawKey.includes('.')
-        && !keysWithValidDots.includes(key)
+        && !handler.validDotKeys.includes(key)
       )
     ) {
       // Add errors on invalid query parameters (?queryparam)
@@ -88,9 +90,9 @@ function validateKeys(handler) {
       delete handler.queryObject[key];
     }
 
-    if (key === 'e') {
+    if (handler.validDotKeys.includes(key)) {
       const dotCount = (rawKey.match(/\./g) || []).length;
-      if (dotCount < 2 && !isObject(handler.queryObject.e)) {
+      if (dotCount < 1 && !isObject(handler.queryObject[key])) {
         handler.errors.push(
           `Invalid query parameter format: ${handler.trace}${rawKey}`
         );
@@ -340,7 +342,7 @@ function setFields(handler) {
           handler.errors.push(
             `Invalid ${trace}${qFields.originalKey} value ` +
             `"${qFields.errorReportingValue}"` +
-            `${values.length > 1 ? ` on "${fieldExpression}".` : '. '}` +
+            `${values.length > 1 ? ` on "${fieldExpression}". ` : '. '}` +
             'This is not a valid field.'
           );
           valid = false;
@@ -369,18 +371,19 @@ function validateIncludeKeys(handler) {
 
   keys.forEach((rawKey) => {
     const key = rawKey.split('.', 1)[0].toLowerCase().trim();
-    if (key === 'e') {
+
+    if (handler.validDotKeys.includes(key)) {
       let includeKeys = [];
 
       // String extend key
       if (rawKey.includes('.')) {
         includeKeys.push(
-          rawKey.split('.')[1].trim()
+          rawKey.split('.')[0].trim()
         );
       }
       // Query objects
       else if (isObject(handler.queryObject)) {
-        includeKeys = Object.keys((handler.queryObject.e || {}))
+        includeKeys = Object.keys((handler.queryObject[key] || {}))
           .map((k) => k.trim());
       }
 
@@ -395,7 +398,7 @@ function validateIncludeKeys(handler) {
         else if (!handler.includeFields.includes(includeKey)) {
           handler.errors.push(
             `Invalid query parameter: ${handler.trace}${rawKey}. ` +
-            `"${rawIncludeKey}" is not a included in fields."`
+            `"${rawIncludeKey}" is not included in fields."`
           );
         }
       });
@@ -449,10 +452,11 @@ function setIncludes(handler) {
  */
 function getExtendQueryObject(handler, key) {
   let extendQueryObject = {};
-  const values = getKeyValue(handler.queryObject, 'e');
+  const values = getKeyValue(handler.queryObject, key);
+
   if (values && values.length) {
     // If its a formatted object
-    if (values.length === 1 && values[0].originalKey === 'e') {
+    if (values.length === 1 && values[0].originalKey === key) {
       if (values[0].value[key]) {
         extendQueryObject = values[0].value[key];
       }
@@ -460,7 +464,7 @@ function getExtendQueryObject(handler, key) {
     // If it's string named e.[key].<opt_name>
     else {
       values.forEach((value) => {
-        const prefix = `e.${key}.`;
+        const prefix = `${key}.`;
         if (value.originalKey.startsWith(prefix)) {
           const k = value.originalKey.substr(prefix.length);
           extendQueryObject[k] = value.value;
@@ -547,7 +551,7 @@ function processRequestParameters(referrer, handler) {
         extendModel,
         extendQueryObject,
         handler.errors,
-        `e.${handler.trace}${key}.`
+        `${handler.trace}${key}.`
       );
       processRequestParameters(`${handler.model.name}.${key}`, extendHandler);
 
