@@ -412,7 +412,7 @@ function setAttributes(handler) {
   // translate fields to attributes for fields which are not includes/extends
   handler.sequelizeOptions.attributes = handler.model.fieldsToAttributes(
     handler.fields
-      .filter((f) => !Object.keys(handler.config.include).includes(f))
+      .filter((f) => !Object.keys((handler.config.include || {})).includes(f))
   );
 
   // Make sure the primary keys are always selected
