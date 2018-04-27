@@ -370,38 +370,17 @@ function validateIncludeKeys(handler) {
   const keys = Object.keys(handler.queryObject);
 
   keys.forEach((rawKey) => {
-    const key = rawKey.split('.', 1)[0].toLowerCase().trim();
+    const key = _.camelCase(rawKey.split('.', 1)[0].toLowerCase().trim());
 
-    if (handler.validDotKeys.includes(key)) {
-      let includeKeys = [];
+    if (Object.keys(handler.config.include).includes(key)) {
+      const rawIncludeKey = rawKey.split('.', 1)[0].trim();
 
-      // String extend key
-      if (rawKey.includes('.')) {
-        includeKeys.push(
-          rawKey.split('.')[0].trim()
+      if (!handler.includeFields.includes(key)) {
+        handler.errors.push(
+          `Invalid query parameter: ${handler.trace}${rawKey}. ` +
+          `"${rawIncludeKey}" is not included in fields."`
         );
       }
-      // Query objects
-      else if (isObject(handler.queryObject)) {
-        includeKeys = Object.keys((handler.queryObject[key] || {}))
-          .map((k) => k.trim());
-      }
-
-      includeKeys.forEach((rawIncludeKey) => {
-        const includeKey = _.camelCase(rawIncludeKey.toLowerCase());
-        if (!handler.config.include[includeKey]) {
-          handler.errors.push(
-            `Invalid query parameter: ${handler.trace}${rawKey}. ` +
-            `"${rawIncludeKey}" is not a valid extend field."`
-          );
-        }
-        else if (!handler.includeFields.includes(includeKey)) {
-          handler.errors.push(
-            `Invalid query parameter: ${handler.trace}${rawKey}. ` +
-            `"${rawIncludeKey}" is not included in fields."`
-          );
-        }
-      });
     }
   });
 }
