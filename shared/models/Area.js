@@ -166,7 +166,9 @@ export default (sequelize, DataTypes) => {
           model: models.Area,
           through: {
             association: 'AreaToAreaParent',
-            foreignKey: 'child_uuid',
+            reverseAssociation: 'Parent',
+            foreignKey: 'childUuid',
+            otherKey: 'parentUuid',
           },
         },
         children: {
@@ -174,7 +176,9 @@ export default (sequelize, DataTypes) => {
           model: models.Area,
           through: {
             association: 'AreaToAreaChild',
-            foreignKey: 'parent_uuid',
+            reverseAssociation: 'Child',
+            foreignKey: 'parentUuid',
+            otherKey: 'childUuid',
           },
         },
       },
