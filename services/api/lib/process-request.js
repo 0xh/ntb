@@ -6,6 +6,7 @@ import { getSqlFromFindAll } from '@turistforeningen/ntb-shared-db-utils';
 
 import APIError from './APIError';
 
+
 /**
  * Get the value(s) from the specified key from the queryObject. This is a
  * case insensitive way of parsing the query object.
@@ -599,9 +600,10 @@ async function createIncludeSqlQuery(handler, include) {
     wherePos = null;
   }
 
+  const foreignKey = _.snakeCase(through.foreignKey);
   sql = (
     `${sql.substr(0, wherePos || orderByPos)} WHERE ` +
-    `"${through.association}"."${through.foreignKey}" = "outer"."uuid" ` +
+    `"${through.association}"."${foreignKey}" = "outer"."uuid" ` +
     `${wherePos ? 'AND' : ''} ${sql.substr(orderByPos)} ` +
     `LIMIT ${include.sequelizeOptions.limit} ` +
     `OFFSET ${include.sequelizeOptions.offset} `
@@ -609,12 +611,59 @@ async function createIncludeSqlQuery(handler, include) {
 
   // Add outer sql an lateral join the main sql
   sql = (
-    'SELECT "outer"."uuid" AS "outerid", "Area".* ' +
-    `FROM "public"."area" AS "outer", LATERAL (${sql}) AS "Area" ` +
+    `SELECT "outer"."uuid" AS "outerid", "${model.name}".* ` +
+    `FROM "public"."${originModel.tableName}" AS "outer", ` +
+    `LATERAL (${sql}) AS "${model.name}" ` +
     'WHERE "outer"."uuid" IN (?) ORDER BY "outer"."uuid"'
   );
 
   return sql;
+}
+
+
+async function getIncludeCount(handler, include, refs) {
+  const originModel = handler.model;
+  const { model, through } = include;
+  const throughModel = originModel.associations[through.association].target;
+
+  const res = await throughModel.findAll({
+    include: [{
+      association: through.reverseAssociation,
+      ...include.sequelizeOptions,
+      attributes: [],
+      required: true,
+      order: null,
+      limit: null,
+      offset: null,
+    }],
+    attributes: [
+      through.foreignKey,
+      [
+        model.sequelize.fn(
+          'COUNT',
+          `"${throughModel.name}"."${_.snakeCase(through.otherKey)}"`,
+        ),
+        'count',
+      ],
+    ],
+    group: [through.foreignKey],
+    distinct: true,
+    where: {
+      [through.foreignKey]: {
+        in: refs.map((r) => r.uuid),
+      },
+    },
+    raw: true,
+  });
+
+  // Rename foreignKey to a generic key name for later use
+  const counts = res.map((c) => {
+    c.outerid = c[through.foreignKey];
+    delete c[through.foreignKey];
+    return c;
+  });
+
+  return counts;
 }
 
 
@@ -629,34 +678,64 @@ async function executeIncludeQueries(handler, outerInstances) {
       const include = handler.include[key];
       const sqlQuery = await createIncludeSqlQuery(handler, include);
 
-      // Run the query
-      const rows = await db.sequelize.query(sqlQuery, {
+      const query = db.sequelize.query(sqlQuery, {
         type: db.sequelize.QueryTypes.SELECT,
         replacements: [
           outerInstances.map((r) => r.uuid),
         ],
       });
 
+      const queryCount = getIncludeCount(handler, include, outerInstances);
+
+      const [rows, counts] = await Promise.all([
+        query,
+        queryCount,
+      ]);
+
+      const baseOpts = {
+        limit: include.sequelizeOptions.limit,
+        offset: include.sequelizeOptions.offset,
+      };
+
       // Map the results to the include model
       const includeInstances = [];
       rows.forEach((row) => {
         // Find the main rows
-        const outers = outerInstances.filter((r) => r.uuid === row.outerid);
-        if (!outers) {
+        const outer = _.head(
+          outerInstances.filter((r) => r.uuid === row.outerid)
+        );
+        if (!outer) {
           throw new Error('Unable to map include.row with outer.row');
         }
 
-        outers.forEach((outer) => {
-          // Initiate include array
-          if (!outer[key]) {
-            outer[key] = { count: null, rows: [] };
-          }
+        // Initiate include array
+        if (!outer[key]) {
+          outer[key] = { ...baseOpts, rows: [], count: null };
+        }
 
-          // Append the instance
-          const instance = new include.model(row);
-          includeInstances.push(instance);
-          outer[key].rows.push(instance);
-        });
+        // Append the instance
+        const instance = new include.model(row);
+        includeInstances.push(instance);
+        outer[key].rows.push(instance);
+      });
+
+      // Map the counts to the include model
+      counts.forEach((count) => {
+        // Find the main rows
+        const outer = _.head(
+          outerInstances.filter((r) => r.uuid === count.outerid)
+        );
+        if (!outer) {
+          throw new Error('Unable to map count.row with outer.row');
+        }
+
+        // Initiate include array
+        if (!outer[key]) {
+          outer[key] = { ...baseOpts, rows: [], count: null };
+        }
+
+        // Append the instance
+        outer[key].count = +count.count;
       });
 
       // Recursive include
@@ -676,6 +755,8 @@ async function executeIncludeQueries(handler, outerInstances) {
  */
 async function executeQuery(handler) {
   const result = await handler.model.findAndCountAll(handler.sequelizeOptions);
+  result.limit = handler.sequelizeOptions.limit;
+  result.offset = handler.sequelizeOptions.offset;
   console.log(result.rows.map((r) => r.uuid));
 
   // Run any include queries
@@ -688,6 +769,8 @@ async function executeQuery(handler) {
 function formatResults(handler, results) {
   const formattedResult = {
     count: results.count,
+    limit: results.limit,
+    offset: results.offset,
     documents: [],
   };
 
