@@ -1,7 +1,11 @@
 import _ from 'lodash';
 
 import db from '@turistforeningen/ntb-shared-models';
-import { isNumber, isObject } from '@turistforeningen/ntb-shared-utils';
+import {
+  isNumber,
+  isObject,
+  isArray,
+} from '@turistforeningen/ntb-shared-utils';
 import { getSqlFromFindAll } from '@turistforeningen/ntb-shared-db-utils';
 
 import APIError from './APIError';
@@ -777,6 +781,30 @@ async function executeQuery(handler) {
 }
 
 
+function formatDocument(obj) {
+  const res = {};
+
+  Object.keys(obj).forEach((key) => {
+    let ref = obj[key];
+
+    if (isObject(ref) && Object.keys(ref).length) {
+      ref = formatDocument(ref);
+    }
+
+    if (
+      (!isObject(ref) || Object.keys(ref).length)
+      && (!Array.isArray(ref) || ref.length)
+      && ref !== null
+      && ref !== undefined
+    ) {
+      res[_.snakeCase(key)] = ref;
+    }
+  });
+
+  return res;
+}
+
+
 function formatResults(handler, results) {
   const formattedResult = {
     count: results.count,
@@ -807,6 +835,10 @@ function formatResults(handler, results) {
 
     formattedResult.documents.push(document);
   });
+
+  // Remove null values
+  formattedResult.documents = formattedResult.documents
+    .map((doc) => formatDocument(doc));
 
   return formattedResult;
 }
