@@ -124,7 +124,9 @@ export default (sequelize, DataTypes) => {
   });
 
 
-  // API presentation
+  // API CONFIGURATION
+
+  Area.APIEntryModel = true;
 
   Area.getAPIConfig = (models) => {
     const config = { byReferrer: {} };
@@ -142,7 +144,7 @@ export default (sequelize, DataTypes) => {
         'updatedAt',
         'createdAt',
       ],
-      defaultOrder: [['name', 'DESC']],
+      defaultOrder: [['name', 'ASC']],
       // validFields - true/false if they should be returned from API as
       // default if no ?fields=.. parameter is specified
       validFields: {
@@ -238,25 +240,25 @@ export default (sequelize, DataTypes) => {
   };
 
   Area.fieldsToAttributes = (fields) => {
-    const attributes = fields.map((field) => {
+    const attributes = [].concat(...fields.map((field) => {
       switch (field) {
         case 'uri':
           return null;
         case 'id':
-          return 'uuid';
+          return ['uuid'];
         case 'createdAt':
         case 'updatedAt':
           if (modelConfig.timestamps) {
-            return field;
+            return [field];
           }
           throw new Error(`Unable to translate field ${field} on Area model`);
         default:
           if (Object.keys(attributeConfig).includes(field)) {
-            return field;
+            return [field];
           }
           throw new Error(`Unable to translate field ${field} on Area model`);
       }
-    }).filter((field) => field !== null);
+    }).filter((field) => field !== null));
 
     return attributes;
   };
