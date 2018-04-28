@@ -125,7 +125,7 @@ function validateLimit(queryObject, handler) {
     const qLimit = queryLimit[0];
     if (isNumber(qLimit.value)) {
       const limit = +qLimit.value;
-      if (limit > 0 && limit <= config.maxLimit) {
+      if (limit >= 0 && limit <= config.maxLimit) {
         return limit;
       }
     }
@@ -650,30 +650,39 @@ async function getIncludeCount(handler, include, refs) {
 }
 
 
-async function executeIncludeQueries(handler, outerInstances) {
+async function executePaginatedIncludeQueries(handler, outerInstances) {
   if (!Object.keys(handler.include).length) {
     return;
   }
 
   await Promise.all(
     Object.keys(handler.include).map(async (key) => {
-      // Create the inclide sql
+      let rows;
+      let counts;
       const include = handler.include[key];
-      const sqlQuery = await createIncludeSqlQuery(handler, include);
-
-      const query = db.sequelize.query(sqlQuery, {
-        type: db.sequelize.QueryTypes.SELECT,
-        replacements: [
-          outerInstances.map((r) => r.uuid),
-        ],
-      });
 
       const queryCount = getIncludeCount(handler, include, outerInstances);
 
-      const [rows, counts] = await Promise.all([
-        query,
-        queryCount,
-      ]);
+      if (include.sequelizeOptions.limit > 0) {
+        // Create the include sql
+        const sqlQuery = await createIncludeSqlQuery(handler, include);
+
+        const query = db.sequelize.query(sqlQuery, {
+          type: db.sequelize.QueryTypes.SELECT,
+          replacements: [
+            outerInstances.map((r) => r.uuid),
+          ],
+        });
+
+        ([rows, counts] = await Promise.all([
+          query,
+          queryCount,
+        ]));
+      }
+      else {
+        rows = [];
+        counts = await queryCount;
+      }
 
       const baseOpts = {
         limit: include.sequelizeOptions.limit,
@@ -723,7 +732,7 @@ async function executeIncludeQueries(handler, outerInstances) {
 
       // Recursive include
       if (Object.keys(include.include).length && rows.length) {
-        await executeIncludeQueries(include, includeInstances);
+        await executePaginatedIncludeQueries(include, includeInstances);
       }
 
       return Promise.resolve();
@@ -732,18 +741,38 @@ async function executeIncludeQueries(handler, outerInstances) {
 }
 
 
+async function executeMainQuery(handler) {
+  if (handler.sequelizeOptions.limit > 0) {
+    const res = await handler.model.findAndCountAll(handler.sequelizeOptions);
+    return res;
+  }
+
+  return {
+    rows: [],
+    count: await handler.model.count({
+      ...handler.sequelizeOptions,
+      attributes: undefined,
+      limit: undefined,
+      offset: undefined,
+    }),
+  };
+}
+
+
 /**
  * Process the defined queries and return data
  * @param {object} handler
  */
 async function executeQuery(handler) {
-  const result = await handler.model.findAndCountAll(handler.sequelizeOptions);
+  const result = await executeMainQuery(handler);
   result.limit = handler.sequelizeOptions.limit;
   result.offset = handler.sequelizeOptions.offset;
   console.log(result.rows.map((r) => r.uuid));
 
   // Run any include queries
-  await executeIncludeQueries(handler, result.rows);
+  if (result.rows.length > 0) {
+    await executePaginatedIncludeQueries(handler, result.rows);
+  }
 
   return result;
 }
