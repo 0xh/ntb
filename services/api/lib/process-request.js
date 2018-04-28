@@ -767,7 +767,6 @@ async function executeQuery(handler) {
   const result = await executeMainQuery(handler);
   result.limit = handler.sequelizeOptions.limit;
   result.offset = handler.sequelizeOptions.offset;
-  console.log(result.rows.map((r) => r.uuid));
 
   // Run any include queries
   if (result.rows.length > 0) {
