@@ -218,24 +218,6 @@ export default (sequelize, DataTypes) => {
       },
     };
 
-    // // Configuration when included through Area.Parents
-    // config.byReferrer['Area.children'] = {
-    //   ...config.byReferrer.default,
-    //   include: null,
-    //   validFields: {
-    //     // Allow the same fields as 'default' but set them to default false
-    //     ...Object.assign(
-    //       {},
-    //       ...(Object.keys(config.byReferrer.default.validFields).map((f) => ({
-    //         [f]: false,
-    //       })))
-    //     ),
-    //     uri: true,
-    //     id: true,
-    //     name: true,
-    //   },
-    // };
-
     return config;
   };
 
