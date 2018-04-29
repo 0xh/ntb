@@ -189,8 +189,14 @@ export default (sequelize, DataTypes) => {
 
     models.Cabin.belongsToMany(models.Area, {
       as: 'Areas',
-      through: { model: models.CabinToArea },
+      through: models.CabinToArea,
       foreignKey: 'cabinUuid',
+    });
+
+    models.Cabin.hasMany(models.CabinToArea, {
+      as: 'CabinToAreaCabin',
+      foreignKey: 'cabinUuid',
+      sourceKey: 'uuid',
     });
 
     models.Cabin.belongsToMany(models.Tag, {
@@ -293,26 +299,16 @@ export default (sequelize, DataTypes) => {
         // county
         // municipality
 
-        // parents: {
-        //   includeByDefault: true,
-        //   model: models.Area,
-        //   through: {
-        //     association: 'AreaToAreaParent',
-        //     reverseAssociation: 'Parent',
-        //     foreignKey: 'childUuid',
-        //     otherKey: 'parentUuid',
-        //   },
-        // },
-        // children: {
-        //   includeByDefault: true,
-        //   model: models.Area,
-        //   through: {
-        //     association: 'AreaToAreaChild',
-        //     reverseAssociation: 'Child',
-        //     foreignKey: 'parentUuid',
-        //     otherKey: 'childUuid',
-        //   },
-        // },
+        areas: {
+          includeByDefault: false,
+          model: models.Area,
+          through: {
+            association: 'CabinToAreaArea',
+            reverseAssociation: 'Area',
+            otherKey: 'cabinUuid',
+            foreignKey: 'areaUuid',
+          },
+        },
       },
     };
 
@@ -401,12 +397,12 @@ export default (sequelize, DataTypes) => {
           if (modelConfig.timestamps) {
             return [field];
           }
-          throw new Error(`Unable to translate field ${field} on Area model`);
+          throw new Error(`Unable to translate field ${field} on Cabin model`);
         default:
           if (Object.keys(attributeConfig).includes(field)) {
             return [field];
           }
-          throw new Error(`Unable to translate field ${field} on Area model`);
+          throw new Error(`Unable to translate field ${field} on Cabin model`);
       }
     }).filter((field) => field !== null));
 

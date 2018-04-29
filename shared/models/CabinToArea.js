@@ -23,5 +23,20 @@ export default (sequelize, DataTypes) => {
     timestamps: true,
   });
 
+
+  // Associations
+
+  CabinToArea.associate = (models) => {
+    models.CabinToArea.belongsTo(models.Cabin, {
+      as: 'Cabin',
+      foreignKey: 'cabinUuid',
+    });
+
+    models.CabinToArea.belongsTo(models.Area, {
+      as: 'Area',
+      foreignKey: 'areaUuid',
+    });
+  };
+
   return CabinToArea;
 };
