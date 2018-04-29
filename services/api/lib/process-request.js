@@ -4,7 +4,6 @@ import db from '@turistforeningen/ntb-shared-models';
 import {
   isNumber,
   isObject,
-  isArray,
 } from '@turistforeningen/ntb-shared-utils';
 import { getSqlFromFindAll } from '@turistforeningen/ntb-shared-db-utils';
 
@@ -560,7 +559,7 @@ function processRequestParameters(referrer, handler) {
 async function createIncludeSqlQuery(handler, include) {
   const originModel = handler.model;
   const { model, through } = include;
-  const throughModel = originModel.associations[through.association].target;
+  const throughModel = model.associations[through.association].target;
 
   let sql = await getSqlFromFindAll(model, {
     ...include.sequelizeOptions,
@@ -587,10 +586,10 @@ async function createIncludeSqlQuery(handler, include) {
     wherePos = null;
   }
 
-  const foreignKey = _.snakeCase(through.foreignKey);
+  const otherKey = _.snakeCase(through.otherKey);
   sql = (
     `${sql.substr(0, wherePos || orderByPos)} WHERE ` +
-    `"${through.association}"."${foreignKey}" = "outer"."uuid" ` +
+    `"${through.association}"."${otherKey}" = "outer"."uuid" ` +
     `${wherePos ? 'AND' : ''} ${sql.substr(orderByPos)} ` +
     `LIMIT ${include.sequelizeOptions.limit} ` +
     `OFFSET ${include.sequelizeOptions.offset} `
@@ -609,9 +608,8 @@ async function createIncludeSqlQuery(handler, include) {
 
 
 async function getIncludeCount(handler, include, refs) {
-  const originModel = handler.model;
   const { model, through } = include;
-  const throughModel = originModel.associations[through.association].target;
+  const throughModel = model.associations[through.association].target;
 
   const res = await throughModel.findAll({
     include: [{
@@ -624,29 +622,29 @@ async function getIncludeCount(handler, include, refs) {
       offset: null,
     }],
     attributes: [
-      through.foreignKey,
+      through.otherKey,
       [
         model.sequelize.fn(
           'COUNT',
-          `"${throughModel.name}"."${_.snakeCase(through.otherKey)}"`,
+          `"${throughModel.name}"."${_.snakeCase(through.foreignKey)}"`,
         ),
         'count',
       ],
     ],
-    group: [through.foreignKey],
+    group: [through.otherKey],
     distinct: true,
     where: {
-      [through.foreignKey]: {
+      [through.otherKey]: {
         in: refs.map((r) => r.uuid),
       },
     },
     raw: true,
   });
 
-  // Rename foreignKey to a generic key name for later use
+  // Rename otherKey to a generic key name for later use
   const counts = res.map((c) => {
-    c.outerid = c[through.foreignKey];
-    delete c[through.foreignKey];
+    c.outerid = c[through.otherKey];
+    delete c[through.otherKey];
     return c;
   });
 
