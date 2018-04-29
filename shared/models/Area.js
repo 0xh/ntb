@@ -109,6 +109,12 @@ export default (sequelize, DataTypes) => {
       foreignKey: 'areaUuid',
     });
 
+    models.Area.hasMany(models.CabinToArea, {
+      as: 'CabinToAreaArea',
+      foreignKey: 'areaUuid',
+      sourceKey: 'uuid',
+    });
+
     models.Area.belongsToMany(models.Poi, {
       as: 'Pois',
       through: models.PoiToArea,
@@ -169,8 +175,8 @@ export default (sequelize, DataTypes) => {
           through: {
             association: 'AreaToAreaParent',
             reverseAssociation: 'Parent',
-            foreignKey: 'childUuid',
-            otherKey: 'parentUuid',
+            otherKey: 'childUuid',
+            foreignKey: 'parentUuid',
           },
         },
         children: {
@@ -179,8 +185,18 @@ export default (sequelize, DataTypes) => {
           through: {
             association: 'AreaToAreaChild',
             reverseAssociation: 'Child',
-            foreignKey: 'parentUuid',
-            otherKey: 'childUuid',
+            otherKey: 'parentUuid',
+            foreignKey: 'childUuid',
+          },
+        },
+        cabins: {
+          includeByDefault: false,
+          model: models.Cabin,
+          through: {
+            association: 'CabinToAreaCabin',
+            reverseAssociation: 'Cabin',
+            otherKey: 'areaUuid',
+            foreignKey: 'cabinUuid',
           },
         },
       },
@@ -207,6 +223,7 @@ export default (sequelize, DataTypes) => {
       },
 
       include: {
+        ...config.byReferrer['*onEntry'].include,
         parents: {
           ...config.byReferrer['*onEntry'].include.parents,
           includeByDefault: false,
