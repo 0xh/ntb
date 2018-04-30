@@ -232,7 +232,7 @@ function setOrdering(handler) {
         );
       }
       else {
-        let valid = false;
+        let valid = true;
         const order = [];
         values.forEach((orderExpression) => {
           const o = orderExpression.split(' ');
@@ -259,7 +259,7 @@ function setOrdering(handler) {
               );
               valid = false;
             }
-            if (o[1] !== 'asc' && o[2] !== 'desc') {
+            if (o[1] !== 'asc' && o[1] !== 'desc') {
               handler.errors.push(
                 `Invalid ${trace}${qOrder.originalKey} value ` +
                 `"${qOrder.errorReportingValue}"` +
