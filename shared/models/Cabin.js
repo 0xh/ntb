@@ -229,6 +229,12 @@ export default (sequelize, DataTypes) => {
       foreignKey: 'cabinUuid',
     });
 
+    models.Cabin.hasMany(models.CabinFacility, {
+      as: 'CabinFacilityCabin',
+      foreignKey: 'cabinUuid',
+      sourceKey: 'uuid',
+    });
+
     models.Cabin.belongsToMany(models.Accessability, {
       as: 'Accessabilities',
       through: { model: models.CabinAccessability },
