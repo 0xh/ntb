@@ -1,10 +1,14 @@
 export default (sequelize, DataTypes) => {
-  const Facility = sequelize.define('Facility', {
+  const attributeConfig = {
     name: { type: DataTypes.TEXT, primaryKey: true },
     description: { type: DataTypes.TEXT },
-  }, {
+  };
+
+  const modelConfig = {
     timestamps: false,
-  });
+  };
+
+  const Facility = sequelize.define('Facility', attributeConfig, modelConfig);
 
 
   // Associations
@@ -16,7 +20,70 @@ export default (sequelize, DataTypes) => {
       },
       as: 'Cabins',
       foreignKey: 'facilityName',
+      otherKey: 'cabinUuid',
     });
+  };
+
+
+  // API CONFIGURATION
+
+  Facility.APIEntryModel = true;
+
+  Facility.getAPIConfig = (models) => {
+    const config = { byReferrer: {} };
+
+    // Configuration when it's the entry model
+    config.byReferrer.default = {
+      paginate: false,
+      fullTextSearch: false,
+      ordering: true,
+      defaultOrder: [['name', 'ASC']],
+      validOrderFields: ['name'],
+      // validFields - true/false if they should be returned from API as
+      // default if no ?fields=.. parameter is specified
+      validFields: {
+        name: true,
+        description: true,
+      },
+      include: {
+        cabins: {
+          includeByDefault: false,
+          model: models.Cabin,
+          through: {
+            association: 'CabinFacilityCabin',
+            reverseAssociation: 'Cabin',
+            otherKey: 'facilityName',
+            foreignKey: 'cabinUuid',
+          },
+        },
+      },
+    };
+
+    return config;
+  };
+
+  Facility.fieldsToAttributes = (fields) => {
+    const attributes = [].concat(...fields.map((field) => {
+      switch (field) {
+        default:
+          if (Object.keys(attributeConfig).includes(field)) {
+            return [field];
+          }
+          throw new Error(`Unable to translate field ${field} on Cabin model`);
+      }
+    }).filter((field) => field !== null));
+
+    return attributes;
+  };
+
+
+  Facility.prototype.format = function format() {
+    return {
+      name: this.name,
+      description: this.description && this.description.length
+        ? this.description
+        : null,
+    };
   };
 
   return Facility;
