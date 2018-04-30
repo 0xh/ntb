@@ -4,7 +4,7 @@ import express from 'express';
 import { ENV_IS_DEVELOPMENT } from '@turistforeningen/ntb-shared-settings';
 import { createLogger } from '@turistforeningen/ntb-shared-utils';
 
-import APIError from './lib/APIError';
+import APIError from './lib/api-error';
 import controllers from './controllers';
 
 
