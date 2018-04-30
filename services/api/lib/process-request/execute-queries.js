@@ -11,6 +11,7 @@ async function createLateralIncludeSqlQuery(handler, include) {
   const throughModel = through
     ? model.associations[through.association].target
     : null;
+  const outerIdField = `"outer"."${handler.model.primaryKeyAttribute}"`;
 
   const sequelizeOptions = { ...include.sequelizeOptions };
   if (through) {
@@ -46,7 +47,7 @@ async function createLateralIncludeSqlQuery(handler, include) {
 
   sql = (
     `${sql.substr(0, wherePos || orderByPos)} WHERE ` +
-    `${joinOnOuterField} = "outer"."uuid" ` +
+    `${joinOnOuterField} = ${outerIdField} ` +
     `${wherePos ? 'AND' : ''} ${sql.substr(orderByPos)} ` +
     `LIMIT ${include.sequelizeOptions.limit} ` +
     `OFFSET ${include.sequelizeOptions.offset} `
@@ -54,10 +55,10 @@ async function createLateralIncludeSqlQuery(handler, include) {
 
   // Add outer sql an lateral join the main sql
   sql = (
-    `SELECT "outer"."uuid" AS "outerid", "${model.name}".* ` +
+    `SELECT ${outerIdField} AS "outerid", "${model.name}".* ` +
     `FROM "public"."${originModel.tableName}" AS "outer", ` +
     `LATERAL (${sql}) AS "${model.name}" ` +
-    'WHERE "outer"."uuid" IN (?) ORDER BY "outer"."uuid"'
+    `WHERE ${outerIdField} IN (?) ORDER BY ${outerIdField}`
   );
 
   return sql;
@@ -107,7 +108,7 @@ async function getIncludeCount(handler, include, refs) {
     distinct: true,
     where: {
       [groupByField]: {
-        in: refs.map((r) => r.uuid),
+        in: refs.map((r) => r[handler.model.primaryKeyField]),
       },
     },
     raw: true,
@@ -126,102 +127,166 @@ async function getIncludeCount(handler, include, refs) {
 }
 
 
-async function executePaginatedIncludeQueries(handler, outerInstances) {
+async function executePaginatedIncludeQueries(
+  handler,
+  key,
+  include,
+  outerInstances
+) {
+  let rows;
+  let counts;
+
+  const queryCount = getIncludeCount(handler, include, outerInstances);
+
+  if (
+    include.sequelizeOptions.limit === undefined
+    || include.sequelizeOptions.limit > 0
+  ) {
+    // Create the include sql
+    const sqlQuery = await createLateralIncludeSqlQuery(handler, include);
+
+    const query = db.sequelize.query(sqlQuery, {
+      type: db.sequelize.QueryTypes.SELECT,
+      replacements: [
+        outerInstances.map((r) => r[handler.model.primaryKeyField]),
+      ],
+    });
+
+    ([rows, counts] = await Promise.all([
+      query,
+      queryCount,
+    ]));
+  }
+  else {
+    rows = [];
+    counts = await queryCount;
+  }
+
+  const baseOpts = {
+    limit: include.sequelizeOptions.limit,
+    offset: include.sequelizeOptions.offset,
+  };
+  const { primaryKeyAttribute } = handler.model;
+
+  // Map the results to the include model
+  const includeInstances = [];
+  rows.forEach((row) => {
+    // Find the main rows
+    const outers = outerInstances
+      .filter((r) => r[primaryKeyAttribute] === row.outerid);
+    if (!outers || !outers.length) {
+      throw new Error('Unable to map include.row with outer.row');
+    }
+
+    outers.forEach((outer) => {
+      // Initiate include array
+      if (!outer[key]) {
+        outer[key] = { ...baseOpts, rows: [], count: null };
+      }
+
+      // Append the instance
+      const instance = new include.model(row);
+      includeInstances.push(instance);
+      outer[key].rows.push(instance);
+    });
+  });
+
+  // Map the counts to the include model
+  counts.forEach((count) => {
+    // Find the main rows
+    const outers = outerInstances
+      .filter((r) => r[primaryKeyAttribute] === count.outerid);
+    if (!outers || !outers.length) {
+      throw new Error('Unable to map count.row with outer.row');
+    }
+
+    outers.forEach((outer) => {
+      // Initiate include array
+      if (!outer[key]) {
+        outer[key] = { ...baseOpts, rows: [], count: null };
+      }
+
+      // Append the instance
+      outer[key].count = +count.count;
+    });
+  });
+
+  return includeInstances;
+}
+
+
+async function executeUnpaginatedIncludeQueries(
+  handler,
+  key,
+  include,
+  outerInstances
+) {
+  const rows = await include.model.findAll({
+    ...include.sequelizeOptions,
+    where: {
+      ...(include.sequelizeOptions.where || {}),
+      [include.foreignKey]: {
+        in: outerInstances.map((r) => r.uuid),
+      },
+    },
+  });
+
+  const includeInstances = [];
+  if (rows && rows.length) {
+    rows.forEach((row) => {
+      // Find the main rows
+      const outers = outerInstances
+        .filter((r) => r.uuid === row[include.foreignKey]);
+      if (!outers || !outers.length) {
+        throw new Error('Unable to map include.row with outer.row');
+      }
+
+      outers.forEach((outer) => {
+        // Initiate include array
+        if (!outer[key]) {
+          outer[key] = [];
+        }
+
+        // Append the instance
+        includeInstances.push(row);
+        outer[key].push(row);
+      });
+    });
+  }
+}
+
+
+async function executeIncludeQueries(handler, outerInstances) {
   if (!Object.keys(handler.include).length) {
     return;
   }
 
   await Promise.all(
     Object.keys(handler.include).map(async (key) => {
-      let rows;
-      let counts;
       const include = handler.include[key];
-
-      const queryCount = getIncludeCount(handler, include, outerInstances);
-
-      if (
-        include.sequelizeOptions.limit === undefined
-        || include.sequelizeOptions.limit > 0
-      ) {
-        // Create the include sql
-        const sqlQuery = await createLateralIncludeSqlQuery(handler, include);
-
-        const query = db.sequelize.query(sqlQuery, {
-          type: db.sequelize.QueryTypes.SELECT,
-          replacements: [
-            outerInstances.map((r) => r.uuid),
-          ],
-        });
-
-        ([rows, counts] = await Promise.all([
-          query,
-          queryCount,
-        ]));
+      let includeInstances;
+      if (include.config.paginate) {
+        includeInstances = await executePaginatedIncludeQueries(
+          handler, key, include, outerInstances
+        );
       }
       else {
-        rows = [];
-        counts = await queryCount;
+        includeInstances = await executeUnpaginatedIncludeQueries(
+          handler, key, include, outerInstances
+        );
       }
-
-      const baseOpts = {
-        limit: include.sequelizeOptions.limit,
-        offset: include.sequelizeOptions.offset,
-      };
-
-      // Map the results to the include model
-      const includeInstances = [];
-      rows.forEach((row) => {
-        // Find the main rows
-        const outers = outerInstances.filter((r) => r.uuid === row.outerid);
-        if (!outers || !outers.length) {
-          throw new Error('Unable to map include.row with outer.row');
-        }
-
-        outers.forEach((outer) => {
-          // Initiate include array
-          if (!outer[key]) {
-            outer[key] = { ...baseOpts, rows: [], count: null };
-          }
-
-          // Append the instance
-          const instance = new include.model(row);
-          includeInstances.push(instance);
-          outer[key].rows.push(instance);
-        });
-      });
-
-      // Map the counts to the include model
-      counts.forEach((count) => {
-        // Find the main rows
-        const outers = outerInstances.filter((r) => r.uuid === count.outerid);
-        if (!outers || !outers.length) {
-          throw new Error('Unable to map count.row with outer.row');
-        }
-
-        outers.forEach((outer) => {
-          // Initiate include array
-          if (!outer[key]) {
-            outer[key] = { ...baseOpts, rows: [], count: null };
-          }
-
-          // Append the instance
-          outer[key].count = +count.count;
-        });
-      });
 
       // Recursive include
-      if (Object.keys(include.include).length && rows.length) {
-        await executePaginatedIncludeQueries(include, includeInstances);
+      if (Object.keys(include.include).length && includeInstances.length) {
+        await executeIncludeQueries(include, includeInstances);
       }
-
-      return Promise.resolve();
     })
   );
 }
 
 
 async function executeMainQuery(handler) {
-  if (handler.sequelizeOptions.limit > 0) {
+  if (handler.sequelizeOptions.limit > 0 || !handler.config.paginate) {
     const res = await handler.model.findAndCountAll(handler.sequelizeOptions);
     return res;
   }
@@ -249,7 +314,7 @@ async function executeQuery(handler) {
 
   // Run any include queries
   if (result.rows.length > 0) {
-    await executePaginatedIncludeQueries(handler, result.rows);
+    await executeIncludeQueries(handler, result.rows);
   }
 
   return result;
@@ -281,14 +346,23 @@ function formatDocument(obj) {
 
 
 function formatResults(handler, results) {
-  const formattedResult = {
-    count: results.count,
-    limit: results.limit,
-    offset: results.offset,
-    documents: [],
-  };
+  let formattedResult = [];
+  let documents = formattedResult;
+  let rows = results;
 
-  results.rows.forEach((row) => {
+  if (!Array.isArray(results)) {
+    formattedResult = {
+      count: results.count,
+      limit: results.limit,
+      offset: results.offset,
+      documents: [],
+    };
+
+    ({ documents } = formattedResult);
+    ({ rows } = results);
+  }
+
+  rows.forEach((row) => {
     const document = row.format();
 
     // Only return requested fields
@@ -308,12 +382,15 @@ function formatResults(handler, results) {
       }
     });
 
-    formattedResult.documents.push(document);
+    documents.push(document);
   });
 
   // Remove null values
-  formattedResult.documents = formattedResult.documents
-    .map((doc) => formatDocument(doc));
+  documents = documents.map((doc) => formatDocument(doc));
+
+  if (Array.isArray(results)) {
+    formattedResult = documents;
+  }
 
   return formattedResult;
 }
