@@ -293,11 +293,16 @@ export default (sequelize, DataTypes) => {
         createdAt: false,
       },
       include: {
+        // TODO(Roar):
         // maintainerGroup
         // ownerGroup
         // contactGroup
         // county
         // municipality
+        // Accessability
+        // Facility
+        // Link
+        // OpeningHours
 
         areas: {
           includeByDefault: false,
@@ -308,6 +313,11 @@ export default (sequelize, DataTypes) => {
             otherKey: 'cabinUuid',
             foreignKey: 'areaUuid',
           },
+        },
+        facilities: {
+          includeByDefault: true,
+          model: models.CabinFacility,
+          foreignKey: 'cabinUuid',
         },
       },
     };
