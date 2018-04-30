@@ -172,41 +172,41 @@ async function executePaginatedIncludeQueries(handler, outerInstances) {
       const includeInstances = [];
       rows.forEach((row) => {
         // Find the main rows
-        const outer = _.head(
-          outerInstances.filter((r) => r.uuid === row.outerid)
-        );
-        if (!outer) {
+        const outers = outerInstances.filter((r) => r.uuid === row.outerid);
+        if (!outers || !outers.length) {
           throw new Error('Unable to map include.row with outer.row');
         }
 
-        // Initiate include array
-        if (!outer[key]) {
-          outer[key] = { ...baseOpts, rows: [], count: null };
-        }
+        outers.forEach((outer) => {
+          // Initiate include array
+          if (!outer[key]) {
+            outer[key] = { ...baseOpts, rows: [], count: null };
+          }
 
-        // Append the instance
-        const instance = new include.model(row);
-        includeInstances.push(instance);
-        outer[key].rows.push(instance);
+          // Append the instance
+          const instance = new include.model(row);
+          includeInstances.push(instance);
+          outer[key].rows.push(instance);
+        });
       });
 
       // Map the counts to the include model
       counts.forEach((count) => {
         // Find the main rows
-        const outer = _.head(
-          outerInstances.filter((r) => r.uuid === count.outerid)
-        );
-        if (!outer) {
+        const outers = outerInstances.filter((r) => r.uuid === count.outerid);
+        if (!outers || !outers.length) {
           throw new Error('Unable to map count.row with outer.row');
         }
 
-        // Initiate include array
-        if (!outer[key]) {
-          outer[key] = { ...baseOpts, rows: [], count: null };
-        }
+        outers.forEach((outer) => {
+          // Initiate include array
+          if (!outer[key]) {
+            outer[key] = { ...baseOpts, rows: [], count: null };
+          }
 
-        // Append the instance
-        outer[key].count = +count.count;
+          // Append the instance
+          outer[key].count = +count.count;
+        });
       });
 
       // Recursive include
