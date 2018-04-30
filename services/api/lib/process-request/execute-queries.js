@@ -8,24 +8,29 @@ import { getSqlFromFindAll } from '@turistforeningen/ntb-shared-db-utils';
 async function createLateralIncludeSqlQuery(handler, include) {
   const originModel = handler.model;
   const { model, through } = include;
-  const throughModel = model.associations[through.association].target;
+  const throughModel = through
+    ? model.associations[through.association].target
+    : null;
 
-  let sql = await getSqlFromFindAll(model, {
-    ...include.sequelizeOptions,
-    include: [{
+  const sequelizeOptions = { ...include.sequelizeOptions };
+  if (through) {
+    sequelizeOptions.include = [{
       association: through.association,
       attributes: [],
-    }],
-  });
+    }];
+  }
+  let sql = await getSqlFromFindAll(model, sequelizeOptions);
 
   // Replace existing limits and offsets
   sql = sql.replace(/LIMIT [0-9]+ OFFSET [0-9]+/g, '');
 
   // Replace "LEFT OUTER JOIN" WITH "INNER JOIN"
-  sql = sql.replace(
-    `LEFT OUTER JOIN "${throughModel.tableName}"`,
-    `INNER JOIN "${throughModel.tableName}"`
-  );
+  if (through) {
+    sql = sql.replace(
+      `LEFT OUTER JOIN "${throughModel.tableName}"`,
+      `INNER JOIN "${throughModel.tableName}"`
+    );
+  }
 
   // Inject WHERE clause to connect outer table with the lateral join
   const innerJoinByPos = sql.lastIndexOf(' INNER JOIN ');
@@ -35,10 +40,13 @@ async function createLateralIncludeSqlQuery(handler, include) {
     wherePos = null;
   }
 
-  const otherKey = _.snakeCase(through.otherKey);
+  const joinOnOuterField = through
+    ? `"${through.association}"."${_.snakeCase(through.otherKey)}"`
+    : `"${model.name}"."${_.snakeCase(include.foreignKey)}"`;
+
   sql = (
     `${sql.substr(0, wherePos || orderByPos)} WHERE ` +
-    `"${through.association}"."${otherKey}" = "outer"."uuid" ` +
+    `${joinOnOuterField} = "outer"."uuid" ` +
     `${wherePos ? 'AND' : ''} ${sql.substr(orderByPos)} ` +
     `LIMIT ${include.sequelizeOptions.limit} ` +
     `OFFSET ${include.sequelizeOptions.offset} `
@@ -58,42 +66,59 @@ async function createLateralIncludeSqlQuery(handler, include) {
 
 async function getIncludeCount(handler, include, refs) {
   const { model, through } = include;
-  const throughModel = model.associations[through.association].target;
+  let groupByField = include.foreignKey;
+  let countField = '*';
+  let sequelizeOptionsinclude = null;
+  let queryModel = model;
 
-  const res = await throughModel.findAll({
-    include: [{
+  const inheritSequelizeOptions = {
+    ...include.sequelizeOptions,
+    order: null,
+    limit: null,
+    offset: null,
+  };
+
+  if (through) {
+    queryModel = model.associations[through.association].target;
+    groupByField = through.otherKey;
+    sequelizeOptionsinclude = [{
       association: through.reverseAssociation,
-      ...include.sequelizeOptions,
+      ...inheritSequelizeOptions,
       attributes: [],
       required: true,
-      order: null,
-      limit: null,
-      offset: null,
-    }],
+    }];
+    countField = `"${queryModel.name}"."${_.snakeCase(through.foreignKey)}"`;
+  }
+
+  const sequelizeOptions = {
+    ...(through ? {} : inheritSequelizeOptions),
+    include: sequelizeOptionsinclude,
     attributes: [
-      through.otherKey,
+      groupByField,
       [
         model.sequelize.fn(
           'COUNT',
-          `"${throughModel.name}"."${_.snakeCase(through.foreignKey)}"`,
+          countField,
         ),
         'count',
       ],
     ],
-    group: [through.otherKey],
+    group: [groupByField],
     distinct: true,
     where: {
-      [through.otherKey]: {
+      [groupByField]: {
         in: refs.map((r) => r.uuid),
       },
     },
     raw: true,
-  });
+  };
+
+  const res = await queryModel.findAll(sequelizeOptions);
 
   // Rename otherKey to a generic key name for later use
   const counts = res.map((c) => {
-    c.outerid = c[through.otherKey];
-    delete c[through.otherKey];
+    c.outerid = c[groupByField];
+    delete c[groupByField];
     return c;
   });
 
@@ -114,7 +139,10 @@ async function executePaginatedIncludeQueries(handler, outerInstances) {
 
       const queryCount = getIncludeCount(handler, include, outerInstances);
 
-      if (include.sequelizeOptions.limit > 0) {
+      if (
+        include.sequelizeOptions.limit === undefined
+        || include.sequelizeOptions.limit > 0
+      ) {
         // Create the include sql
         const sqlQuery = await createLateralIncludeSqlQuery(handler, include);
 
