@@ -27,6 +27,21 @@ export default (sequelize, DataTypes) => {
   );
 
 
+  // Associations
+
+  CabinFacility.associate = (models) => {
+    models.CabinFacility.belongsTo(models.Cabin, {
+      as: 'Cabin',
+      foreignKey: 'cabinUuid',
+    });
+
+    models.CabinFacility.belongsTo(models.Facility, {
+      as: 'Facility',
+      foreignKey: 'facilityName',
+    });
+  };
+
+
   // API CONFIGURATION
 
   CabinFacility.getAPIConfig = (models) => {
@@ -34,12 +49,10 @@ export default (sequelize, DataTypes) => {
 
     // Configuration when it's the entry model
     config.byReferrer.default = {
-      paginate: true,
+      paginate: false,
       fullTextSearch: false,
       ordering: false,
       defaultOrder: [['facilityName', 'ASC']],
-      defaultLimit: 1,
-      maxLimit: 50,
       validOrderFields: ['facilityName'],
       // validFields - true/false if they should be returned from API as
       // default if no ?fields=.. parameter is specified
