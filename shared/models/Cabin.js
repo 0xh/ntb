@@ -300,7 +300,7 @@ export default (sequelize, DataTypes) => {
         license: true,
         provider: true,
         status: true,
-        dataSource: true,
+        dataSource: false,
         updatedAt: true,
         createdAt: false,
       },
