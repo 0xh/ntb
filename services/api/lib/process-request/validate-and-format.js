@@ -37,25 +37,31 @@ function getKeyValue(queryObject, key) {
 function setValidKeys(handler) {
   const validKeys = ['fields'];
   const validDotKeys = [];
-  const { config } = handler;
+  const { config, association } = handler;
+  const associationType = association
+    ? association.associationType
+    : null;
 
-  // Pagination keys
-  if (config.paginate) {
-    validKeys.push('limit');
-    validKeys.push('offset');
+  // Enable pagination if not association, or a multiple-association
+  if (!association || !['BelongsTo'].includes(associationType)) {
+    // Pagination keys
+    if (config.paginate) {
+      validKeys.push('limit');
+      validKeys.push('offset');
+    }
+
+    // Ordering key
+    if (config.ordering) {
+      validKeys.push('order');
+    }
+
+    // Full text search key
+    if (config.fullTextSearch) {
+      validKeys.push('q');
+    }
   }
 
-  // Ordering key
-  if (config.ordering) {
-    validKeys.push('order');
-  }
-
-  // Full text search key
-  if (config.fullTextSearch) {
-    validKeys.push('q');
-  }
-
-  // Extend key
+  // Include keys
   Object.keys(config.include || {}).forEach((key) => {
     validKeys.push(key);
     validDotKeys.push(key);
@@ -291,6 +297,7 @@ function setFields(handler) {
     config,
     queryObject,
     trace,
+    association,
   } = handler;
 
   if (!config.validFields) {
@@ -298,7 +305,17 @@ function setFields(handler) {
   }
 
   const validFieldKeys = Object.keys(config.validFields);
+  let validThroughFieldKeys = [];
   const validIncludeKeys = Object.keys(config.include || {});
+
+  if (association && association.through) {
+    const APIThroughFields = association.through.model.getAPIThroughFields(
+      association.source.name
+    );
+    validThroughFieldKeys = Object.keys(APIThroughFields || {});
+    handler.throughFields = validThroughFieldKeys
+      .filter((f) => (APIThroughFields || {})[f]);
+  }
 
   // Set default fields
   handler.fields = Object.keys(config.validFields)
@@ -336,9 +353,14 @@ function setFields(handler) {
       let valid = true;
       const fields = [];
       const includeFields = [];
+      const throughFields = [];
       values.forEach((fieldExpression) => {
         const f = _.camelCase(fieldExpression.toLowerCase().trim());
-        if (!validFieldKeys.includes(f) && !validIncludeKeys.includes(f)) {
+        if (
+          !validFieldKeys.includes(f)
+          && !validThroughFieldKeys.includes(f)
+          && !validIncludeKeys.includes(f)
+        ) {
           handler.errors.push(
             `Invalid ${trace}${qFields.originalKey} value ` +
             `"${qFields.errorReportingValue}"` +
@@ -351,14 +373,25 @@ function setFields(handler) {
         if (validIncludeKeys.includes(f)) {
           includeFields.push(f);
         }
+        else if (validThroughFieldKeys.includes(f)) {
+          throughFields.push(f);
+        }
         else {
           fields.push(f);
         }
       });
 
       // All fields validated
-      if (valid && (fields.length || includeFields.length)) {
+      if (
+        valid
+        && (
+          fields.length
+          || includeFields.length
+          || throughFields.length
+        )
+      ) {
         handler.fields = fields;
+        handler.throughFields = throughFields;
         handler.includeFields = includeFields;
       }
     }
@@ -392,9 +425,10 @@ function validateIncludeKeys(handler) {
  */
 function setAttributes(handler) {
   // translate fields to attributes for fields which are not includes/extends
+  const fieldsToConvert = handler.fields
+    .filter((f) => !Object.keys((handler.config.include || {})).includes(f));
   handler.sequelizeOptions.attributes = handler.model.fieldsToAttributes(
-    handler.fields
-      .filter((f) => !Object.keys((handler.config.include || {})).includes(f))
+    fieldsToConvert
   );
 
   // Make sure the primary keys are always selected
@@ -403,6 +437,40 @@ function setAttributes(handler) {
       handler.sequelizeOptions.attributes.push(key);
     }
   });
+
+  // Make sure the fields needed for includes are always selected
+  Object.keys((handler.include || {})).forEach((includeKey) => {
+    const { association } = handler.include[includeKey];
+    const identifier = association.manyFromSource
+      ? association.manyFromSource.sourceIdentifier
+      : association.identifier;
+
+    if (!handler.sequelizeOptions.attributes.includes(identifier)) {
+      handler.sequelizeOptions.attributes.push(identifier);
+    }
+  });
+
+  // Make sure the order by key is always selected
+  (handler.sequelizeOptions.order || []).forEach((orderKey) => {
+    if (!handler.sequelizeOptions.attributes.includes(orderKey[0])) {
+      handler.sequelizeOptions.attributes.push(orderKey[0]);
+    }
+  });
+
+  // Translate through fields
+  if (handler.throughFields.length) {
+    const throughFields = [...handler.throughFields];
+
+    handler.throughAttributes =
+      handler.association.through.model.fieldsToAttributes(
+        handler.association.source.name, throughFields
+      );
+
+    const sourceIdentifier = handler.association.toSource.identifier;
+    if (!handler.throughAttributes.includes(sourceIdentifier)) {
+      handler.throughAttributes.push(sourceIdentifier);
+    }
+  }
 }
 
 
@@ -467,6 +535,7 @@ function getDefaultHandler(model, queryObject, errors = [], trace = '') {
   return {
     sequelizeOptions: {},
     fields: [],
+    throughFields: [],
     includeFields: [],
     include: {},
     errors,
@@ -484,11 +553,14 @@ function getDefaultHandler(model, queryObject, errors = [], trace = '') {
 function pickFromHandlerObject(handler) {
   return {
     fields: handler.fields,
+    throughFields: handler.throughFields,
+    throughAttributes: handler.throughAttributes,
     includeFields: handler.includeFields,
     model: handler.model,
     config: handler.config,
     include: handler.include,
     sequelizeOptions: handler.sequelizeOptions,
+    association: handler.association,
   };
 }
 
@@ -510,7 +582,6 @@ function processRequestParameters(referrer, handler) {
   setOrdering(handler);
   setFields(handler);
   validateIncludeKeys(handler);
-  setAttributes(handler);
   setIncludes(handler);
 
 
@@ -521,35 +592,27 @@ function processRequestParameters(referrer, handler) {
     sequelizeOptions.include = [];
     Object.keys(handler.include).forEach((key) => {
       const extendQueryObject = getExtendQueryObject(handler, key);
-      const { association } = handler.include[key];
-      const extendModel = association
-        ? handler.model.associations[association].target
-        : handler.include[key].model;
+      const associationKey = handler.include[key].association;
+      const association = handler.model.associations[associationKey];
 
       const extendHandler = getDefaultHandler(
-        extendModel,
+        association.target,
         extendQueryObject,
         handler.errors,
         `${handler.trace}${key}.`
       );
+      extendHandler.association = association;
       processRequestParameters(`${handler.model.name}.${key}`, extendHandler);
 
-      // If it should be included in the main query
-      if (association) {
-        sequelizeOptions.include.push({
-          association: handler.include[key].association,
-          ...extendHandler.sequelizeOptions,
-        });
-      }
-      // Add options to handler.include
-      else {
-        handler.include[key] = {
-          ...handler.include[key],
-          ...pickFromHandlerObject(extendHandler),
-        };
-      }
+      handler.include[key] = {
+        ...handler.include[key],
+        ...pickFromHandlerObject(extendHandler),
+      };
     });
   }
+
+  // Set attributes to be included in the SQL
+  setAttributes(handler);
 }
 
 

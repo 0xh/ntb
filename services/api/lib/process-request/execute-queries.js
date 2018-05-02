@@ -1,37 +1,73 @@
 import _ from 'lodash';
 
 import db from '@turistforeningen/ntb-shared-models';
-import { isObject } from '@turistforeningen/ntb-shared-utils';
+import { isObject, isString } from '@turistforeningen/ntb-shared-utils';
 import { getSqlFromFindAll } from '@turistforeningen/ntb-shared-db-utils';
 
 
-async function createLateralIncludeSqlQuery(handler, include) {
-  const originModel = handler.model;
-  const { model, through } = include;
-  const throughModel = through
-    ? model.associations[through.association].target
-    : null;
-  const outerIdField = `"outer"."${handler.model.primaryKeyAttribute}"`;
+function getIncludeThroughSequelizeOptions(include, identifiers) {
+  const { association, sequelizeOptions } = include;
 
-  const sequelizeOptions = { ...include.sequelizeOptions };
-  if (through) {
-    sequelizeOptions.include = [{
-      association: through.association,
-      attributes: [],
-    }];
-  }
-  let sql = await getSqlFromFindAll(model, sequelizeOptions);
+  return {
+    attributes: include.throughAttributes,
+    include: [
+      {
+        ...sequelizeOptions,
+        association: association.toTarget,
+        order: null,
+        required: true,
+      },
+    ],
+    where: {
+      [association.identifier]: {
+        in: identifiers,
+      },
+    },
+  };
+}
+
+
+async function createLateralIncludeSqlQuery(handler, include) {
+  // const originModel = handler.model;
+  // const { model, through } = include;
+  // const throughModel = through
+  //   ? model.associations[through.association].target
+  //   : null;
+  const { association } = include;
+  const outerIdField = `"outer"."${association.toSource.targetKeyField}"`;
+
+  const attributes = include.sequelizeOptions.attributes.map((a) => {
+    if (isString(a)) {
+      return [_.snakeCase(a), `${association.target.name}__${a}`];
+    }
+    return a;
+  });
+  const throughAttributes = (include.throughAttributes || []).map((a) => {
+    if (isString(a)) {
+      return [_.snakeCase(a), a];
+    }
+    return a;
+  });
+
+  const sequelizeOptions = {
+    ...include.sequelizeOptions,
+    attributes,
+    include: [{
+      association: association.manyFromTarget,
+      attributes: throughAttributes,
+    }],
+  };
+
+  let sql = await getSqlFromFindAll(association.target, sequelizeOptions);
 
   // Replace existing limits and offsets
   sql = sql.replace(/LIMIT [0-9]+ OFFSET [0-9]+/g, '');
 
   // Replace "LEFT OUTER JOIN" WITH "INNER JOIN"
-  if (through) {
-    sql = sql.replace(
-      `LEFT OUTER JOIN "${throughModel.tableName}"`,
-      `INNER JOIN "${throughModel.tableName}"`
-    );
-  }
+  sql = sql.replace(
+    `LEFT OUTER JOIN "${association.through.model.tableName}"`,
+    `INNER JOIN "${association.through.model.tableName}"`
+  );
 
   // Inject WHERE clause to connect outer table with the lateral join
   const innerJoinByPos = sql.lastIndexOf(' INNER JOIN ');
@@ -41,9 +77,10 @@ async function createLateralIncludeSqlQuery(handler, include) {
     wherePos = null;
   }
 
-  const joinOnOuterField = through
-    ? `"${through.association}"."${_.snakeCase(through.otherKey)}"`
-    : `"${model.name}"."${_.snakeCase(include.foreignKey)}"`;
+  const joinOnOuterField = (
+    `"${association.manyFromTarget.as}".` +
+    `"${association.manyFromSource.identifierField}"`
+  );
 
   sql = (
     `${sql.substr(0, wherePos || orderByPos)} WHERE ` +
@@ -55,9 +92,9 @@ async function createLateralIncludeSqlQuery(handler, include) {
 
   // Add outer sql an lateral join the main sql
   sql = (
-    `SELECT ${outerIdField} AS "outerid", "${model.name}".* ` +
-    `FROM "public"."${originModel.tableName}" AS "outer", ` +
-    `LATERAL (${sql}) AS "${model.name}" ` +
+    `SELECT ${outerIdField} AS "outerid", "${association.as}".* ` +
+    `FROM "public"."${association.source.tableName}" AS "outer", ` +
+    `LATERAL (${sql}) AS "${association.as}" ` +
     `WHERE ${outerIdField} IN (?) ORDER BY ${outerIdField}`
   );
 
@@ -65,79 +102,7 @@ async function createLateralIncludeSqlQuery(handler, include) {
 }
 
 
-async function getIncludeCount(handler, include, refs) {
-  const { model, through } = include;
-  let groupByField = include.foreignKey;
-  let countField = '*';
-  let sequelizeOptionsinclude = null;
-  let queryModel = model;
-
-  const inheritSequelizeOptions = {
-    ...include.sequelizeOptions,
-    order: null,
-    limit: null,
-    offset: null,
-  };
-
-  if (through) {
-    queryModel = model.associations[through.association].target;
-    groupByField = through.otherKey;
-    sequelizeOptionsinclude = [{
-      association: through.reverseAssociation,
-      ...inheritSequelizeOptions,
-      attributes: [],
-      required: true,
-    }];
-    countField = `"${queryModel.name}"."${_.snakeCase(through.foreignKey)}"`;
-  }
-
-  const sequelizeOptions = {
-    ...(through ? {} : inheritSequelizeOptions),
-    include: sequelizeOptionsinclude,
-    attributes: [
-      groupByField,
-      [
-        model.sequelize.fn(
-          'COUNT',
-          countField,
-        ),
-        'count',
-      ],
-    ],
-    group: [groupByField],
-    distinct: true,
-    where: {
-      [groupByField]: {
-        in: refs.map((r) => r[handler.model.primaryKeyField]),
-      },
-    },
-    raw: true,
-  };
-
-  const res = await queryModel.findAll(sequelizeOptions);
-
-  // Rename otherKey to a generic key name for later use
-  const counts = res.map((c) => {
-    c.outerid = c[groupByField];
-    delete c[groupByField];
-    return c;
-  });
-
-  return counts;
-}
-
-
-async function executePaginatedIncludeQueries(
-  handler,
-  key,
-  include,
-  outerInstances
-) {
-  let rows;
-  let counts;
-
-  const queryCount = getIncludeCount(handler, include, outerInstances);
-
+async function getLateralThroughInclude(handler, include, identifiers) {
   if (
     include.sequelizeOptions.limit === undefined
     || include.sequelizeOptions.limit > 0
@@ -147,36 +112,217 @@ async function executePaginatedIncludeQueries(
 
     const query = db.sequelize.query(sqlQuery, {
       type: db.sequelize.QueryTypes.SELECT,
-      replacements: [
-        outerInstances.map((r) => r[handler.model.primaryKeyField]),
-      ],
+      replacements: [identifiers],
     });
 
-    ([rows, counts] = await Promise.all([
-      query,
-      queryCount,
-    ]));
-  }
-  else {
-    rows = [];
-    counts = await queryCount;
+    const result = await query;
+    return result;
   }
 
+  return [];
+}
+
+
+async function getThroughIncludeCount(handler, include, identifiers) {
+  const { association } = include;
+  const countField = '*';
+
+  const sequelizeOptions = getIncludeThroughSequelizeOptions(
+    include, identifiers
+  );
+
+  sequelizeOptions.attributes = [
+    association.identifier,
+    [
+      db.sequelize.fn(
+        'COUNT',
+        countField,
+      ),
+      'count',
+    ],
+  ];
+  sequelizeOptions.group = [association.identifier];
+  sequelizeOptions.distinct = true;
+  sequelizeOptions.raw = true;
+  sequelizeOptions.include[0] = {
+    ...sequelizeOptions.include[0],
+    limit: null,
+    offset: null,
+    attributes: [],
+  };
+
+  const rows = await association.through.model.findAll(sequelizeOptions);
+
+  // Rename otherKey to a generic key name for later use
+  const counts = rows.map((c) => {
+    c.outerid = c[association.identifier];
+    delete c[association.identifier];
+    return c;
+  });
+
+  return counts;
+}
+
+
+async function executeSingleAssociation(
+  handler,
+  include,
+  key,
+  outerInstances
+) {
+  const { association, sequelizeOptions } = include;
+  const identifiers = outerInstances
+    .map((r) => r[association.identifier])
+    .filter((r) => r !== null);
+
+  if (!identifiers.length) {
+    return [];
+  }
+
+  const rows = await association.target.findAll({
+    ...sequelizeOptions,
+    where: {
+      ...(sequelizeOptions.where || {}),
+      [association.targetIdentifier]: { in: identifiers },
+    },
+  });
+
+  const includeInstances = [];
+  if (rows && rows.length) {
+    rows.forEach((row) => {
+      // Find the main rows
+      const outers = outerInstances
+        .filter((r) => (
+          r[association.identifier] === row[association.targetIdentifier]
+        ));
+      if (!outers || !outers.length) {
+        throw new Error('Unable to map include.row with outer.row');
+      }
+
+      outers.forEach((outer) => {
+        // Set the instance association
+        includeInstances.push(row);
+        outer[key] = row;
+      });
+    });
+  }
+
+  return includeInstances;
+}
+
+
+async function executeMultiThroughAssociation(
+  handler,
+  include,
+  key,
+  outerInstances
+) {
+  const { association } = include;
+  const identifiers = outerInstances
+    .map((r) => r[association.manyFromSource.sourceIdentifier])
+    .filter((r) => r !== null);
+
+  if (!identifiers.length) {
+    return [];
+  }
+
+  const sequelizeOptions = getIncludeThroughSequelizeOptions(
+    include, identifiers
+  );
+
+  const rows = await association.through.model.findAll(sequelizeOptions);
+
+  const includeInstances = [];
+  if (rows && rows.length) {
+    rows.forEach((row) => {
+      // Find the main rows
+      const outers = outerInstances
+        .filter((r) => {
+          const outerIdentifier = r[association.toSource.targetIdentifier];
+          const rowIdentifier = row[association.identifier];
+          return outerIdentifier === rowIdentifier;
+        });
+      if (!outers || !outers.length) {
+        throw new Error('Unable to map include.row with outer.row');
+      }
+
+      // Add sourceModelName identifier used for formatting
+      row._sourceModelName = association.source.name;
+
+      // Append the instance
+      includeInstances.push(row);
+      outers.forEach((outer) => {
+        // Initiate include array
+        if (!outer[key]) {
+          outer[key] = [];
+        }
+        outer[key].push(row);
+      });
+    });
+  }
+
+  return includeInstances;
+}
+
+
+async function executePaginatedMultiThroughAssociation(
+  handler,
+  include,
+  key,
+  outerInstances
+) {
+  const { association } = include;
+  const { sourceIdentifier } = association.manyFromSource;
+  const identifiers = outerInstances
+    .map((r) => r[association.manyFromSource.sourceIdentifier])
+    .filter((r) => r !== null);
+
+  if (!identifiers.length) {
+    return [];
+  }
+
+  const includeInstances = [];
+  const queryCount = getThroughIncludeCount(handler, include, identifiers);
+  const rowQuery = getLateralThroughInclude(handler, include, identifiers);
+
+  const [rows, counts] = await Promise.all([rowQuery, queryCount]);
   const baseOpts = {
     limit: include.sequelizeOptions.limit,
     offset: include.sequelizeOptions.offset,
   };
-  const { primaryKeyAttribute } = handler.model;
 
   // Map the results to the include model
-  const includeInstances = [];
   rows.forEach((row) => {
     // Find the main rows
     const outers = outerInstances
-      .filter((r) => r[primaryKeyAttribute] === row.outerid);
+      .filter((r) => r[sourceIdentifier] === row.outerid);
     if (!outers || !outers.length) {
       throw new Error('Unable to map include.row with outer.row');
     }
+
+    const throughAttributes = {};
+    const targetAttributes = {};
+    const targetKeyPrefix = `${association.target.name}__`;
+    const throughKeyPrefix = `${association.manyFromSource.as}.`;
+    Object.keys(row).forEach((rowKey) => {
+      if (rowKey.startsWith(targetKeyPrefix)) {
+        const targetKey = rowKey.substr(targetKeyPrefix.length);
+        targetAttributes[targetKey] = row[rowKey];
+      }
+      else {
+        let k = rowKey;
+        if (k.startsWith(throughKeyPrefix)) {
+          k = k.substr(throughKeyPrefix.length);
+        }
+        throughAttributes[k] = row[rowKey];
+      }
+    });
+
+    const targetInstance = new association.target(targetAttributes);
+    const throughInstance = new association.through.model(throughAttributes);
+    throughInstance._sourceModelName = association.source.name;
+    throughInstance[association.target.name] = targetInstance;
+    includeInstances.push(throughInstance);
 
     outers.forEach((outer) => {
       // Initiate include array
@@ -185,9 +331,7 @@ async function executePaginatedIncludeQueries(
       }
 
       // Append the instance
-      const instance = new include.model(row);
-      includeInstances.push(instance);
-      outer[key].rows.push(instance);
+      outer[key].rows.push(throughInstance);
     });
   });
 
@@ -195,7 +339,7 @@ async function executePaginatedIncludeQueries(
   counts.forEach((count) => {
     // Find the main rows
     const outers = outerInstances
-      .filter((r) => r[primaryKeyAttribute] === count.outerid);
+      .filter((r) => r[sourceIdentifier] === count.outerid);
     if (!outers || !outers.length) {
       throw new Error('Unable to map count.row with outer.row');
     }
@@ -215,47 +359,6 @@ async function executePaginatedIncludeQueries(
 }
 
 
-async function executeUnpaginatedIncludeQueries(
-  handler,
-  key,
-  include,
-  outerInstances
-) {
-  const rows = await include.model.findAll({
-    ...include.sequelizeOptions,
-    where: {
-      ...(include.sequelizeOptions.where || {}),
-      [include.foreignKey]: {
-        in: outerInstances.map((r) => r.uuid),
-      },
-    },
-  });
-
-  const includeInstances = [];
-  if (rows && rows.length) {
-    rows.forEach((row) => {
-      // Find the main rows
-      const outers = outerInstances
-        .filter((r) => r.uuid === row[include.foreignKey]);
-      if (!outers || !outers.length) {
-        throw new Error('Unable to map include.row with outer.row');
-      }
-
-      outers.forEach((outer) => {
-        // Initiate include array
-        if (!outer[key]) {
-          outer[key] = [];
-        }
-
-        // Append the instance
-        includeInstances.push(row);
-        outer[key].push(row);
-      });
-    });
-  }
-}
-
-
 async function executeIncludeQueries(handler, outerInstances) {
   if (!Object.keys(handler.include).length) {
     return;
@@ -265,16 +368,40 @@ async function executeIncludeQueries(handler, outerInstances) {
     Object.keys(handler.include).map(async (key) => {
       const include = handler.include[key];
       let includeInstances;
-      if (include.config.paginate) {
-        includeInstances = await executePaginatedIncludeQueries(
-          handler, key, include, outerInstances
+      const { association } = include;
+      const { isSingleAssociation } = association;
+
+      if (include.config.paginate && association.through) {
+        includeInstances = await executePaginatedMultiThroughAssociation(
+          handler, include, key, outerInstances,
+        );
+      }
+      else if (isSingleAssociation) {
+        includeInstances = await executeSingleAssociation(
+          handler, include, key, outerInstances
+        );
+      }
+      else if (association.through) {
+        includeInstances = await executeMultiThroughAssociation(
+          handler, include, key, outerInstances
         );
       }
       else {
-        includeInstances = await executeUnpaginatedIncludeQueries(
-          handler, key, include, outerInstances
+        throw new Error(
+          'Not yet implemented this kind of include association'
         );
       }
+
+      // else if (include.single || !include.config.paginate) {
+      //   includeInstances = await executeUnpaginatedIncludeQueries(
+      //     handler, key, include, outerInstances
+      //   );
+      // }
+      // else {
+      //   includeInstances = await executePaginatedIncludeQueries(
+      //     handler, key, include, outerInstances
+      //   );
+      // }
 
       // Recursive include
       if (Object.keys(include.include).length && includeInstances.length) {
@@ -351,6 +478,12 @@ function formatResults(handler, results) {
   let documents = [];
   let rows = results;
 
+  // Single document
+  if (results instanceof db.Sequelize.Model) {
+    return formatDocument(results.format());
+  }
+
+  // Set configuration for paginated result
   if (!Array.isArray(results)) {
     formattedResult = {
       count: results.count,
@@ -368,7 +501,8 @@ function formatResults(handler, results) {
 
     // Only return requested fields
     Object.keys(document).forEach((key) => {
-      if (!handler.fields.includes(key)) {
+      const verifyFields = handler.fields.concat(handler.throughFields || []);
+      if (!verifyFields.includes(key)) {
         delete document[key];
       }
     });
