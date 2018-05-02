@@ -331,6 +331,7 @@ function formatDocument(obj) {
       ref = formatDocument(ref);
     }
 
+    // Remove attributes with empty or null values
     if (
       (!isObject(ref) || Object.keys(ref).length)
       && (!Array.isArray(ref) || ref.length)
@@ -347,7 +348,7 @@ function formatDocument(obj) {
 
 function formatResults(handler, results) {
   let formattedResult = [];
-  let documents = formattedResult;
+  let documents = [];
   let rows = results;
 
   if (!Array.isArray(results)) {
@@ -390,6 +391,9 @@ function formatResults(handler, results) {
 
   if (Array.isArray(results)) {
     formattedResult = documents;
+  }
+  else {
+    formattedResult.documents = documents;
   }
 
   return formattedResult;
