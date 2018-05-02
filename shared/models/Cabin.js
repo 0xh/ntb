@@ -240,6 +240,12 @@ export default (sequelize, DataTypes) => {
       through: { model: models.CabinAccessability },
       foreignKey: 'cabinUuid',
     });
+
+    models.Cabin.hasMany(models.CabinAccessability, {
+      as: 'CabinAccessabilityCabin',
+      foreignKey: 'cabinUuid',
+      sourceKey: 'uuid',
+    });
   };
 
 
@@ -323,6 +329,11 @@ export default (sequelize, DataTypes) => {
         facilities: {
           includeByDefault: true,
           model: models.CabinFacility,
+          foreignKey: 'cabinUuid',
+        },
+        accessabilities: {
+          includeByDefault: true,
+          model: models.CabinAccessability,
           foreignKey: 'cabinUuid',
         },
       },
