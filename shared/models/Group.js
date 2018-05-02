@@ -1,5 +1,5 @@
 export default (sequelize, DataTypes) => {
-  const Group = sequelize.define('Group', {
+  const attributeConfig = {
     uuid: {
       type: DataTypes.UUID,
       primaryKey: true,
@@ -61,9 +61,13 @@ export default (sequelize, DataTypes) => {
       default: 1,
       allowNull: false,
     },
-  }, {
+  };
+
+  const modelConfig = {
     timestamps: true,
-  });
+  };
+
+  const Group = sequelize.define('Group', attributeConfig, modelConfig);
 
 
   // Associations
@@ -110,20 +114,132 @@ export default (sequelize, DataTypes) => {
     });
   };
 
-  // Class methods :: Search
 
-  Group.search = (query) => {
-    const escapedQuery = sequelize.getQueryInterface().escape(query);
+  // API CONFIGURATION
 
-    return sequelize
-      .query(
-        [
-          `SELECT * FROM "${Group.tableName}"`,
-          'WHERE',
-          `  "search" @@ to_tsquery('norwegian', ${escapedQuery})`,
-        ].join('\n'),
-        Group
-      );
+  Group.APIEntryModel = true;
+
+  Group.getAPIConfig = (models) => {
+    const config = { byReferrer: {} };
+
+    // Configuration when it's the entry model
+    config.byReferrer.default = {
+      paginate: true,
+      fullTextSearch: true,
+      ordering: true,
+
+      defaultLimit: 10,
+      maxLimit: 50,
+      validOrderFields: [
+        'name',
+        'updatedAt',
+        'createdAt',
+      ],
+      defaultOrder: [['name', 'ASC']],
+      // validFields - true/false if they should be returned from API as
+      // default if no ?fields=.. parameter is specified
+      validFields: {
+        uri: true,
+        id: true,
+        type: true,
+        subType: true,
+        name: true,
+        description: true,
+        logo: true,
+        organizationNumber: true,
+        url: true,
+        email: true,
+        phone: true,
+        mobile: true,
+        fax: true,
+        address1: true,
+        address2: true,
+        postalCode: true,
+        postalName: true,
+        license: true,
+        provider: true,
+        status: true,
+        dataSource: false,
+        updatedAt: true,
+        createdAt: false,
+      },
+      include: {
+        // TODO(Roar):
+        // municipality
+        // poi
+        // pois
+        // lists
+        // links
+        // cabins - owner
+        // cabins - maintainer
+        // cabins - contact
+      },
+    };
+
+    return config;
+  };
+
+  Group.fieldsToAttributes = (fields) => {
+    const attributes = [].concat(...fields.map((field) => {
+      switch (field) {
+        case 'uri':
+          return null;
+        case 'id':
+          return ['uuid'];
+        case 'type':
+          return ['groupType'];
+        case 'subType':
+          return ['groupSubType'];
+        case 'createdAt':
+        case 'updatedAt':
+          if (modelConfig.timestamps) {
+            return [field];
+          }
+          throw new Error(
+            `Unable to translate field ${field} on Group model`
+          );
+        default:
+          if (Object.keys(attributeConfig).includes(field)) {
+            return [field];
+          }
+          throw new Error(
+            `Unable to translate field ${field} on Group model`
+          );
+      }
+    }).filter((field) => field !== null));
+
+    return attributes;
+  };
+
+
+  Group.prototype.format = function format() {
+    return {
+      uri: `group/${this.uuid}`,
+      id: this.uuid,
+      type: this.groupType,
+      subType: this.groupSubType,
+      name: this.name,
+      description: this.description && this.description.length
+        ? this.description
+        : null,
+      logo: this.logo,
+      organizationNumber: this.organizationNumber,
+      url: this.url,
+      email: this.email,
+      phone: this.phone,
+      mobile: this.mobile,
+      fax: this.fax,
+      address1: this.address1,
+      address2: this.address2,
+      postalCode: this.postalCode,
+      postalName: this.postalName,
+      license: this.license,
+      provider: this.provider,
+      status: this.status,
+      dataSource: this.dataSource,
+      updatedAt: this.updatedAt,
+      createdAt: this.createdAt,
+    };
   };
 
   return Group;
