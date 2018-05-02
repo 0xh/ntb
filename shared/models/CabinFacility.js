@@ -76,18 +76,22 @@ export default (sequelize, DataTypes) => {
     const attributes = [].concat(...fields.map((field) => {
       switch (field) {
         case 'name':
-          return 'facilityName';
+          return ['facilityName'];
         case 'createdAt':
         case 'updatedAt':
           if (modelConfig.timestamps) {
             return [field];
           }
-          throw new Error(`Unable to translate field ${field} on Cabin model`);
+          throw new Error(
+            `Unable to translate field ${field} on CabinFacility model`
+          );
         default:
           if (Object.keys(attributeConfig).includes(field)) {
             return [field];
           }
-          throw new Error(`Unable to translate field ${field} on Cabin model`);
+          throw new Error(
+            `Unable to translate field ${field} on CabinFacility model`
+          );
       }
     }).filter((field) => field !== null));
 
@@ -102,8 +106,6 @@ export default (sequelize, DataTypes) => {
       description: this.description && this.description.length
         ? this.description
         : null,
-      updatedAt: this.updatedAt,
-      createdAt: this.createdAt,
     };
   };
 
