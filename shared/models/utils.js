@@ -1,4 +1,4 @@
-export function disableAllFields(config, key = '*onEntry') {
+export function disableAllFields(config, key = '*list') {
   return Object.assign(
     {},
     ...(
@@ -11,7 +11,7 @@ export function disableAllFields(config, key = '*onEntry') {
 }
 
 
-export function disableAllIncludes(config, key = '*onEntry') {
+export function disableAllIncludes(config, key = '*list') {
   return Object.assign(
     {},
     ...(

@@ -6,6 +6,7 @@
     "@turistforeningen/ntb-shared-db-utils": "*",
     "@turistforeningen/ntb-shared-settings": "*",
     "@turistforeningen/ntb-shared-utils": "*",
+    "lodash": "^4.17.5",
     "uuid": "^3.2.1",
     "validator": "^9.4.0"
   }

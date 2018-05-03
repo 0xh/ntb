@@ -249,7 +249,7 @@ export default (sequelize, DataTypes) => {
     const config = { byReferrer: {} };
 
     // Configuration when it's the entry model
-    config.byReferrer['*onEntry'] = {
+    config.byReferrer['*list'] = {
       paginate: true,
       fullTextSearch: true,
       ordering: true,
@@ -332,18 +332,18 @@ export default (sequelize, DataTypes) => {
 
     // Default configuration when included from another model
     config.byReferrer.default = {
-      ...config.byReferrer['*onEntry'],
+      ...config.byReferrer['*list'],
 
       validFields: {
-        // Allow the same fields as '*onEntry' but set them to default false
-        ...disableAllFields(config, '*onEntry'),
+        // Allow the same fields as '*list' but set them to default false
+        ...disableAllFields(config, '*list'),
         uri: true,
         id: true,
         name: true,
       },
 
       include: {
-        ...disableAllIncludes(config, '*onEntry'),
+        ...disableAllIncludes(config, '*list'),
       },
     };
 

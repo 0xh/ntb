@@ -1,3 +1,8 @@
+import _ from 'lodash';
+
+import { disableAllFields, disableAllIncludes } from './utils';
+
+
 export default (sequelize, DataTypes) => {
   const attributeConfig = {
     uuid: {
@@ -126,7 +131,7 @@ export default (sequelize, DataTypes) => {
     const config = { byReferrer: {} };
 
     // Configuration when it's the entry model
-    config.byReferrer['*onEntry'] = {
+    config.byReferrer['*list'] = {
       paginate: true,
       fullTextSearch: true,
       ordering: true,
@@ -173,37 +178,21 @@ export default (sequelize, DataTypes) => {
     };
 
     // Default configuration when included from another model
-    config.byReferrer.default = {
-      ...config.byReferrer['*onEntry'],
+    config.byReferrer['*single'] = _.merge({}, config.byReferrer['*list'], {});
 
+    // Default configuration when included from another model
+    config.byReferrer.default = _.merge({}, config.byReferrer['*list'], {
       validFields: {
-        // Allow the same fields as '*onEntry' but set them to default false
-        ...Object.assign(
-          {},
-          ...(
-            Object.keys(config.byReferrer['*onEntry'].validFields)
-              .map((f) => ({
-                [f]: false,
-              }))
-          )
-        ),
+        ...disableAllFields(config, '*list'),
         uri: true,
         id: true,
         name: true,
       },
 
       include: {
-        ...config.byReferrer['*onEntry'].include,
-        parents: {
-          ...config.byReferrer['*onEntry'].include.parents,
-          includeByDefault: false,
-        },
-        children: {
-          ...config.byReferrer['*onEntry'].include.children,
-          includeByDefault: false,
-        },
+        ...disableAllIncludes(config, '*list'),
       },
-    };
+    });
 
     return config;
   };
