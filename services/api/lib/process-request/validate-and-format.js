@@ -399,6 +399,15 @@ function setFields(handler) {
 }
 
 
+function setFilters(handler) {
+  if (handler.id) {
+    handler.sequelizeOptions.where = {
+      uuid: handler.id,
+    };
+  }
+}
+
+
 function validateIncludeKeys(handler) {
   const keys = Object.keys(handler.queryObject);
 
@@ -561,6 +570,7 @@ function pickFromHandlerObject(handler) {
     include: handler.include,
     sequelizeOptions: handler.sequelizeOptions,
     association: handler.association,
+    id: handler.id,
   };
 }
 
@@ -576,11 +586,19 @@ function processRequestParameters(referrer, handler) {
     ? byReferrer[referrer]
     : byReferrer.default;
 
+  if (handler.id) {
+    handler.config.paginate = false;
+    handler.config.order = false;
+    handler.config.fullTextSearch = false;
+    handler.config.disableFilters = true;
+  }
+
   setValidKeys(handler);
   validateKeys(handler);
   setPaginationValues(handler);
   setOrdering(handler);
   setFields(handler);
+  setFilters(handler);
   validateIncludeKeys(handler);
   setIncludes(handler);
 
@@ -607,6 +625,7 @@ function processRequestParameters(referrer, handler) {
       handler.include[key] = {
         ...handler.include[key],
         ...pickFromHandlerObject(extendHandler),
+        id: null,
       };
     });
   }
@@ -622,10 +641,14 @@ function processRequestParameters(referrer, handler) {
  * @param {object} entryModel The entry db.model
  * @param {object} queryObject a preconfigured nested query object or the
  *                             ExpressJS req.query object
+ * @param {string} queryObject id of a single object
  */
-export default function (entryModel, queryObject) {
+export default function (entryModel, queryObject, id = null) {
   const handler = getDefaultHandler(entryModel, queryObject);
-  processRequestParameters('*onEntry', handler);
+  handler.id = id;
+
+  const referrer = id ? '*single' : '*list';
+  processRequestParameters(referrer, handler);
 
   return [handler.errors, pickFromHandlerObject(handler)];
 }

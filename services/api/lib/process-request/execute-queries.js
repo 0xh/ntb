@@ -171,9 +171,11 @@ async function executeSingleAssociation(
   outerInstances
 ) {
   const { association, sequelizeOptions } = include;
-  const identifiers = outerInstances
-    .map((r) => r[association.identifier])
-    .filter((r) => r !== null);
+  const identifiers = Array.from(new Set(
+    outerInstances
+      .map((r) => r._targetDocument[association.identifier])
+      .filter((r) => r !== null)
+  ));
 
   if (!identifiers.length) {
     return [];
@@ -193,16 +195,20 @@ async function executeSingleAssociation(
       // Find the main rows
       const outers = outerInstances
         .filter((r) => (
-          r[association.identifier] === row[association.targetIdentifier]
+          r._targetDocument[association.identifier] ===
+            row[association.targetIdentifier]
         ));
       if (!outers || !outers.length) {
         throw new Error('Unable to map include.row with outer.row');
       }
 
+      // Add target document reference
+      row._targetDocument = row;
+      includeInstances.push(row);
+
       outers.forEach((outer) => {
         // Set the instance association
-        includeInstances.push(row);
-        outer[key] = row;
+        outer._targetDocument[key] = row;
       });
     });
   }
@@ -218,9 +224,13 @@ async function executeMultiThroughAssociation(
   outerInstances
 ) {
   const { association } = include;
-  const identifiers = outerInstances
-    .map((r) => r[association.manyFromSource.sourceIdentifier])
-    .filter((r) => r !== null);
+  const identifiers = Array.from(new Set(
+    outerInstances
+      .map((r) => r._targetDocument[
+        association.manyFromSource.sourceIdentifier
+      ])
+      .filter((r) => r !== null)
+  ));
 
   if (!identifiers.length) {
     return [];
@@ -238,7 +248,9 @@ async function executeMultiThroughAssociation(
       // Find the main rows
       const outers = outerInstances
         .filter((r) => {
-          const outerIdentifier = r[association.toSource.targetIdentifier];
+          const outerIdentifier = r._targetDocument[
+            association.toSource.targetIdentifier
+          ];
           const rowIdentifier = row[association.identifier];
           return outerIdentifier === rowIdentifier;
         });
@@ -248,15 +260,17 @@ async function executeMultiThroughAssociation(
 
       // Add sourceModelName identifier used for formatting
       row._sourceModelName = association.source.name;
+      // Add target document reference
+      row._targetDocument = row[association.target.name];
 
       // Append the instance
       includeInstances.push(row);
       outers.forEach((outer) => {
         // Initiate include array
-        if (!outer[key]) {
-          outer[key] = [];
+        if (!outer._targetDocument[key]) {
+          outer._targetDocument[key] = [];
         }
-        outer[key].push(row);
+        outer._targetDocument[key].push(row);
       });
     });
   }
@@ -273,9 +287,13 @@ async function executePaginatedMultiThroughAssociation(
 ) {
   const { association } = include;
   const { sourceIdentifier } = association.manyFromSource;
-  const identifiers = outerInstances
-    .map((r) => r[association.manyFromSource.sourceIdentifier])
-    .filter((r) => r !== null);
+  const identifiers = Array.from(new Set(
+    outerInstances
+      .map((r) => r._targetDocument[
+        association.manyFromSource.sourceIdentifier
+      ])
+      .filter((r) => r !== null)
+  ));
 
   if (!identifiers.length) {
     return [];
@@ -295,7 +313,7 @@ async function executePaginatedMultiThroughAssociation(
   rows.forEach((row) => {
     // Find the main rows
     const outers = outerInstances
-      .filter((r) => r[sourceIdentifier] === row.outerid);
+      .filter((r) => r._targetDocument[sourceIdentifier] === row.outerid);
     if (!outers || !outers.length) {
       throw new Error('Unable to map include.row with outer.row');
     }
@@ -322,16 +340,17 @@ async function executePaginatedMultiThroughAssociation(
     const throughInstance = new association.through.model(throughAttributes);
     throughInstance._sourceModelName = association.source.name;
     throughInstance[association.target.name] = targetInstance;
+    throughInstance._targetDocument = targetInstance;
     includeInstances.push(throughInstance);
 
     outers.forEach((outer) => {
       // Initiate include array
-      if (!outer[key]) {
-        outer[key] = { ...baseOpts, rows: [], count: null };
+      if (!outer._targetDocument[key]) {
+        outer._targetDocument[key] = { ...baseOpts, rows: [], count: null };
       }
 
       // Append the instance
-      outer[key].rows.push(throughInstance);
+      outer._targetDocument[key].rows.push(throughInstance);
     });
   });
 
@@ -339,19 +358,19 @@ async function executePaginatedMultiThroughAssociation(
   counts.forEach((count) => {
     // Find the main rows
     const outers = outerInstances
-      .filter((r) => r[sourceIdentifier] === count.outerid);
+      .filter((r) => r._targetDocument[sourceIdentifier] === count.outerid);
     if (!outers || !outers.length) {
       throw new Error('Unable to map count.row with outer.row');
     }
 
     outers.forEach((outer) => {
       // Initiate include array
-      if (!outer[key]) {
-        outer[key] = { ...baseOpts, rows: [], count: null };
+      if (!outer._targetDocument[key]) {
+        outer._targetDocument[key] = { ...baseOpts, rows: [], count: null };
       }
 
       // Append the instance
-      outer[key].count = +count.count;
+      outer._targetDocument[key].count = +count.count;
     });
   });
 
@@ -415,6 +434,9 @@ async function executeIncludeQueries(handler, outerInstances) {
 async function executeMainQuery(handler) {
   if (handler.sequelizeOptions.limit > 0 || !handler.config.paginate) {
     const res = await handler.model.findAndCountAll(handler.sequelizeOptions);
+    res.rows.forEach((r) => {
+      r._targetDocument = r;
+    });
     return res;
   }
 
@@ -474,25 +496,24 @@ function formatDocument(obj) {
 
 
 function formatResults(handler, results) {
-  let formattedResult = [];
   let documents = [];
   let rows = results;
+  let singleDocument = false;
 
-  // Single document
-  if (results instanceof db.Sequelize.Model) {
-    return formatDocument(results.format());
+  // Single document by ID
+  if (handler.id) {
+    if (!results.count) {
+      return null;
+    }
+    rows = [results.rows[0]];
   }
-
-  // Set configuration for paginated result
-  if (!Array.isArray(results)) {
-    formattedResult = {
-      count: results.count,
-      limit: results.limit,
-      offset: results.offset,
-      documents: [],
-    };
-
-    ({ documents } = formattedResult);
+  // Single document
+  else if (results instanceof db.Sequelize.Model) {
+    rows = [results];
+    singleDocument = true;
+  }
+  // Paginated result
+  else if (!Array.isArray(results)) {
     ({ rows } = results);
   }
 
@@ -509,10 +530,10 @@ function formatResults(handler, results) {
 
     // Process includes
     Object.keys(handler.include).forEach((includeKey) => {
-      if (row[includeKey]) {
+      if (row._targetDocument[includeKey]) {
         document[includeKey] = formatResults(
           handler.include[includeKey],
-          row[includeKey]
+          row._targetDocument[includeKey]
         );
       }
     });
@@ -523,13 +544,22 @@ function formatResults(handler, results) {
   // Remove null values
   documents = documents.map((doc) => formatDocument(doc));
 
-  if (Array.isArray(results)) {
-    formattedResult = documents;
+  // Return single document
+  if (handler.id || singleDocument) {
+    return documents[0];
   }
-  else {
-    formattedResult.documents = documents;
+  // Return array of documents
+  if (Array.isArray(results)) {
+    return documents;
   }
 
+  // Return paginated result
+  const formattedResult = {
+    count: results.count,
+    limit: results.limit,
+    offset: results.offset,
+    documents,
+  };
   return formattedResult;
 }
 
