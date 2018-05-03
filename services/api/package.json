@@ -6,12 +6,13 @@
   "test": "ava"
  },
  "dependencies": {
+  "@turistforeningen/ntb-shared-db-utils": "*",
   "@turistforeningen/ntb-shared-models": "*",
   "@turistforeningen/ntb-shared-settings": "*",
   "@turistforeningen/ntb-shared-utils": "*",
-  "@turistforeningen/ntb-shared-db-utils": "*",
   "body-parser": "^1.18.2",
   "express": "^4.16.2",
+  "express-params": "^0.0.3",
   "lodash": "^4.17.5",
   "morgan": "^1.9.0",
   "response-time": "^2.3.2",

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import morgan from 'morgan';
 import _ from 'lodash';
+import expressParams from 'express-params';
 
 import db from '@turistforeningen/ntb-shared-models';
 
@@ -13,6 +14,29 @@ const router = new Router();
 
 function createModelRouter(model) {
   const modelRouter = new Router();
+  expressParams.extend(modelRouter);
+
+  // Set frequently used param validators
+  const uuidRe = new RegExp(
+    [
+      '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}',
+      '-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+    ].join(''),
+    'i'
+  );
+  modelRouter.param('uuid', uuidRe);
+
+  // Find specific intance
+  modelRouter.get('/:uuid', asyncHandler(async (req, res, next) => {
+    const id = req.params.uuid[0];
+    const data = await processRequest(model, req.query, id);
+
+    if (data === null) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    res.json(data);
+  }));
 
   // Find areas
   modelRouter.get('/', asyncHandler(async (req, res, next) => {
