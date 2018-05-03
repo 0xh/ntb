@@ -42,43 +42,30 @@ export default (sequelize, DataTypes) => {
 
   // API CONFIGURATION
 
-  CabinAccessability.getAPIConfig = (models) => {
-    const config = { byReferrer: {} };
-
-    // Configuration when it's the entry model
-    config.byReferrer.default = {
-      paginate: false,
-      fullTextSearch: false,
-      ordering: false,
-      defaultOrder: [['accessabilityName', 'ASC']],
-      validOrderFields: ['accessabilityName'],
-      // validFields - true/false if they should be returned from API as
-      // default if no ?fields=.. parameter is specified
-      validFields: {
+  CabinAccessability.getAPIThroughFields = (sourceModelName) => {
+    if (sourceModelName === 'Accessability') {
+      return {
+        accessabilityDescription: true,
+      };
+    }
+    else if (sourceModelName === 'Cabin') {
+      return {
         name: true,
-        cabinUuid: false,
         description: true,
-        updatedAt: false,
-        createdAt: false,
-      },
-    };
+      };
+    }
 
-    return config;
+    throw new Error(`Unknown source model name: ${sourceModelName}`);
   };
 
-  CabinAccessability.fieldsToAttributes = (fields) => {
+  CabinAccessability.fieldsToAttributes = (sourceModelName, fields) => {
     const attributes = [].concat(...fields.map((field) => {
-      switch (field) {
-        case 'name':
+      switch (`${sourceModelName}.${field}`) {
+        case 'Accessability.name':
+        case 'Cabin.name':
           return 'accessabilityName';
-        case 'createdAt':
-        case 'updatedAt':
-          if (modelConfig.timestamps) {
-            return [field];
-          }
-          throw new Error(
-            `Unable to translate field ${field} on CabinAccessability model`
-          );
+        case 'Accessability.accessabilityDescription':
+          return 'description';
         default:
           if (Object.keys(attributeConfig).includes(field)) {
             return [field];
@@ -94,13 +81,26 @@ export default (sequelize, DataTypes) => {
 
 
   CabinAccessability.prototype.format = function format() {
-    return {
-      name: this.accessabilityName,
-      cabinUuid: this.cabinUuid,
-      description: this.description && this.description.length
-        ? this.description
-        : null,
-    };
+    if (this._sourceModelName === 'Accessability') {
+      const formattedCabin = this.Cabin.format();
+      return {
+        ...formattedCabin,
+        accessabilityDescription: this.description && this.description.length
+          ? this.description
+          : null,
+      };
+    }
+    else if (this._sourceModelName === 'Cabin') {
+      const formattedAccessability = this.Accessability.format();
+      return {
+        ...formattedAccessability,
+        description: this.description && this.description.length
+          ? this.description
+          : null,
+      };
+    }
+
+    throw new Error(`Unknown source model name: ${this._sourceModelName}`);
   };
 
   return CabinAccessability;

@@ -62,13 +62,7 @@ export default (sequelize, DataTypes) => {
 
         cabins: {
           includeByDefault: false,
-          model: models.Cabin,
-          through: {
-            association: 'CabinAccessabilityCabin',
-            reverseAssociation: 'Cabin',
-            otherKey: 'accessabilityName',
-            foreignKey: 'cabinUuid',
-          },
+          association: 'Cabins',
         },
       },
     };

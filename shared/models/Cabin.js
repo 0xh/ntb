@@ -1,3 +1,6 @@
+import { disableAllFields, disableAllIncludes } from './utils';
+
+
 export default (sequelize, DataTypes) => {
   const attributeConfig = {
     uuid: {
@@ -193,12 +196,6 @@ export default (sequelize, DataTypes) => {
       foreignKey: 'cabinUuid',
     });
 
-    models.Cabin.hasMany(models.CabinToArea, {
-      as: 'CabinToAreaCabin',
-      foreignKey: 'cabinUuid',
-      sourceKey: 'uuid',
-    });
-
     models.Cabin.belongsToMany(models.Tag, {
       through: {
         model: models.TagRelation,
@@ -229,22 +226,10 @@ export default (sequelize, DataTypes) => {
       foreignKey: 'cabinUuid',
     });
 
-    models.Cabin.hasMany(models.CabinFacility, {
-      as: 'CabinFacilityCabin',
-      foreignKey: 'cabinUuid',
-      sourceKey: 'uuid',
-    });
-
     models.Cabin.belongsToMany(models.Accessability, {
       as: 'Accessabilities',
       through: { model: models.CabinAccessability },
       foreignKey: 'cabinUuid',
-    });
-
-    models.Cabin.hasMany(models.CabinAccessability, {
-      as: 'CabinAccessabilityCabin',
-      foreignKey: 'cabinUuid',
-      sourceKey: 'uuid',
     });
   };
 
@@ -311,30 +296,36 @@ export default (sequelize, DataTypes) => {
         // contactGroup
         // county
         // municipality
-        // Accessability
-        // Facility
         // Link
         // OpeningHours
 
+        ownerGroup: {
+          includeByDefault: true,
+          association: 'OwnerGroup',
+        },
+
+        maintainerGroup: {
+          includeByDefault: true,
+          association: 'MaintainerGroup',
+        },
+
+        contactGroup: {
+          includeByDefault: true,
+          association: 'ContactGroup',
+        },
+
         areas: {
           includeByDefault: false,
-          model: models.Area,
-          through: {
-            association: 'CabinToAreaArea',
-            reverseAssociation: 'Area',
-            otherKey: 'cabinUuid',
-            foreignKey: 'areaUuid',
-          },
+          association: 'Areas',
         },
+
         facilities: {
           includeByDefault: true,
-          model: models.CabinFacility,
-          foreignKey: 'cabinUuid',
+          association: 'Facilities',
         },
         accessabilities: {
           includeByDefault: true,
-          model: models.CabinAccessability,
-          foreignKey: 'cabinUuid',
+          association: 'Accessabilities',
         },
       },
     };
@@ -345,29 +336,14 @@ export default (sequelize, DataTypes) => {
 
       validFields: {
         // Allow the same fields as '*onEntry' but set them to default false
-        ...Object.assign(
-          {},
-          ...(
-            Object.keys(config.byReferrer['*onEntry'].validFields)
-              .map((f) => ({
-                [f]: false,
-              }))
-          )
-        ),
+        ...disableAllFields(config, '*onEntry'),
         uri: true,
         id: true,
         name: true,
       },
 
       include: {
-        // parents: {
-        //   ...config.byReferrer['*onEntry'].include.parents,
-        //   includeByDefault: false,
-        // },
-        // children: {
-        //   ...config.byReferrer['*onEntry'].include.children,
-        //   includeByDefault: false,
-        // },
+        ...disableAllIncludes(config, '*onEntry'),
       },
     };
 

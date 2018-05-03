@@ -79,18 +79,6 @@ export default (sequelize, DataTypes) => {
       otherKey: 'parentUuid',
     });
 
-    models.Area.hasMany(models.AreaToArea, {
-      as: 'AreaToAreaParent',
-      foreignKey: 'parentUuid',
-      sourceKey: 'uuid',
-    });
-
-    models.Area.hasMany(models.AreaToArea, {
-      as: 'AreaToAreaChild',
-      foreignKey: 'childUuid',
-      sourceKey: 'uuid',
-    });
-
     models.Area.belongsToMany(models.County, {
       as: 'Counties',
       through: models.AreaToCounty,
@@ -158,7 +146,7 @@ export default (sequelize, DataTypes) => {
         id: true,
         name: true,
         description: true,
-        geometry: true,
+        geometry: false,
         map: true,
         url: true,
         license: true,
@@ -171,33 +159,15 @@ export default (sequelize, DataTypes) => {
       include: {
         parents: {
           includeByDefault: true,
-          model: models.Area,
-          through: {
-            association: 'AreaToAreaParent',
-            reverseAssociation: 'Parent',
-            otherKey: 'childUuid',
-            foreignKey: 'parentUuid',
-          },
+          association: 'Parents',
         },
         children: {
           includeByDefault: true,
-          model: models.Area,
-          through: {
-            association: 'AreaToAreaChild',
-            reverseAssociation: 'Child',
-            otherKey: 'parentUuid',
-            foreignKey: 'childUuid',
-          },
+          association: 'Children',
         },
         cabins: {
           includeByDefault: false,
-          model: models.Cabin,
-          through: {
-            association: 'CabinToAreaCabin',
-            reverseAssociation: 'Cabin',
-            otherKey: 'areaUuid',
-            foreignKey: 'cabinUuid',
-          },
+          association: 'Cabins',
         },
       },
     };
@@ -237,6 +207,7 @@ export default (sequelize, DataTypes) => {
 
     return config;
   };
+
 
   Area.fieldsToAttributes = (fields) => {
     const attributes = [].concat(...fields.map((field) => {

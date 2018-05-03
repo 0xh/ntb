@@ -38,5 +38,17 @@ export default (sequelize, DataTypes) => {
     });
   };
 
+
+  // API CONFIGURATION
+
+  AreaToArea.getAPIThroughFields = (sourceModelName) => ({});
+
+  AreaToArea.fieldsToAttributes = (sourceModelName, fields) => [];
+
+
+  AreaToArea.prototype.format = function format() {
+    return this.Area.format();
+  };
+
   return AreaToArea;
 };

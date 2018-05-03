@@ -44,47 +44,30 @@ export default (sequelize, DataTypes) => {
 
   // API CONFIGURATION
 
-  CabinFacility.getAPIConfig = (models) => {
-    const config = { byReferrer: {} };
-
-    // Configuration when it's the entry model
-    config.byReferrer.default = {
-      paginate: false,
-      fullTextSearch: false,
-      ordering: false,
-      defaultOrder: [['facilityName', 'ASC']],
-      validOrderFields: ['facilityName'],
-      // validFields - true/false if they should be returned from API as
-      // default if no ?fields=.. parameter is specified
-      validFields: {
+  CabinFacility.getAPIThroughFields = (sourceModelName) => {
+    if (sourceModelName === 'Facility') {
+      return {
+        facilityDescription: true,
+      };
+    }
+    else if (sourceModelName === 'Cabin') {
+      return {
         name: true,
-        cabinUuid: false,
         description: true,
-        updatedAt: false,
-        createdAt: false,
-      },
-      include: {
-        // TODO(Roar):
-        // cabins
-      },
-    };
+      };
+    }
 
-    return config;
+    throw new Error(`Unknown source model name: ${sourceModelName}`);
   };
 
-  CabinFacility.fieldsToAttributes = (fields) => {
+
+  CabinFacility.fieldsToAttributes = (sourceModelName, fields) => {
     const attributes = [].concat(...fields.map((field) => {
-      switch (field) {
-        case 'name':
-          return ['facilityName'];
-        case 'createdAt':
-        case 'updatedAt':
-          if (modelConfig.timestamps) {
-            return [field];
-          }
-          throw new Error(
-            `Unable to translate field ${field} on CabinFacility model`
-          );
+      switch (`${sourceModelName}.${field}`) {
+        case 'Cabin.name':
+          return 'facilityName';
+        case 'Facility.facilityDescription':
+          return 'description';
         default:
           if (Object.keys(attributeConfig).includes(field)) {
             return [field];
@@ -100,13 +83,26 @@ export default (sequelize, DataTypes) => {
 
 
   CabinFacility.prototype.format = function format() {
-    return {
-      name: this.facilityName,
-      cabinUuid: this.cabinUuid,
-      description: this.description && this.description.length
-        ? this.description
-        : null,
-    };
+    if (this._sourceModelName === 'Facility') {
+      const formattedCabin = this.Cabin.format();
+      return {
+        ...formattedCabin,
+        facilityDescription: this.description && this.description.length
+          ? this.description
+          : null,
+      };
+    }
+    else if (this._sourceModelName === 'Cabin') {
+      const formattedFacility = this.Facility.format();
+      return {
+        ...formattedFacility,
+        description: this.description && this.description.length
+          ? this.description
+          : null,
+      };
+    }
+
+    throw new Error(`Unknown source model name: ${this._sourceModelName}`);
   };
 
   return CabinFacility;

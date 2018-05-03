@@ -43,18 +43,12 @@ export default (sequelize, DataTypes) => {
       // default if no ?fields=.. parameter is specified
       validFields: {
         name: true,
-        description: true,
+        internalDescription: false,
       },
       include: {
         cabins: {
           includeByDefault: false,
-          model: models.Cabin,
-          through: {
-            association: 'CabinFacilityCabin',
-            reverseAssociation: 'Cabin',
-            otherKey: 'facilityName',
-            foreignKey: 'cabinUuid',
-          },
+          association: 'Cabins',
         },
       },
     };
@@ -65,6 +59,8 @@ export default (sequelize, DataTypes) => {
   Facility.fieldsToAttributes = (fields) => {
     const attributes = [].concat(...fields.map((field) => {
       switch (field) {
+        case 'internalDescription':
+          return ['description'];
         default:
           if (Object.keys(attributeConfig).includes(field)) {
             return [field];
@@ -80,7 +76,7 @@ export default (sequelize, DataTypes) => {
   Facility.prototype.format = function format() {
     return {
       name: this.name,
-      description: this.description && this.description.length
+      internalDescription: this.description && this.description.length
         ? this.description
         : null,
     };

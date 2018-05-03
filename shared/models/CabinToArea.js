@@ -38,5 +38,20 @@ export default (sequelize, DataTypes) => {
     });
   };
 
+
+  // API CONFIGURATION
+
+  CabinToArea.getAPIThroughFields = (sourceModelName) => ({});
+
+  CabinToArea.fieldsToAttributes = (sourceModelName, fields) => [];
+
+
+  CabinToArea.prototype.format = function format() {
+    if (this._sourceModelName === 'Area') {
+      return this.Cabin.format();
+    }
+    return this.Area.format();
+  };
+
   return CabinToArea;
 };

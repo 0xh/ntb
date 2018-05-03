@@ -1,3 +1,6 @@
+import { disableAllFields, disableAllIncludes } from './utils';
+
+
 export default (sequelize, DataTypes) => {
   const attributeConfig = {
     uuid: {
@@ -123,7 +126,7 @@ export default (sequelize, DataTypes) => {
     const config = { byReferrer: {} };
 
     // Configuration when it's the entry model
-    config.byReferrer.default = {
+    config.byReferrer['*onEntry'] = {
       paginate: true,
       fullTextSearch: true,
       ordering: true,
@@ -173,6 +176,37 @@ export default (sequelize, DataTypes) => {
         // cabins - owner
         // cabins - maintainer
         // cabins - contact
+      },
+    };
+
+    // Default configuration when included from another model
+    config.byReferrer.default = {
+      ...config.byReferrer['*onEntry'],
+
+      validFields: {
+        // Allow the same fields as '*onEntry' but set them to default false
+        ...disableAllFields(config, '*onEntry'),
+        uri: true,
+        id: true,
+        type: true,
+        subType: true,
+        name: true,
+        description: true,
+        logo: true,
+        organizationNumber: true,
+        url: true,
+        email: true,
+        phone: true,
+        mobile: true,
+        fax: true,
+        address1: true,
+        address2: true,
+        postalCode: true,
+        postalName: true,
+      },
+
+      include: {
+        ...disableAllIncludes(config, '*onEntry'),
       },
     };
 
