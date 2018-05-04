@@ -447,17 +447,41 @@ function setAttributes(handler) {
     }
   });
 
-  // Make sure the fields needed for includes are always selected
+  // Make sure the fields needed for includes from this model are always
+  // selected
   Object.keys((handler.include || {})).forEach((includeKey) => {
     const { association } = handler.include[includeKey];
-    const identifier = association.manyFromSource
-      ? association.manyFromSource.sourceIdentifier
-      : association.identifier;
+
+    let identifier;
+    if (association.manyFromSource) {
+      identifier = association.manyFromSource.sourceIdentifier;
+    }
+    else if (association.identifier) {
+      ({ identifier } = association);
+    }
+    else if (association.foreignKey) {
+      identifier = association.foreignKey;
+    }
+    else {
+      throw new Error('Unable to determine the correct key');
+    }
 
     if (!handler.sequelizeOptions.attributes.includes(identifier)) {
       handler.sequelizeOptions.attributes.push(identifier);
     }
   });
+
+  // Make sure the fields needed for includes to this model are always sleected
+  if (
+    handler.association
+    && handler.association.isMultiAssociation
+    && !handler.association.through
+  ) {
+    const { targetKey } = handler.association.options;
+    if (!handler.sequelizeOptions.attributes.includes(targetKey)) {
+      handler.sequelizeOptions.attributes.push(targetKey);
+    }
+  }
 
   // Make sure the order by key is always selected
   (handler.sequelizeOptions.order || []).forEach((orderKey) => {

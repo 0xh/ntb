@@ -216,6 +216,61 @@ async function executeSingleAssociation(
   return includeInstances;
 }
 
+async function executeMultiAssociation(
+  handler,
+  include,
+  key,
+  outerInstances
+) {
+  const { association, sequelizeOptions } = include;
+  const identifiers = Array.from(new Set(
+    outerInstances
+      .map((r) => r._targetDocument[association.foreignKey])
+      .filter((r) => r !== null)
+  ));
+
+  if (!identifiers.length) {
+    return [];
+  }
+
+  const rows = await association.target.findAll({
+    ...sequelizeOptions,
+    where: {
+      ...(sequelizeOptions.where || {}),
+      [association.options.targetKey]: { in: identifiers },
+    },
+  });
+
+  const includeInstances = [];
+  if (rows && rows.length) {
+    rows.forEach((row) => {
+      // Find the main rows
+      const outers = outerInstances
+        .filter((r) => (
+          r._targetDocument[association.foreignKey] ===
+            row[association.options.targetKey]
+        ));
+      if (!outers || !outers.length) {
+        throw new Error('Unable to map include.row with outer.row');
+      }
+
+      // Add target document reference
+      row._targetDocument = row;
+      includeInstances.push(row);
+
+      outers.forEach((outer) => {
+        if (!outer._targetDocument[key]) {
+          outer._targetDocument[key] = [];
+        }
+        // Set the instance association
+        outer._targetDocument[key].push(row);
+      });
+    });
+  }
+
+  return includeInstances;
+}
+
 
 async function executeMultiThroughAssociation(
   handler,
@@ -402,6 +457,11 @@ async function executeIncludeQueries(handler, outerInstances) {
       }
       else if (association.through) {
         includeInstances = await executeMultiThroughAssociation(
+          handler, include, key, outerInstances
+        );
+      }
+      else if (association.isMultiAssociation) {
+        includeInstances = await executeMultiAssociation(
           handler, include, key, outerInstances
         );
       }
