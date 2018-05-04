@@ -5,6 +5,115 @@ import { isObject, isString } from '@turistforeningen/ntb-shared-utils';
 import { getSqlFromFindAll } from '@turistforeningen/ntb-shared-db-utils';
 
 
+async function createLateralIncludeSqlQuery(handler, include) {
+  const { association } = include;
+  let sql = await getSqlFromFindAll(
+    association.target,
+    include.sequelizeOptions
+  );
+
+  // Replace existing limits and offsets
+  sql = sql.replace(/LIMIT [0-9]+ OFFSET [0-9]+/g, '');
+
+  // Inject WHERE clause to connect outer table with the lateral join
+  const orderByPos = sql.lastIndexOf(' ORDER BY ');
+  let wherePos = sql.lastIndexOf(' WHERE ');
+  if (wherePos === -1) {
+    wherePos = null;
+  }
+
+  const outerIdField = `"outer"."${association.sourceKeyField}"`;
+  const joinOnOuterField = (
+    `"${association.target.name}".` +
+    `"${_.snakeCase(association.options.targetKey)}"`
+  );
+
+  sql = (
+    `${sql.substr(0, wherePos || orderByPos)} WHERE ` +
+    `${joinOnOuterField} = ${outerIdField} ` +
+    `${wherePos ? 'AND' : ''} ${sql.substr(orderByPos)} ` +
+    `LIMIT ${include.sequelizeOptions.limit} ` +
+    `OFFSET ${include.sequelizeOptions.offset} `
+  );
+
+  // Add outer sql an lateral join the main sql
+  sql = (
+    `SELECT ${outerIdField} AS "outerid", "${association.as}".* ` +
+    `FROM "public"."${association.source.tableName}" AS "outer", ` +
+    `LATERAL (${sql}) AS "${association.as}" ` +
+    `WHERE ${outerIdField} IN (?) ORDER BY ${outerIdField}`
+  );
+
+  return sql;
+}
+
+
+async function getLateralInclude(handler, include, identifiers) {
+  if (
+    include.sequelizeOptions.limit === undefined
+    || include.sequelizeOptions.limit === null
+    || include.sequelizeOptions.limit > 0
+  ) {
+    // Create the include sql
+    const sqlQuery = await createLateralIncludeSqlQuery(
+      handler, include
+    );
+
+    const query = db.sequelize.query(sqlQuery, {
+      type: db.sequelize.QueryTypes.SELECT,
+      replacements: [identifiers],
+    });
+
+    const result = await query;
+    return result;
+  }
+
+  return [];
+}
+
+
+async function getIncludeCount(handler, include, identifiers) {
+  const { association } = include;
+  const countField = '*';
+
+  const identifierKey = _.snakeCase(association.options.targetKey);
+  const sequelizeOptions = { ...include.sequelizeOptions };
+  sequelizeOptions.attributes = [
+    identifierKey,
+    [
+      db.sequelize.fn(
+        'COUNT',
+        countField,
+      ),
+      'count',
+    ],
+  ];
+  sequelizeOptions.group = [identifierKey];
+  sequelizeOptions.distinct = true;
+  sequelizeOptions.raw = true;
+  sequelizeOptions.limit = null;
+  sequelizeOptions.offset = null;
+  sequelizeOptions.order = null;
+  sequelizeOptions.where = {
+    ...sequelizeOptions.where,
+    [identifierKey]: {
+      in: identifiers,
+    },
+  };
+
+  const rows = await association.target.findAll(sequelizeOptions);
+
+  // Rename otherKey to a generic key name for later use
+  const counts = rows.map((c) => {
+    c.outerid = c[identifierKey];
+    delete c[identifierKey];
+    return c;
+  });
+
+  return counts;
+}
+
+
 function getIncludeThroughSequelizeOptions(include, identifiers) {
   const { association, sequelizeOptions } = include;
 
@@ -27,12 +136,7 @@ function getIncludeThroughSequelizeOptions(include, identifiers) {
 }
 
 
-async function createLateralIncludeSqlQuery(handler, include) {
-  // const originModel = handler.model;
-  // const { model, through } = include;
-  // const throughModel = through
-  //   ? model.associations[through.association].target
-  //   : null;
+async function createLateralIncludeThroughSqlQuery(handler, include) {
   const { association } = include;
   const outerIdField = `"outer"."${association.toSource.targetKeyField}"`;
 
@@ -105,10 +209,13 @@ async function createLateralIncludeSqlQuery(handler, include) {
 async function getLateralThroughInclude(handler, include, identifiers) {
   if (
     include.sequelizeOptions.limit === undefined
+    || include.sequelizeOptions.limit === null
     || include.sequelizeOptions.limit > 0
   ) {
     // Create the include sql
-    const sqlQuery = await createLateralIncludeSqlQuery(handler, include);
+    const sqlQuery = await createLateralIncludeThroughSqlQuery(
+      handler, include
+    );
 
     const query = db.sequelize.query(sqlQuery, {
       type: db.sequelize.QueryTypes.SELECT,
@@ -267,6 +374,84 @@ async function executeMultiAssociation(
       });
     });
   }
+
+  return includeInstances;
+}
+
+
+async function executePaginatedMultiAssociation(
+  handler,
+  include,
+  key,
+  outerInstances
+) {
+  const { association, sequelizeOptions } = include;
+  const sourceIdentifier = association.foreignKey;
+  const identifiers = Array.from(new Set(
+    outerInstances
+      .map((r) => r._targetDocument[sourceIdentifier])
+      .filter((r) => r !== null)
+  ));
+
+  if (!identifiers.length) {
+    return [];
+  }
+
+  const queryCount = getIncludeCount(handler, include, identifiers);
+  const rowQuery = getLateralInclude(handler, include, identifiers);
+
+  const includeInstances = [];
+  const [rows, counts] = await Promise.all([rowQuery, queryCount]);
+
+  const baseOpts = {
+    limit: include.sequelizeOptions.limit,
+    offset: include.sequelizeOptions.offset,
+  };
+
+  // Map the results to the include model
+  rows.forEach((row) => {
+    // Find the main rows
+    const outers = outerInstances
+      .filter((r) => r._targetDocument[sourceIdentifier] === row.outerid);
+    if (!outers || !outers.length) {
+      throw new Error('Unable to map count.row with outer.row');
+    }
+
+    // Add target document reference
+    const targetInstance = new association.target(row);
+    targetInstance._targetDocument = row;
+    includeInstances.push(targetInstance);
+
+    outers.forEach((outer) => {
+      // Initiate include array
+      if (!outer._targetDocument[key]) {
+        outer._targetDocument[key] = { ...baseOpts, rows: [], count: null };
+      }
+
+      // Append the instance
+      outer._targetDocument[key].rows.push(targetInstance);
+    });
+  });
+
+  // Map the counts to the include model
+  counts.forEach((count) => {
+    // Find the main rows
+    const outers = outerInstances
+      .filter((r) => r._targetDocument[sourceIdentifier] === count.outerid);
+    if (!outers || !outers.length) {
+      throw new Error('Unable to map count.row with outer.row');
+    }
+
+    outers.forEach((outer) => {
+      // Initiate include array
+      if (!outer._targetDocument[key]) {
+        outer._targetDocument[key] = { ...baseOpts, rows: [], count: null };
+      }
+
+      // Append the instance
+      outer._targetDocument[key].count = +count.count;
+    });
+  });
 
   return includeInstances;
 }
@@ -457,6 +642,11 @@ async function executeIncludeQueries(handler, outerInstances) {
       }
       else if (association.through) {
         includeInstances = await executeMultiThroughAssociation(
+          handler, include, key, outerInstances
+        );
+      }
+      else if (include.config.paginate && association.isMultiAssociation) {
+        includeInstances = await executePaginatedMultiAssociation(
           handler, include, key, outerInstances
         );
       }
