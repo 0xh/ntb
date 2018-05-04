@@ -5,6 +5,9 @@ import { isObject, isString } from '@turistforeningen/ntb-shared-utils';
 import { getSqlFromFindAll } from '@turistforeningen/ntb-shared-db-utils';
 
 
+const { Op } = db.Sequelize;
+
+
 async function createLateralIncludeSqlQuery(handler, include) {
   const { association } = include;
   let sql = await getSqlFromFindAll(
@@ -97,7 +100,7 @@ async function getIncludeCount(handler, include, identifiers) {
   sequelizeOptions.where = {
     ...sequelizeOptions.where,
     [identifierKey]: {
-      in: identifiers,
+      [Op.in]: identifiers,
     },
   };
 
@@ -129,7 +132,7 @@ function getIncludeThroughSequelizeOptions(include, identifiers) {
     ],
     where: {
       [association.identifier]: {
-        in: identifiers,
+        [Op.in]: identifiers,
       },
     },
   };
@@ -292,7 +295,7 @@ async function executeSingleAssociation(
     ...sequelizeOptions,
     where: {
       ...(sequelizeOptions.where || {}),
-      [association.targetIdentifier]: { in: identifiers },
+      [association.targetIdentifier]: { [Op.in]: identifiers },
     },
   });
 
@@ -344,7 +347,7 @@ async function executeMultiAssociation(
     ...sequelizeOptions,
     where: {
       ...(sequelizeOptions.where || {}),
-      [association.options.targetKey]: { in: identifiers },
+      [association.options.targetKey]: { [Op.in]: identifiers },
     },
   });
 
