@@ -599,16 +599,27 @@ function pickFromHandlerObject(handler) {
 }
 
 
+function setConfig(handler, referrer) {
+  const { byReferrer } = handler.model.getAPIConfig(db);
+  console.log(referrer);
+  referrer.forEach((ref) => {
+    if (!handler.config && byReferrer[ref]) {
+      handler.config = byReferrer[ref];
+    }
+  });
+  if (!handler.config) {
+    handler.config = byReferrer.default;
+  }
+}
+
+
 /**
  * Used as a recursive function to process models and any extend-models
  * @param {string} referrer
  * @param {object} handler
  */
 function processRequestParameters(referrer, handler) {
-  const { byReferrer } = handler.model.getAPIConfig(db);
-  handler.config = Object.keys(byReferrer).includes(referrer)
-    ? byReferrer[referrer]
-    : byReferrer.default;
+  setConfig(handler, referrer);
 
   if (handler.id) {
     handler.config.paginate = false;
@@ -644,7 +655,14 @@ function processRequestParameters(referrer, handler) {
         `${handler.trace}${key}.`
       );
       extendHandler.association = association;
-      processRequestParameters(`${handler.model.name}.${key}`, extendHandler);
+
+      let nextReferrer = [`${handler.model.name}.${key}`];
+      if (handler.id) {
+        nextReferrer = [
+          `${handler.model.name}.single.${key}`,
+        ].concat(nextReferrer);
+      }
+      processRequestParameters(nextReferrer, extendHandler);
 
       handler.include[key] = {
         ...handler.include[key],
@@ -672,7 +690,7 @@ export default function (entryModel, queryObject, id = null) {
   handler.id = id;
 
   const referrer = id ? '*single' : '*list';
-  processRequestParameters(referrer, handler);
+  processRequestParameters([referrer], handler);
 
   return [handler.errors, pickFromHandlerObject(handler)];
 }
