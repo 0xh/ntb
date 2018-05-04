@@ -115,6 +115,12 @@ export default (sequelize, DataTypes) => {
       through: models.ListToGroup,
       foreignKey: 'groupUuid',
     });
+
+    models.Group.hasMany(models.Cabin, {
+      as: 'OwnsCabins',
+      foreignKey: 'uuid',
+      targetKey: 'ownerGroupUuid',
+    });
   };
 
 
@@ -176,6 +182,10 @@ export default (sequelize, DataTypes) => {
         // cabins - owner
         // cabins - maintainer
         // cabins - contact
+        ownsCabins: {
+          includeByDefault: false,
+          association: 'OwnsCabins',
+        },
       },
     };
 
