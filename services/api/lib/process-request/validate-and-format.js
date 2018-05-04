@@ -530,21 +530,22 @@ function setIncludes(handler) {
  * @param {object} handler
  * @param {key} key
  */
-function getExtendQueryObject(handler, key) {
+function getIncludeQueryObject(handler, key) {
   let extendQueryObject = {};
   const values = getKeyValue(handler.queryObject, key);
+  const snakedKey = _.snakeCase(key);
 
   if (values && values.length) {
     // If its a formatted object
-    if (values.length === 1 && values[0].originalKey === key) {
-      if (values[0].value[key]) {
-        extendQueryObject = values[0].value[key];
+    if (values.length === 1 && values[0].originalKey === snakedKey) {
+      if (values[0].value[snakedKey]) {
+        extendQueryObject = values[0].value[snakedKey];
       }
     }
-    // If it's string named e.[key].<opt_name>
+    // If it's string named e.[snakedKey].<opt_name>
     else {
       values.forEach((value) => {
-        const prefix = `${key}.`;
+        const prefix = `${snakedKey}.`;
         if (value.originalKey.startsWith(prefix)) {
           const k = value.originalKey.substr(prefix.length);
           extendQueryObject[k] = value.value;
@@ -601,7 +602,7 @@ function pickFromHandlerObject(handler) {
 
 function setConfig(handler, referrer) {
   const { byReferrer } = handler.model.getAPIConfig(db);
-  console.log(referrer);
+
   referrer.forEach((ref) => {
     if (!handler.config && byReferrer[ref]) {
       handler.config = byReferrer[ref];
@@ -644,7 +645,7 @@ function processRequestParameters(referrer, handler) {
     const { sequelizeOptions } = handler;
     sequelizeOptions.include = [];
     Object.keys(handler.include).forEach((key) => {
-      const extendQueryObject = getExtendQueryObject(handler, key);
+      const extendQueryObject = getIncludeQueryObject(handler, key);
       const associationKey = handler.include[key].association;
       const association = handler.model.associations[associationKey];
 
