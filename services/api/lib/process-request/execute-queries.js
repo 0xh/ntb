@@ -388,7 +388,7 @@ async function executePaginatedMultiAssociation(
   key,
   outerInstances
 ) {
-  const { association, sequelizeOptions } = include;
+  const { association } = include;
   const sourceIdentifier = association.foreignKey;
   const identifiers = Array.from(new Set(
     outerInstances

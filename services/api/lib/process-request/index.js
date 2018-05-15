@@ -6,12 +6,21 @@ import executeQueries from './execute-queries';
 /**
  * Validates and executes the request.
  * @param {object} entryModel The entry db.model
- * @param {object} queryObject a preconfigured nested query object or the
+ * @param {object} queryObject A preconfigured nested query object or the
  *                             ExpressJS req.query object
- * @param {string} id id of a single object
+ * @param {string} id Id of a single object
+ * @param {boolean} usExpressJSQueryObject If the queryObject is a expressJS
+ *                                         object
  */
-export default async function (entryModel, queryObject, id = null) {
-  const [errors, handler] = validateAndFormat(entryModel, queryObject, id);
+export default async function (
+  entryModel,
+  queryObject,
+  id = null,
+  usExpressJSQueryObject = true,
+) {
+  const [errors, handler] = validateAndFormat(
+    entryModel, queryObject, id, usExpressJSQueryObject
+  );
 
   if (errors.length) {
     throw new APIError(

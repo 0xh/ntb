@@ -6,6 +6,36 @@ import {
   isObject,
 } from '@turistforeningen/ntb-shared-utils';
 
+import validateAndProcessFilters from './validate-and-process-filters';
+
+
+function getNextReferrerId(handler, key) {
+  let nextReferrer = [`${handler.model.name}.${key}`];
+  if (handler.id) {
+    nextReferrer = [
+      `${handler.model.name}.single.${key}`,
+    ].concat(nextReferrer);
+  }
+  return nextReferrer;
+}
+
+
+function getAPIConfig(model, referrer) {
+  const { byReferrer } = model.getAPIConfig(db);
+  let config;
+
+  referrer.forEach((ref) => {
+    if (!config && byReferrer[ref]) {
+      config = byReferrer[ref];
+    }
+  });
+  if (!config) {
+    config = byReferrer.default;
+  }
+
+  return config;
+}
+
 
 /**
  * Get the value(s) from the specified key from the queryObject. This is a
@@ -35,7 +65,7 @@ function getKeyValue(queryObject, key) {
  * @param {object} handler
  */
 function setValidKeys(handler) {
-  const validKeys = ['fields'];
+  let validKeys = ['fields'];
   const validDotKeys = [];
   const { config, association } = handler;
   const associationType = association
@@ -67,8 +97,50 @@ function setValidKeys(handler) {
     validDotKeys.push(key);
   });
 
+  // Filter keys
+  const validFilters = { self: [], includes: {} };
+  if (!handler.id) {
+    validFilters.self = Object.keys((handler.config.validFilters || {}));
+
+    // Valid include filters
+    Object.keys(config.include || {}).forEach((key) => {
+      const referrer = getNextReferrerId(handler, key);
+      const associationName = config.include[key].association;
+      const model = handler.model.associations[associationName].target;
+      const includeAPIConfig = getAPIConfig(model, referrer);
+      const validIncludeFilters = Object.keys(
+        includeAPIConfig.validFilters || {}
+      );
+
+      if (validIncludeFilters.length) {
+        validFilters.includes[key] = validIncludeFilters;
+      }
+    });
+
+    // Enable `df` if this is an associated reference (not main entry model)
+    if (
+      handler.usExpressJSQueryObject
+      && handler.association
+      && validFilters.self.length
+    ) {
+      validKeys.push('df');
+    }
+    // Enable keys for all named filters on model
+    else if (handler.usExpressJSQueryObject) {
+      validKeys = validKeys.concat(validFilters.self);
+    }
+    // If it's a structured object, enable the `filters` key
+    else if (
+      validFilters.self.length
+      || Object.keys(validFilters.includes).length
+    ) {
+      validKeys.push('filters');
+    }
+  }
+
   handler.validKeys = validKeys;
   handler.validDotKeys = validDotKeys;
+  handler.validFilters = validFilters;
 }
 
 
@@ -116,7 +188,7 @@ function validateKeys(handler) {
  * @param {object} handler
  */
 function validateLimit(queryObject, handler) {
-  const { config } = handler;
+  const { config, trace } = handler;
 
   if (!config.defaultLimit) {
     throw new Error('defaultLimit is not set in apiConfig');
@@ -129,15 +201,28 @@ function validateLimit(queryObject, handler) {
   const queryLimit = getKeyValue(queryObject, 'limit');
   if (queryLimit) {
     const qLimit = queryLimit[0];
-    if (isNumber(qLimit.value)) {
-      const limit = +qLimit.value;
+    let { value } = qLimit;
+
+    // Only allow one 'limit=' for ExpressJS
+    if (handler.usExpressJSQueryObject && value.length > 1) {
+      handler.errors.push(
+        `Invalid ${trace}${qLimit.originalKey}. ` +
+        'There are multiple occurences in the url.'
+      );
+      value = 10;
+    }
+    else if (handler.usExpressJSQueryObject) {
+      ([value] = value);
+    }
+
+    if (isNumber(value)) {
+      const limit = +value;
       if (limit >= 0 && limit <= config.maxLimit) {
         return limit;
       }
     }
 
     if (qLimit.value) {
-      const { trace } = handler;
       handler.errors.push(
         `Invalid ${trace}${qLimit.originalKey} value "${qLimit.value}"`
       );
@@ -154,18 +239,32 @@ function validateLimit(queryObject, handler) {
  * @param {object} handler
  */
 function validateOffset(queryObject, handler) {
+  const { trace } = handler;
   const queryOffset = getKeyValue(queryObject, 'offset');
+
   if (queryOffset) {
     const qOffset = queryOffset[0];
+    let { value } = qOffset;
 
-    if (isNumber(qOffset.value)) {
-      const numOffset = +qOffset.value;
+    // Only allow one 'offset=' for ExpressJS
+    if (handler.usExpressJSQueryObject && value.length > 1) {
+      handler.errors.push(
+        `Invalid ${trace}${qOffset.originalKey}. ` +
+        'There are multiple occurences in the url.'
+      );
+      value = 0;
+    }
+    else if (handler.usExpressJSQueryObject) {
+      ([value] = value);
+    }
+
+    if (isNumber(value)) {
+      const numOffset = +value;
       if (numOffset >= 0 && numOffset <= Number.MAX_SAFE_INTEGER) {
         return numOffset;
       }
     }
 
-    const { trace } = handler;
     handler.errors.push(
       `Invalid ${trace}${qOffset.originalKey} value "${qOffset.value}"`
     );
@@ -216,6 +315,18 @@ function setOrdering(handler) {
     if (queryOrder && queryOrder[0].value) {
       const qOrder = queryOrder[0];
       let values = qOrder.value;
+
+      // Only allow one 'order=' for ExpressJS
+      if (handler.usExpressJSQueryObject && values.length > 1) {
+        handler.errors.push(
+          `Invalid ${trace}${qOrder.originalKey}. ` +
+          'There are multiple occurences in the url.'
+        );
+        return;
+      }
+      else if (handler.usExpressJSQueryObject) {
+        ([values] = values);
+      }
 
       // Convert to array
       if (!Array.isArray(values)) {
@@ -329,6 +440,18 @@ function setFields(handler) {
     const qFields = queryFields[0];
     let values = qFields.value;
 
+    // Only allow one 'fields=' for ExpressJS
+    if (handler.usExpressJSQueryObject && values.length > 1) {
+      handler.errors.push(
+        `Invalid ${trace}${qFields.originalKey}. ` +
+        'There are multiple occurences in the url.'
+      );
+      return;
+    }
+    else if (handler.usExpressJSQueryObject) {
+      ([values] = values);
+    }
+
     // Convert to array
     if (!Array.isArray(values)) {
       values = values.split(',').map((v) => v.trim());
@@ -404,7 +527,10 @@ function setFilters(handler) {
     handler.sequelizeOptions.where = {
       uuid: handler.id,
     };
+    return;
   }
+
+  validateAndProcessFilters(handler);
 }
 
 
@@ -412,12 +538,43 @@ function validateIncludeKeys(handler) {
   const keys = Object.keys(handler.queryObject);
 
   keys.forEach((rawKey) => {
-    const key = _.camelCase(rawKey.split('.', 1)[0].toLowerCase().trim());
+    const rawKeys = rawKey.split('.', 2);
+    const key = _.camelCase(rawKeys[0].toLowerCase().trim());
+    let subKey;
+    if (rawKeys.length > 1) {
+      subKey = _.camelCase(rawKeys[1].toLowerCase().trim());
+    }
 
     if (Object.keys(handler.config.include).includes(key)) {
-      const rawIncludeKey = rawKey.split('.', 1)[0].trim();
+      const rawIncludeKeys = rawKey.split('.', 2);
+      const rawIncludeKey = rawIncludeKeys[0].trim();
+      let rawSubKey;
 
-      if (!handler.includeFields.includes(key)) {
+      if (rawIncludeKeys.length > 1) {
+        rawSubKey = rawIncludeKeys[1].trim();
+      }
+
+      if (
+        subKey
+        && subKey.length
+        && !['limit', 'offset', 'order', 'df'].includes(subKey)
+        && !handler.includeFields.includes(key)
+        && Object.keys(handler.validFilters.includes).includes(key)
+        && !handler.validFilters.includes[key].includes(subKey)
+      ) {
+        handler.errors.push(
+          `Invalid query parameter: ${handler.trace}${rawKey}. ` +
+          `"${rawSubKey}" is not a valid filter on "${rawIncludeKey}"."`
+        );
+      }
+      else if (
+        !handler.includeFields.includes(key)
+        && (
+          !subKey
+          || !subKey.length
+          || ['limit', 'offset', 'order', 'df'].includes(subKey)
+        )
+      ) {
         handler.errors.push(
           `Invalid query parameter: ${handler.trace}${rawKey}. ` +
           `"${rawIncludeKey}" is not included in fields."`
@@ -565,7 +722,13 @@ function getIncludeQueryObject(handler, key) {
  * @param {array} errors
  * @param {string} trace
  */
-function getDefaultHandler(model, queryObject, errors = [], trace = '') {
+function getDefaultHandler(
+  model,
+  queryObject,
+  usExpressJSQueryObject,
+  errors = [],
+  trace = '',
+) {
   return {
     sequelizeOptions: {},
     fields: [],
@@ -576,6 +739,7 @@ function getDefaultHandler(model, queryObject, errors = [], trace = '') {
     trace,
     model,
     queryObject,
+    usExpressJSQueryObject,
   };
 }
 
@@ -596,21 +760,8 @@ function pickFromHandlerObject(handler) {
     sequelizeOptions: handler.sequelizeOptions,
     association: handler.association,
     id: handler.id,
+    usExpressJSQueryObject: handler.usExpressJSQueryObject,
   };
-}
-
-
-function setConfig(handler, referrer) {
-  const { byReferrer } = handler.model.getAPIConfig(db);
-
-  referrer.forEach((ref) => {
-    if (!handler.config && byReferrer[ref]) {
-      handler.config = byReferrer[ref];
-    }
-  });
-  if (!handler.config) {
-    handler.config = byReferrer.default;
-  }
 }
 
 
@@ -620,7 +771,7 @@ function setConfig(handler, referrer) {
  * @param {object} handler
  */
 function processRequestParameters(referrer, handler) {
-  setConfig(handler, referrer);
+  handler.config = getAPIConfig(handler.model, referrer);
 
   if (handler.id) {
     handler.config.paginate = false;
@@ -642,8 +793,6 @@ function processRequestParameters(referrer, handler) {
   // Update sequelizeOptions with includes and recursive request parameter
   // processing
   if (Object.keys(handler.include).length) {
-    const { sequelizeOptions } = handler;
-    sequelizeOptions.include = [];
     Object.keys(handler.include).forEach((key) => {
       const extendQueryObject = getIncludeQueryObject(handler, key);
       const associationKey = handler.include[key].association;
@@ -652,17 +801,13 @@ function processRequestParameters(referrer, handler) {
       const extendHandler = getDefaultHandler(
         association.target,
         extendQueryObject,
+        handler.usExpressJSQueryObject,
         handler.errors,
         `${handler.trace}${key}.`
       );
       extendHandler.association = association;
 
-      let nextReferrer = [`${handler.model.name}.${key}`];
-      if (handler.id) {
-        nextReferrer = [
-          `${handler.model.name}.single.${key}`,
-        ].concat(nextReferrer);
-      }
+      const nextReferrer = getNextReferrerId(handler, key);
       processRequestParameters(nextReferrer, extendHandler);
 
       handler.include[key] = {
@@ -678,6 +823,17 @@ function processRequestParameters(referrer, handler) {
 }
 
 
+function convertExpressJSparamsToArrays(queryObject) {
+  const res = {};
+  Object.keys(queryObject).forEach((key) => {
+    res[key] = Array.isArray(queryObject[key])
+      ? queryObject[key]
+      : [queryObject[key]];
+  });
+  return res;
+}
+
+
 /**
  * Validate and processes queryObject into request parameters used by the
  * process-request module.
@@ -686,8 +842,18 @@ function processRequestParameters(referrer, handler) {
  *                             ExpressJS req.query object
  * @param {string} queryObject id of a single object
  */
-export default function (entryModel, queryObject, id = null) {
-  const handler = getDefaultHandler(entryModel, queryObject);
+export default function (
+  entryModel,
+  queryObject,
+  id = null,
+  usExpressJSQueryObject = true
+) {
+  const qObject = usExpressJSQueryObject
+    ? convertExpressJSparamsToArrays(queryObject)
+    : queryObject;
+  const handler = getDefaultHandler(
+    entryModel, qObject, usExpressJSQueryObject
+  );
   handler.id = id;
 
   const referrer = id ? '*single' : '*list';
