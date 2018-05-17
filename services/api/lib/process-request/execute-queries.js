@@ -686,6 +686,7 @@ async function executeIncludeQueries(handler, outerInstances) {
 
 async function executeMainQuery(handler) {
   if (handler.sequelizeOptions.limit > 0 || !handler.config.paginate) {
+    const sql = await getSqlFromFindAll(handler.model, handler.sequelizeOptions);
     const res = await handler.model.findAndCountAll(handler.sequelizeOptions);
     res.rows.forEach((r) => {
       r._targetDocument = r;

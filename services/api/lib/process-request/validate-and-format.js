@@ -124,6 +124,7 @@ function setValidKeys(handler) {
       && validFilters.self.length
     ) {
       validKeys.push('df');
+      validDotKeys.push('df');
     }
     // Enable keys for all named filters on model
     else if (handler.usExpressJSQueryObject) {
@@ -538,20 +539,23 @@ function validateIncludeKeys(handler) {
   const keys = Object.keys(handler.queryObject);
 
   keys.forEach((rawKey) => {
-    const rawKeys = rawKey.split('.', 2);
+    const rawKeys = rawKey.split('.');
     const key = _.camelCase(rawKeys[0].toLowerCase().trim());
     let subKey;
     if (rawKeys.length > 1) {
-      subKey = _.camelCase(rawKeys[1].toLowerCase().trim());
+      subKey = _.camelCase(rawKeys.slice(1)
+        .join('.')
+        .toLowerCase()
+        .trim());
     }
 
     if (Object.keys(handler.config.include).includes(key)) {
-      const rawIncludeKeys = rawKey.split('.', 2);
+      const rawIncludeKeys = rawKey.split('.');
       const rawIncludeKey = rawIncludeKeys[0].trim();
       let rawSubKey;
 
       if (rawIncludeKeys.length > 1) {
-        rawSubKey = rawIncludeKeys[1].trim();
+        rawSubKey = rawIncludeKeys.slice(1).join('.').trim();
       }
 
       if (
@@ -695,17 +699,24 @@ function getIncludeQueryObject(handler, key) {
   if (values && values.length) {
     // If its a formatted object
     if (values.length === 1 && values[0].originalKey === snakedKey) {
-      if (values[0].value[snakedKey]) {
-        extendQueryObject = values[0].value[snakedKey];
+      if (values[0].value) {
+        extendQueryObject = values[0].value;
       }
     }
-    // If it's string named e.[snakedKey].<opt_name>
+    // If it's string named [snakedKey].<opt_name>
     else {
       values.forEach((value) => {
         const prefix = `${snakedKey}.`;
         if (value.originalKey.startsWith(prefix)) {
-          const k = value.originalKey.substr(prefix.length);
-          extendQueryObject[k] = value.value;
+          const subKey = value.originalKey.substr(prefix.length);
+
+          // If it's not a valid include-filter on the current model
+          if (
+            !Object.keys(handler.validFilters.includes).includes(key)
+            || !handler.validFilters.includes[key].includes(subKey)
+          ) {
+            extendQueryObject[subKey] = value.value;
+          }
         }
       });
     }

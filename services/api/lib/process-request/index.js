@@ -1,6 +1,6 @@
 import APIError from '../api-error';
-import validateAndFormat from './validate-and-format';
 import executeQueries from './execute-queries';
+import validateAndFormat from './validate-and-format';
 
 
 /**
