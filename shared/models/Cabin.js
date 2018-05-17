@@ -289,6 +289,19 @@ export default (sequelize, DataTypes) => {
         updatedAt: true,
         createdAt: false,
       },
+      validFilters: {
+        id: {
+          attribute: 'uuid',
+        },
+        dntCabin: {},
+        dntDiscount: {},
+        name: {},
+        provider: {},
+        status: {},
+        coordinate: {
+          geojsonType: 'point',
+        },
+      },
       include: {
         // TODO(Roar):
         // maintainerGroup

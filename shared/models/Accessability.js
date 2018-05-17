@@ -56,6 +56,9 @@ export default (sequelize, DataTypes) => {
       validFields: {
         name: true,
       },
+      validFilters: {
+        name: {},
+      },
       include: {
         // TODO(roar):
         // pois
