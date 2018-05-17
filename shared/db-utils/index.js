@@ -44,12 +44,13 @@ export const sequelize = settings.DB_DIALECT === 'postgres'
       benchmark: true,
 
       logging: (sql, duration) => {
-        if (duration >= settings.DB_MIN_QUERY_TIME_FOR_LOGGING) {
+        // if (duration >= settings.DB_MIN_QUERY_TIME_FOR_LOGGING) {
+        if (duration >= 0) {
           logger.info(`SQL QUERY :: ${duration}ms execution time`);
           let msg = sql;
-          if (msg.length > 500) {
-            msg = `${msg.substr(0, 500)} ... [TRUNCATED]`;
-          }
+          // if (msg.length > 500) {
+          //   msg = `${msg.substr(0, 500)} ... [TRUNCATED]`;
+          // }
           logger.info(msg);
         }
       },
