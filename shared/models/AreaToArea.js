@@ -1,54 +1,27 @@
-export default (sequelize, DataTypes) => {
-  const AreaToArea = sequelize.define('AreaToArea', {
-    parentUuid: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      primaryKey: true,
-      validate: {
-        isUUID: 4,
+import BaseModel from './BaseModel';
+
+
+export default class AreaToArea extends BaseModel {
+  static tableName = 'areasToAreas';
+  static idColumn = ['parentId', 'childId'];
+
+
+  static relationMappings = {
+    child: {
+      relation: BaseModel.BelongsToOneRelation,
+      modelClass: 'Area',
+      join: {
+        from: 'areasToAreas.childId',
+        to: 'areas.id',
       },
     },
-
-    childUuid: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      primaryKey: true,
-      validate: {
-        isUUID: 4,
+    parent: {
+      relation: BaseModel.BelongsToOneRelation,
+      modelClass: 'Area',
+      join: {
+        from: 'areasToAreas.parentId',
+        to: 'areas.id',
       },
     },
-
-    dataSource: { type: DataTypes.TEXT },
-  }, {
-    timestamps: true,
-  });
-
-
-  // Associations
-
-  AreaToArea.associate = (models) => {
-    models.AreaToArea.belongsTo(models.Area, {
-      as: 'Parent',
-      foreignKey: 'parentUuid',
-    });
-
-    models.AreaToArea.belongsTo(models.Area, {
-      as: 'Child',
-      foreignKey: 'childUuid',
-    });
-  };
-
-
-  // API CONFIGURATION
-
-  AreaToArea.getAPIThroughFields = (sourceModelName) => ({});
-
-  AreaToArea.fieldsToAttributes = (sourceModelName, fields) => [];
-
-
-  AreaToArea.prototype.format = function format() {
-    return this.Area.format();
-  };
-
-  return AreaToArea;
-};
+  }
+}

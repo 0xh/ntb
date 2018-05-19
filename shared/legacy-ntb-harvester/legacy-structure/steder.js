@@ -124,7 +124,7 @@ function setLinks(obj, res, handler) {
     obj.lenker.forEach((link, idx) => {
       if (link.url) {
         res.links.push({
-          uuid: uuid4(),
+          id: uuid4(),
           title: link.tittel,
           url: link.url,
           idPoiLegacyNtb: obj._id,
@@ -145,7 +145,7 @@ async function mapping(obj, handler) {
   }
 
   res.poi = {
-    uuid: uuid4(),
+    id: uuid4(),
     idLegacyNtb: obj._id,
     idSsr: obj.ssr_id,
 
@@ -155,7 +155,7 @@ async function mapping(obj, handler) {
     description: obj.beskrivelse ? sanitizeHtml(obj.beskrivelse) : null,
     descriptionPlain: obj.beskrivelse ? stripHtml(obj.beskrivelse) : null,
 
-    coordinate: obj.geojson,
+    coordinates: obj.geojson,
 
     season: obj.sesong || [],
     open: obj.åpen,
@@ -183,7 +183,7 @@ async function mapping(obj, handler) {
 
   // Areas, groups and pictures
   res.areas = obj.områder || [];
-  res.pictures = obj.bilder || [];
+  res.pictures = Array.from(new Set(obj.bilder || []));
   res.groups = obj.grupper || [];
 
   return res;

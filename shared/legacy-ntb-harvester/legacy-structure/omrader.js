@@ -4,23 +4,15 @@ import {
   sanitizeHtml,
   stripHtml,
 } from '@turistforeningen/ntb-shared-text-content-utils';
-import { createLogger } from '@turistforeningen/ntb-shared-utils';
 
 import statusMapper from '../lib/statusMapper';
-
-
-// TODO(Roar):
-// - bilder
-
-
-const logger = createLogger();
 
 
 async function mapping(obj, handler) {
   const res = {};
 
   res.area = {
-    uuid: uuid4(),
+    id: uuid4(),
     idLegacyNtb: obj._id,
     name: obj.navn,
     nameLowerCase: obj.navn.toLowerCase(),

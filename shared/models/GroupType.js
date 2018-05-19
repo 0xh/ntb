@@ -1,28 +1,7 @@
-export default (sequelize, DataTypes) => {
-  const GroupType = sequelize.define('GroupType', {
-    name: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-      primaryKey: true,
-    },
-    parent: {
-      type: DataTypes.TEXT,
-    },
-
-    description: { type: DataTypes.TEXT },
-  }, {
-    timestamps: false,
-  });
+import BaseModel from './BaseModel';
 
 
-  // Associations
-
-  GroupType.associate = (models) => {
-    models.GroupType.belongsTo(models.GroupType, {
-      as: 'Parent',
-      foreignKey: 'parent',
-    });
-  };
-
-  return GroupType;
-};
+export default class GroupType extends BaseModel {
+  static tableName = 'groupTypes';
+  static idColumn = 'name';
+}

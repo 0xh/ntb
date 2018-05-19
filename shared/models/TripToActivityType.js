@@ -1,23 +1,7 @@
-export default (sequelize, DataTypes) => {
-  const TripToActivityType = sequelize.define('TripToActivityType', {
-    activityTypeName: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-      primaryKey: true,
-    },
-    tripUuid: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      primaryKey: true,
-    },
+import BaseModel from './BaseModel';
 
-    primary: { type: DataTypes.BOOLEAN, default: false, allowNull: false },
-    sortIndex: { type: DataTypes.INTEGER },
 
-    dataSource: { type: DataTypes.TEXT },
-  }, {
-    timestamps: false,
-  });
-
-  return TripToActivityType;
-};
+export default class TripToActivityType extends BaseModel {
+  static tableName = 'tripsToActivityTypes';
+  static idColumn = ['tripId', 'activityTypeName'];
+}

@@ -18,9 +18,16 @@ Remember to run migrations (see below).
 
 # Migrations
 
-Run migrations (located in `./migrations`)
+Run migrations (located in `./migrate/migrations`)
+
+**Upgrade to latest migration**
 ```
-node migrate.js up
+node migrate/migrate.js latest
+```
+
+**Rollback to previous migration**
+```
+node migrate/migrate.js rollback
 ```
 
 ----
@@ -110,15 +117,9 @@ All secrets without defaults are **required**
 
 `DB_NAME`: string - Database name
 
-`DB_POOL_MIN`: number, default `0` - Minimum number of connection in pool
+`DB_POOL_MIN`: number, default `1` - Minimum number of connection in pool
 
 `DB_POOL_MAX`: number, default `5` - Maximum number of connection in pool
-
-`DB_POOL_IDLE`: number, default `10000` - The maximum time, in milliseconds, that a connection can be idle before being released. Use with combination of evict for proper working.
-
-`DB_POOL_ACQUIRE`: number, default `10000` - The maximum time, in milliseconds, that pool will try to get connection before throwing error
-
-`DB_POOL_EVICT`: number, default `10000` - The time interval, in milliseconds, for evicting stale connections. Set it to 0 to disable this feature.
 
 `DB_DIALECT`: string, default `postgres`
 

@@ -1,10 +1,5 @@
 import _ from 'lodash';
 
-import db from '@turistforeningen/ntb-shared-models';
-
-
-const { Op, TEXT } = db.Sequelize;
-
 
 function processExpressJSQueryObjectDeepFilter(
   handler,

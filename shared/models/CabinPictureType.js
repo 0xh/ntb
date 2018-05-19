@@ -1,14 +1,7 @@
-export default (sequelize, DataTypes) => {
-  const CabinPictureType =
-    sequelize.define('CabinPictureType', {
-      name: {
-        type: DataTypes.TEXT,
-        allowNull: false,
-        primaryKey: true,
-      },
-    }, {
-      timestamps: false,
-    });
+import BaseModel from './BaseModel';
 
-  return CabinPictureType;
-};
+
+export default class CabinPictureType extends BaseModel {
+  static tableName = 'cabinPictureTypes';
+  static idColumn = 'name';
+}

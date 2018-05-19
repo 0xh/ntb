@@ -1,18 +1,7 @@
-export default (sequelize, DataTypes) => {
-  const Uuid = sequelize.define('Uuid', {
-    uuid: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      primaryKey: true,
-    },
-    documentType: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-      primaryKey: true,
-    },
-  }, {
-    timestamps: false,
-  });
+import BaseModel from './BaseModel';
 
-  return Uuid;
-};
+
+export default class Uuid extends BaseModel {
+  static tableName = 'uuids';
+  static idColumn = 'id';
+}

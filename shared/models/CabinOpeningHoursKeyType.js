@@ -1,14 +1,7 @@
-export default (sequelize, DataTypes) => {
-  const CabinOpeningHoursKeyType =
-    sequelize.define('CabinOpeningHoursKeyType', {
-      name: {
-        type: DataTypes.TEXT,
-        allowNull: false,
-        primaryKey: true,
-      },
-    }, {
-      timestamps: false,
-    });
+import BaseModel from './BaseModel';
 
-  return CabinOpeningHoursKeyType;
-};
+
+export default class CabinOpeningHoursKeyType extends BaseModel {
+  static tableName = 'cabinOpeningHoursKeyTypes';
+  static idColumn = 'name';
+}

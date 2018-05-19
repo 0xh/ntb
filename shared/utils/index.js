@@ -1,4 +1,5 @@
-import { performance } from 'perf_hooks'; // eslint-disable-line
+// eslint-disable-next-line
+import { PerformanceObserver, performance } from 'perf_hooks';
 import uuid4 from 'uuid/v4';
 import winston from 'winston';
 import _ from 'lodash';
@@ -44,14 +45,18 @@ const logger = createLogger();
  * Prints the duration between performance measurement marks.
  * As default, it will clear the marks.
  */
+const obs = new PerformanceObserver((items) => {
+  const time = items.getEntries()[0].duration / 1000;
+  logger.info(
+    `- done ${time.toFixed(3)} s`
+  );
+});
+obs.observe({ entryTypes: ['measure'] });
+
+
 export function printDone(m1 = 'a', m2 = 'b', clearMarks = true, comment) {
   const label = `${m1} to ${m2}`;
   performance.measure(label, m1, m2);
-  const measure = performance.getEntriesByName(label)[0];
-  logger.info(
-    `- ${comment || 'done'} ${(measure.duration / 1000).toFixed(3)} s`
-  );
-  performance.clearMeasures(label);
 
   if (clearMarks) {
     performance.clearMarks(m1);

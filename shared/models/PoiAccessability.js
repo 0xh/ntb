@@ -1,22 +1,7 @@
-export default (sequelize, DataTypes) => {
-  const PoiAccessability = sequelize.define('PoiAccessability', {
-    accessabilityName: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-      primaryKey: true,
-    },
-    poiUuid: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      primaryKey: true,
-    },
+import BaseModel from './BaseModel';
 
-    description: { type: DataTypes.TEXT },
 
-    dataSource: { type: DataTypes.TEXT },
-  }, {
-    timestamps: false,
-  });
-
-  return PoiAccessability;
-};
+export default class PoiAccessability extends BaseModel {
+  static tableName = 'poiAccessabilities';
+  static idColumn = ['accessabilityName', 'poiId'];
+}

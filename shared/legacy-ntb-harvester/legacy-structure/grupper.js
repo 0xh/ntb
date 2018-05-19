@@ -9,7 +9,7 @@ import { createLogger } from '@turistforeningen/ntb-shared-utils';
 import statusMapper from '../lib/statusMapper';
 
 // TODO(Roar):
-// - translate group type like we do with link type
+// If group-type == "kommune", set link to municiplality
 // - Ignore Sherpa-associations and fetch them seperatly from Sherpa?
 // -- This would prevent us from having the correct id_legacy_ntb!
 // -- We should do some kind of combination of both...?
@@ -18,32 +18,6 @@ import statusMapper from '../lib/statusMapper';
 
 
 const logger = createLogger();
-
-
-function setMunicipalityUuid(res, handler) {
-  if (!res.group.nameLowerCase.endsWith('ommune')) {
-    return;
-  }
-
-  const cleanName = res.group.nameLowerCase.replace(' kommune', '');
-  const match = handler.municipalities
-    .filter((c) => c.nameLowerCase === cleanName);
-  if (match.length === 1) {
-    res.group.municipalityUuid = match[0].uuid;
-  }
-  else if (match.length > 1) {
-    logger.error(
-      'Found multiple municipalities for name ' +
-      `"${cleanName}" - group.id_legacy_ntb=${res.group.idLegacyNtb}`
-    );
-  }
-  else {
-    logger.error(
-      'Unable to find a municipality for name ' +
-      `"${cleanName}" - group.id_legacy_ntb=${res.group.idLegacyNtb}`
-    );
-  }
-}
 
 
 function mapGroupType(tag, res) {
@@ -132,6 +106,32 @@ function getGroupSubType(tags, res) {
 }
 
 
+function setMunicipalityId(res, handler) {
+  if (!res.group.nameLowerCase.endsWith('ommune')) {
+    return;
+  }
+
+  const cleanName = res.group.nameLowerCase.replace(' kommune', '');
+  const match = handler.municipalities
+    .filter((c) => c.nameLowerCase === cleanName);
+  if (match.length === 1) {
+    res.group.municipalityId = match[0].id;
+  }
+  else if (match.length > 1) {
+    logger.error(
+      'Found multiple municipalities for name ' +
+      `"${cleanName}" - group.id_legacy_ntb=${res.group.idLegacyNtb}`
+    );
+  }
+  else {
+    logger.error(
+      'Unable to find a municipality for name ' +
+      `"${cleanName}" - group.id_legacy_ntb=${res.group.idLegacyNtb}`
+    );
+  }
+}
+
+
 function mapLinkType(type, res) {
   switch ((type || '').toLowerCase()) {
     case 'hjemmeside':
@@ -170,7 +170,7 @@ function setLinks(obj, res, handler) {
   if (obj.lenker && obj.lenker.length) {
     obj.lenker.forEach((link, idx) => {
       res.links.push({
-        uuid: uuid4(),
+        id: uuid4(),
         type: mapLinkType(link.type, res),
         title: link.tittel,
         url: link.url,
@@ -187,7 +187,7 @@ async function mapping(obj, handler) {
   const res = {};
 
   res.group = {
-    uuid: uuid4(),
+    id: uuid4(),
     idLegacyNtb: obj._id,
     name: obj.navn,
     nameLowerCase: obj.navn.toLowerCase(),
@@ -232,13 +232,14 @@ async function mapping(obj, handler) {
     res.group.postalName = c.poststed;
   }
 
-  // Set municipality relation
-  if (res.group.type === 'kommune') {
-    setMunicipalityUuid(res, handler);
-  }
-
   // Set links
   setLinks(obj, res, handler);
+
+  // Set municipality relation if the group is a municipality
+  if (res.group.type === 'kommune') {
+    setMunicipalityId(res, handler);
+  }
+
 
   return res;
 }

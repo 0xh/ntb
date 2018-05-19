@@ -1,10 +1,10 @@
 import _ from 'lodash';
 
-import db from '@turistforeningen/ntb-shared-models';
 import {
   isNumber,
   isObject,
 } from '@turistforeningen/ntb-shared-utils';
+import * as models from '@turistforeningen/ntb-shared-models';
 
 import validateAndProcessFilters from './validate-and-process-filters';
 
@@ -21,36 +21,36 @@ function getNextReferrerId(handler, key) {
 
 
 function getAPIConfig(model, referrer) {
-  const { byReferrer } = model.getAPIConfig(db);
-  let config;
+  const apiConfig = model.getAPIConfig();
+  let selectedConfig;
 
   referrer.forEach((ref) => {
-    if (!config && byReferrer[ref]) {
-      config = byReferrer[ref];
+    if (!selectedConfig && apiConfig[ref]) {
+      selectedConfig = apiConfig[ref];
     }
   });
-  if (!config) {
-    config = byReferrer.default;
+  if (!selectedConfig) {
+    selectedConfig = apiConfig.default;
   }
 
-  return config;
+  return selectedConfig;
 }
 
 
 /**
- * Get the value(s) from the specified key from the queryObject. This is a
+ * Get the value(s) from the specified key from the requestObject. This is a
  * case insensitive way of parsing the query object.
- * @param {object} queryObject
+ * @param {object} requestObject
  * @param {string} key
  */
-function getKeyValue(queryObject, key) {
+function getKeyValue(requestObject, key) {
   const values = [];
-  Object.keys(queryObject).forEach((rawKey) => {
+  Object.keys(requestObject).forEach((rawKey) => {
     const k = _.camelCase(rawKey.split('.', 1)[0].toLowerCase().trim());
     if (k === key) {
       values.push({
         originalKey: rawKey,
-        value: queryObject[rawKey],
+        value: requestObject[rawKey],
       });
     }
   });
@@ -67,7 +67,7 @@ function getKeyValue(queryObject, key) {
 function setValidKeys(handler) {
   let validKeys = ['fields'];
   const validDotKeys = [];
-  const { config, association } = handler;
+  const { config, association, model } = handler;
   const associationType = association
     ? association.associationType
     : null;
@@ -91,53 +91,53 @@ function setValidKeys(handler) {
     }
   }
 
-  // Include keys
-  Object.keys(config.include || {}).forEach((key) => {
+  // Relation keys
+  Object.keys(model.relationMappings || {}).forEach((key) => {
     validKeys.push(key);
     validDotKeys.push(key);
   });
 
   // Filter keys
   const validFilters = { self: [], includes: {} };
-  if (!handler.id) {
-    validFilters.self = Object.keys((handler.config.validFilters || {}));
+  // if (!handler.id) {
+  //   validFilters.self = Object.keys((handler.config.validFilters || {}));
 
-    // Valid include filters
-    Object.keys(config.include || {}).forEach((key) => {
-      const referrer = getNextReferrerId(handler, key);
-      const associationName = config.include[key].association;
-      const model = handler.model.associations[associationName].target;
-      const includeAPIConfig = getAPIConfig(model, referrer);
-      const validIncludeFilters = Object.keys(
-        includeAPIConfig.validFilters || {}
-      );
+  //   // Valid relation filters
+  //   Object.keys(config.include || {}).forEach((key) => {
+  //     const referrer = getNextReferrerId(handler, key);
+  //     const associationName = config.include[key].association;
+  //     const model = handler.model.associations[associationName].target;
+  //     const includeAPIConfig = getAPIConfig(model, referrer);
+  //     const validIncludeFilters = Object.keys(
+  //       includeAPIConfig.validFilters || {}
+  //     );
 
-      if (validIncludeFilters.length) {
-        validFilters.includes[key] = validIncludeFilters;
-      }
-    });
+  //     if (validIncludeFilters.length) {
+  //       validFilters.includes[key] = validIncludeFilters;
+  //     }
+  //   });
 
-    // Enable `df` if this is an associated reference (not main entry model)
-    if (
-      handler.usExpressJSQueryObject
-      && handler.association
-      && validFilters.self.length
-    ) {
-      validKeys.push('df');
-      validDotKeys.push('df');
-    }
-    // Enable keys for all named filters on model
-    else if (handler.usExpressJSQueryObject) {
-      validKeys = validKeys.concat(validFilters.self);
-    }
-    // If it's a structured object, enable the `filters` key
-    else if (
-      validFilters.self.length
-      || Object.keys(validFilters.includes).length
-    ) {
-      validKeys.push('filters');
-    }
-  }
+  //   // Enable `df` if this is an associated reference (not main entry model)
+  //   if (
+  //     handler.usExpressJSRequestObject
+  //     && handler.association
+  //     && validFilters.self.length
+  //   ) {
+  //     validKeys.push('df');
+  //     validDotKeys.push('df');
+  //   }
+  //   // Enable keys for all named filters on model
+  //   else if (handler.usExpressJSRequestObject) {
+  //     validKeys = validKeys.concat(validFilters.self);
+  //   }
+  //   // If it's a structured object, enable the `filters` key
+  //   else if (
+  //     validFilters.self.length
+  //     || Object.keys(validFilters.includes).length
+  //   ) {
+  //     validKeys.push('filters');
+  //   }
+  // }
 
   handler.validKeys = validKeys;
   handler.validDotKeys = validDotKeys;
@@ -150,7 +150,7 @@ function setValidKeys(handler) {
  * @param {*} handler
  */
 function validateKeys(handler) {
-  const keys = Object.keys(handler.queryObject);
+  const keys = Object.keys(handler.requestObject);
 
   keys.forEach((rawKey) => {
     const key = _.camelCase(rawKey.split('.', 1)[0].toLowerCase().trim());
@@ -166,18 +166,18 @@ function validateKeys(handler) {
         `Invalid query parameter: ${handler.trace}${rawKey}`
       );
 
-      delete handler.queryObject[key];
+      delete handler.requestObject[key];
     }
 
     if (handler.validDotKeys.includes(key)) {
       const dotCount = (rawKey.match(/\./g) || []).length;
-      if (dotCount < 1 && !isObject(handler.queryObject[key])) {
+      if (dotCount < 1 && !isObject(handler.requestObject[key])) {
         handler.errors.push(
           `Invalid query parameter format: ${handler.trace}${rawKey}`
         );
       }
 
-      delete handler.queryObject.e;
+      delete handler.requestObject.e;
     }
   });
 }
@@ -185,10 +185,10 @@ function validateKeys(handler) {
 
 /**
  * Validate limit option
- * @param {object} queryObject
+ * @param {object} requestObject
  * @param {object} handler
  */
-function validateLimit(queryObject, handler) {
+function validateLimit(requestObject, handler) {
   const { config, trace } = handler;
 
   if (!config.defaultLimit) {
@@ -199,20 +199,20 @@ function validateLimit(queryObject, handler) {
     throw new Error('maxLimit is not set in apiConfig');
   }
 
-  const queryLimit = getKeyValue(queryObject, 'limit');
+  const queryLimit = getKeyValue(requestObject, 'limit');
   if (queryLimit) {
     const qLimit = queryLimit[0];
     let { value } = qLimit;
 
     // Only allow one 'limit=' for ExpressJS
-    if (handler.usExpressJSQueryObject && value.length > 1) {
+    if (handler.usExpressJSRequestObject && value.length > 1) {
       handler.errors.push(
         `Invalid ${trace}${qLimit.originalKey}. ` +
         'There are multiple occurences in the url.'
       );
       value = 10;
     }
-    else if (handler.usExpressJSQueryObject) {
+    else if (handler.usExpressJSRequestObject) {
       ([value] = value);
     }
 
@@ -236,26 +236,26 @@ function validateLimit(queryObject, handler) {
 
 /**
  * Validate offset option
- * @param {object} queryObject
+ * @param {object} requestObject
  * @param {object} handler
  */
-function validateOffset(queryObject, handler) {
+function validateOffset(requestObject, handler) {
   const { trace } = handler;
-  const queryOffset = getKeyValue(queryObject, 'offset');
+  const queryOffset = getKeyValue(requestObject, 'offset');
 
   if (queryOffset) {
     const qOffset = queryOffset[0];
     let { value } = qOffset;
 
     // Only allow one 'offset=' for ExpressJS
-    if (handler.usExpressJSQueryObject && value.length > 1) {
+    if (handler.usExpressJSRequestObject && value.length > 1) {
       handler.errors.push(
         `Invalid ${trace}${qOffset.originalKey}. ` +
         'There are multiple occurences in the url.'
       );
       value = 0;
     }
-    else if (handler.usExpressJSQueryObject) {
+    else if (handler.usExpressJSRequestObject) {
       ([value] = value);
     }
 
@@ -282,9 +282,9 @@ function validateOffset(queryObject, handler) {
 function setPaginationValues(handler) {
   const { config } = handler;
   if (config.paginate) {
-    const { sequelizeOptions, queryObject } = handler;
-    sequelizeOptions.limit = validateLimit(queryObject, handler);
-    sequelizeOptions.offset = validateOffset(queryObject, handler);
+    const { queryOptions, requestObject } = handler;
+    queryOptions.limit = validateLimit(requestObject, handler);
+    queryOptions.offset = validateOffset(requestObject, handler);
   }
 }
 
@@ -296,8 +296,8 @@ function setPaginationValues(handler) {
 function setOrdering(handler) {
   const {
     config,
-    queryObject,
-    sequelizeOptions,
+    requestObject,
+    queryOptions,
     trace,
   } = handler;
 
@@ -309,23 +309,23 @@ function setOrdering(handler) {
     throw new Error('validOrderFields is not set in apiConfig');
   }
 
-  sequelizeOptions.order = config.defaultOrder;
+  queryOptions.order = config.defaultOrder;
 
   if (config.ordering) {
-    const queryOrder = getKeyValue(queryObject, 'order');
+    const queryOrder = getKeyValue(requestObject, 'order');
     if (queryOrder && queryOrder[0].value) {
       const qOrder = queryOrder[0];
       let values = qOrder.value;
 
       // Only allow one 'order=' for ExpressJS
-      if (handler.usExpressJSQueryObject && values.length > 1) {
+      if (handler.usExpressJSRequestObject && values.length > 1) {
         handler.errors.push(
           `Invalid ${trace}${qOrder.originalKey}. ` +
           'There are multiple occurences in the url.'
         );
         return;
       }
-      else if (handler.usExpressJSQueryObject) {
+      else if (handler.usExpressJSRequestObject) {
         ([values] = values);
       }
 
@@ -392,7 +392,7 @@ function setOrdering(handler) {
         });
 
         if (valid && order.length) {
-          sequelizeOptions.order = order;
+          queryOptions.order = order;
         }
       }
     }
@@ -407,49 +407,33 @@ function setOrdering(handler) {
 function setFields(handler) {
   const {
     config,
-    queryObject,
+    requestObject,
     trace,
-    association,
+    model,
   } = handler;
 
-  if (!config.validFields) {
-    throw new Error('validFields is not set in apiConfig');
-  }
-
-  const validFieldKeys = Object.keys(config.validFields);
-  let validThroughFieldKeys = [];
-  const validIncludeKeys = Object.keys(config.include || {});
-
-  if (association && association.through) {
-    const APIThroughFields = association.through.model.getAPIThroughFields(
-      association.source.name
-    );
-    validThroughFieldKeys = Object.keys(APIThroughFields || {});
-    handler.throughFields = validThroughFieldKeys
-      .filter((f) => (APIThroughFields || {})[f]);
-  }
+  const validFieldKeys = model.getBaseFields(handler.referrer);
+  const validRelationKeys = Object.keys(model.relationMappings || {});
 
   // Set default fields
-  handler.fields = Object.keys(config.validFields)
-    .filter((f) => config.validFields[f]);
-  handler.includeFields = (
-    validIncludeKeys.filter((k) => config.include[k].includeByDefault)
-  );
+  handler.fields = config.defaultFields;
+  handler.relationFields = validRelationKeys
+    .filter((k) => (config.defaultRelations || []).includes(k));
 
-  const queryFields = getKeyValue(queryObject, 'fields');
+  const queryFields = getKeyValue(requestObject, 'fields');
   if (queryFields && queryFields[0].value) {
     const qFields = queryFields[0];
     let values = qFields.value;
 
     // Only allow one 'fields=' for ExpressJS
-    if (handler.usExpressJSQueryObject && values.length > 1) {
+    if (handler.usExpressJSRequestObject && values.length > 1) {
       handler.errors.push(
         `Invalid ${trace}${qFields.originalKey}. ` +
         'There are multiple occurences in the url.'
       );
       return;
     }
-    else if (handler.usExpressJSQueryObject) {
+    else if (handler.usExpressJSRequestObject) {
       ([values] = values);
     }
 
@@ -476,14 +460,12 @@ function setFields(handler) {
     else {
       let valid = true;
       const fields = [];
-      const includeFields = [];
-      const throughFields = [];
+      const relationFields = [];
       values.forEach((fieldExpression) => {
         const f = _.camelCase(fieldExpression.toLowerCase().trim());
         if (
           !validFieldKeys.includes(f)
-          && !validThroughFieldKeys.includes(f)
-          && !validIncludeKeys.includes(f)
+          && !validRelationKeys.includes(f)
         ) {
           handler.errors.push(
             `Invalid ${trace}${qFields.originalKey} value ` +
@@ -494,11 +476,8 @@ function setFields(handler) {
           valid = false;
         }
 
-        if (validIncludeKeys.includes(f)) {
-          includeFields.push(f);
-        }
-        else if (validThroughFieldKeys.includes(f)) {
-          throughFields.push(f);
+        if (validRelationKeys.includes(f)) {
+          relationFields.push(f);
         }
         else {
           fields.push(f);
@@ -506,17 +485,9 @@ function setFields(handler) {
       });
 
       // All fields validated
-      if (
-        valid
-        && (
-          fields.length
-          || includeFields.length
-          || throughFields.length
-        )
-      ) {
+      if (valid && (fields.length || relationFields.length)) {
         handler.fields = fields;
-        handler.throughFields = throughFields;
-        handler.includeFields = includeFields;
+        handler.relationFields = relationFields;
       }
     }
   }
@@ -525,18 +496,19 @@ function setFields(handler) {
 
 function setFilters(handler) {
   if (handler.id) {
-    handler.sequelizeOptions.where = {
+    handler.queryOptions.where = {
       uuid: handler.id,
     };
     return;
   }
 
-  validateAndProcessFilters(handler);
+  // validateAndProcessFilters(handler);
 }
 
 
 function validateIncludeKeys(handler) {
-  const keys = Object.keys(handler.queryObject);
+  const keys = Object.keys(handler.requestObject);
+  const { model } = handler;
 
   keys.forEach((rawKey) => {
     const rawKeys = rawKey.split('.');
@@ -549,30 +521,30 @@ function validateIncludeKeys(handler) {
         .trim());
     }
 
-    if (Object.keys(handler.config.include).includes(key)) {
-      const rawIncludeKeys = rawKey.split('.');
-      const rawIncludeKey = rawIncludeKeys[0].trim();
+    if (Object.keys(model.relationMapping || {}).includes(key)) {
+      const rawRelationKeys = rawKey.split('.');
+      const rawRelationKey = rawRelationKeys[0].trim();
       let rawSubKey;
 
-      if (rawIncludeKeys.length > 1) {
-        rawSubKey = rawIncludeKeys.slice(1).join('.').trim();
+      if (rawRelationKeys.length > 1) {
+        rawSubKey = rawRelationKeys.slice(1).join('.').trim();
       }
 
       if (
         subKey
         && subKey.length
         && !['limit', 'offset', 'order', 'df'].includes(subKey)
-        && !handler.includeFields.includes(key)
+        && !handler.relationFields.includes(key)
         && Object.keys(handler.validFilters.includes).includes(key)
         && !handler.validFilters.includes[key].includes(subKey)
       ) {
         handler.errors.push(
           `Invalid query parameter: ${handler.trace}${rawKey}. ` +
-          `"${rawSubKey}" is not a valid filter on "${rawIncludeKey}"."`
+          `"${rawSubKey}" is not a valid filter on "${rawRelationKey}"."`
         );
       }
       else if (
-        !handler.includeFields.includes(key)
+        !handler.relationFields.includes(key)
         && (
           !subKey
           || !subKey.length
@@ -581,7 +553,7 @@ function validateIncludeKeys(handler) {
       ) {
         handler.errors.push(
           `Invalid query parameter: ${handler.trace}${rawKey}. ` +
-          `"${rawIncludeKey}" is not included in fields."`
+          `"${rawRelationKey}" is not included in fields."`
         );
       }
     }
@@ -594,77 +566,53 @@ function validateIncludeKeys(handler) {
  * the database
  */
 function setAttributes(handler) {
+  const { model } = handler;
+
   // translate fields to attributes for fields which are not includes/extends
   const fieldsToConvert = handler.fields
     .filter((f) => !Object.keys((handler.config.include || {})).includes(f));
-  handler.sequelizeOptions.attributes = handler.model.fieldsToAttributes(
-    fieldsToConvert
+  handler.queryOptions.attributes = handler.model.getAPIFieldsToAttributes(
+    handler.referrer, fieldsToConvert
   );
 
   // Make sure the primary keys are always selected
-  Object.keys(handler.model.primaryKeys).forEach((key) => {
-    if (!handler.sequelizeOptions.attributes.includes(key)) {
-      handler.sequelizeOptions.attributes.push(key);
+  const idColumns = Array.isArray(model.idColumn)
+    ? model.idColumn
+    : [model.idColumn];
+  idColumns.forEach((key) => {
+    if (!handler.queryOptions.attributes.includes(key)) {
+      handler.queryOptions.attributes.push(key);
     }
   });
 
-  // Make sure the fields needed for includes from this model are always
+  // Make sure the fields needed for relations from this model are always
   // selected
-  Object.keys((handler.include || {})).forEach((includeKey) => {
-    const { association } = handler.include[includeKey];
-
-    let identifier;
-    if (association.manyFromSource) {
-      identifier = association.manyFromSource.sourceIdentifier;
-    }
-    else if (association.identifier) {
-      ({ identifier } = association);
-    }
-    else if (association.foreignKey) {
-      identifier = association.foreignKey;
-    }
-    else {
-      throw new Error('Unable to determine the correct key');
-    }
-
-    if (!handler.sequelizeOptions.attributes.includes(identifier)) {
-      handler.sequelizeOptions.attributes.push(identifier);
-    }
+  const relations = model.getRelations();
+  Object.keys(handler.relations || {}).forEach((relationKey) => {
+    const relation = relations[relationKey];
+    relation.ownerProp.props.forEach((identifier) => {
+      if (!handler.queryOptions.attributes.includes(identifier)) {
+        handler.queryOptions.attributes.push(identifier);
+      }
+    });
   });
 
-  // Make sure the fields needed for includes to this model are always sleected
-  if (
-    handler.association
-    && handler.association.isMultiAssociation
-    && !handler.association.through
-  ) {
-    const { targetKey } = handler.association.options;
-    if (!handler.sequelizeOptions.attributes.includes(targetKey)) {
-      handler.sequelizeOptions.attributes.push(targetKey);
-    }
+  // Make sure the fields needed for relations to this model are always
+  // selected
+  if (handler.relation) {
+    handler.relation.relatedProp.props.forEach((identifier) => {
+      if (!handler.queryOptions.attributes.includes(identifier)) {
+        handler.queryOptions.attributes.push(identifier);
+      }
+    });
   }
 
   // Make sure the order by key is always selected
-  (handler.sequelizeOptions.order || []).forEach((orderKey) => {
-    if (!handler.sequelizeOptions.attributes.includes(orderKey[0])) {
-      handler.sequelizeOptions.attributes.push(orderKey[0]);
+  (handler.queryOptions.order || []).forEach((orderKey) => {
+    if (!handler.queryOptions.attributes.includes(orderKey[0])) {
+      handler.queryOptions.attributes.push(orderKey[0]);
     }
   });
-
-  // Translate through fields
-  if (handler.throughFields.length) {
-    const throughFields = [...handler.throughFields];
-
-    handler.throughAttributes =
-      handler.association.through.model.fieldsToAttributes(
-        handler.association.source.name, throughFields
-      );
-
-    const sourceIdentifier = handler.association.toSource.identifier;
-    if (!handler.throughAttributes.includes(sourceIdentifier)) {
-      handler.throughAttributes.push(sourceIdentifier);
-    }
-  }
 }
 
 
@@ -672,28 +620,29 @@ function setAttributes(handler) {
  * Set list of associations to be included
  * @param {object} handler
  */
-function setIncludes(handler) {
-  const { config } = handler;
+function setRelations(handler) {
+  const { model } = handler;
 
   // Do nothing if the model api configuration does not define any
-  if (!config.include || !Object.keys(config.include).length) {
+  const relations = model.getRelations();
+  if (!Object.keys(relations).length) {
     return;
   }
 
-  handler.includeFields.forEach((key) => {
-    handler.include[key] = config.include[key];
+  handler.relationFields.forEach((key) => {
+    handler.relations[key] = relations[key];
   });
 }
 
 
 /**
- * Process current queryObject and get values defined for the extend model
+ * Process current requestObject and get values defined for the extend model
  * @param {object} handler
  * @param {key} key
  */
 function getIncludeQueryObject(handler, key) {
   let extendQueryObject = {};
-  const values = getKeyValue(handler.queryObject, key);
+  const values = getKeyValue(handler.requestObject, key);
   const snakedKey = _.snakeCase(key);
 
   if (values && values.length) {
@@ -729,28 +678,27 @@ function getIncludeQueryObject(handler, key) {
 /**
  * Get handler object with default values
  * @param {object} model
- * @param {object} queryObject
+ * @param {object} requestObject
  * @param {array} errors
  * @param {string} trace
  */
 function getDefaultHandler(
   model,
-  queryObject,
-  usExpressJSQueryObject,
+  requestObject,
+  usExpressJSRequestObject,
   errors = [],
   trace = '',
 ) {
   return {
-    sequelizeOptions: {},
+    queryOptions: {},
     fields: [],
-    throughFields: [],
-    includeFields: [],
-    include: {},
+    relationFields: [],
+    relations: {},
     errors,
     trace,
     model,
-    queryObject,
-    usExpressJSQueryObject,
+    requestObject,
+    usExpressJSRequestObject,
   };
 }
 
@@ -762,16 +710,14 @@ function getDefaultHandler(
 function pickFromHandlerObject(handler) {
   return {
     fields: handler.fields,
-    throughFields: handler.throughFields,
-    throughAttributes: handler.throughAttributes,
-    includeFields: handler.includeFields,
+    relationFields: handler.relationFields,
     model: handler.model,
     config: handler.config,
-    include: handler.include,
-    sequelizeOptions: handler.sequelizeOptions,
-    association: handler.association,
+    relations: handler.relations,
+    queryOptions: handler.queryOptions,
+    relation: handler.relation,
     id: handler.id,
-    usExpressJSQueryObject: handler.usExpressJSQueryObject,
+    usExpressJSRequestObject: handler.usExpressJSRequestObject,
   };
 }
 
@@ -782,6 +728,7 @@ function pickFromHandlerObject(handler) {
  * @param {object} handler
  */
 function processRequestParameters(referrer, handler) {
+  handler.referrer = referrer;
   handler.config = getAPIConfig(handler.model, referrer);
 
   if (handler.id) {
@@ -798,31 +745,29 @@ function processRequestParameters(referrer, handler) {
   setFields(handler);
   setFilters(handler);
   validateIncludeKeys(handler);
-  setIncludes(handler);
+  setRelations(handler);
 
-
-  // Update sequelizeOptions with includes and recursive request parameter
+  // Update queryOptions with relations and recursive request parameter
   // processing
-  if (Object.keys(handler.include).length) {
-    Object.keys(handler.include).forEach((key) => {
+  if (Object.keys(handler.relations).length) {
+    Object.keys(handler.relations).forEach((key) => {
       const extendQueryObject = getIncludeQueryObject(handler, key);
-      const associationKey = handler.include[key].association;
-      const association = handler.model.associations[associationKey];
 
       const extendHandler = getDefaultHandler(
-        association.target,
+        handler.relations[key].relatedModelClass,
         extendQueryObject,
-        handler.usExpressJSQueryObject,
+        handler.usExpressJSRequestObject,
         handler.errors,
         `${handler.trace}${key}.`
       );
-      extendHandler.association = association;
+
+      const relations = handler.model.getRelations();
+      extendHandler.relation = relations[key];
 
       const nextReferrer = getNextReferrerId(handler, key);
       processRequestParameters(nextReferrer, extendHandler);
 
-      handler.include[key] = {
-        ...handler.include[key],
+      handler.relations[key] = {
         ...pickFromHandlerObject(extendHandler),
         id: null,
       };
@@ -834,36 +779,36 @@ function processRequestParameters(referrer, handler) {
 }
 
 
-function convertExpressJSparamsToArrays(queryObject) {
+function convertExpressJSparamsToArrays(requestObject) {
   const res = {};
-  Object.keys(queryObject).forEach((key) => {
-    res[key] = Array.isArray(queryObject[key])
-      ? queryObject[key]
-      : [queryObject[key]];
+  Object.keys(requestObject).forEach((key) => {
+    res[key] = Array.isArray(requestObject[key])
+      ? requestObject[key]
+      : [requestObject[key]];
   });
   return res;
 }
 
 
 /**
- * Validate and processes queryObject into request parameters used by the
+ * Validate and processes requestObject into request parameters used by the
  * process-request module.
- * @param {object} entryModel The entry db.model
- * @param {object} queryObject a preconfigured nested query object or the
+ * @param {object} entrymodel The entry db.model
+ * @param {object} requestObject a preconfigured nested query object or the
  *                             ExpressJS req.query object
- * @param {string} queryObject id of a single object
+ * @param {string} requestObject id of a single object
  */
 export default function (
-  entryModel,
-  queryObject,
+  entrymodel,
+  requestObject,
   id = null,
-  usExpressJSQueryObject = true
+  usExpressJSRequestObject = true
 ) {
-  const qObject = usExpressJSQueryObject
-    ? convertExpressJSparamsToArrays(queryObject)
-    : queryObject;
+  const qObject = usExpressJSRequestObject
+    ? convertExpressJSparamsToArrays(requestObject)
+    : requestObject;
   const handler = getDefaultHandler(
-    entryModel, qObject, usExpressJSQueryObject
+    entrymodel, qObject, usExpressJSRequestObject
   );
   handler.id = id;
 

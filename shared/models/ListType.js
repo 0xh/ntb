@@ -1,10 +1,7 @@
-export default (sequelize, DataTypes) => {
-  const ListType = sequelize.define('ListType', {
-    name: { type: DataTypes.TEXT, primaryKey: true },
-    description: { type: DataTypes.TEXT },
-  }, {
-    timestamps: false,
-  });
+import BaseModel from './BaseModel';
 
-  return ListType;
-};
+
+export default class ListType extends BaseModel {
+  static tableName = 'listTypes';
+  static idColumn = 'name';
+}

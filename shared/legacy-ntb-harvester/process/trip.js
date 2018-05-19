@@ -1,6 +1,10 @@
-import db from '@turistforeningen/ntb-shared-models';
-import { createLogger, startDuration, endDuration } from
-  '@turistforeningen/ntb-shared-utils';
+import {
+  createLogger,
+  startDuration,
+  endDuration,
+} from '@turistforeningen/ntb-shared-utils';
+import { knex, Model } from '@turistforeningen/ntb-shared-db-utils';
+import { geomFromGeoJSON } from '@turistforeningen/ntb-shared-gis-utils';
 
 import * as legacy from '../legacy-structure/';
 
@@ -17,120 +21,157 @@ async function createTempTables(handler, sync = false) {
   logger.info('Creating temporary tables');
   const durationId = startDuration();
 
-  const baseTableName = `_temp_legacy_ntb_harvest_${handler.timeStamp}`;
+  const baseTableName = `0_temp_legacy_ntb_harvest_${handler.timeStamp}`;
 
-  let tableName = `${baseTableName}_trip`;
-  handler.trips.TempTripModel = db.sequelize.define(tableName, {
-    uuid: { type: db.Sequelize.UUID, primaryKey: true },
-    idLegacyNtb: { type: db.Sequelize.TEXT },
-    activityType: { type: db.Sequelize.TEXT },
-    name: { type: db.Sequelize.TEXT },
-    nameLowerCase: { type: db.Sequelize.TEXT },
-    description: { type: db.Sequelize.TEXT },
-    descriptionPlain: { type: db.Sequelize.TEXT },
-    url: { type: db.Sequelize.TEXT },
-
-    grading: { type: db.Sequelize.TEXT },
-    suitableForChildren: { type: db.Sequelize.BOOLEAN },
-    distance: { type: db.Sequelize.INTEGER },
-    direction: { type: db.Sequelize.TEXT },
-
-    durationMinutes: { type: db.Sequelize.INTEGER },
-    durationHours: { type: db.Sequelize.INTEGER },
-    durationDays: { type: db.Sequelize.INTEGER },
-
-    startingPoint: { type: db.Sequelize.GEOMETRY },
-    pathGeojson: { type: db.Sequelize.GEOMETRY },
-    pathPolyline: { type: db.Sequelize.TEXT },
-
-    season: { type: db.Sequelize.ARRAY(db.Sequelize.INTEGER) },
-
-    htgtGeneral: { type: db.Sequelize.TEXT },
-    htgtPublicTransport: { type: db.Sequelize.TEXT },
-
-    license: { type: db.Sequelize.TEXT },
-    provider: { type: db.Sequelize.TEXT },
-    status: { type: db.Sequelize.TEXT },
-    dataSource: { type: db.Sequelize.TEXT },
-    updatedAt: { type: db.Sequelize.DATE },
-  }, {
-    timestamps: false,
-    tableName,
-  });
-  if (sync) await handler.trips.TempTripModel.sync();
-
-  tableName = `${baseTableName}_trip_types`;
-  handler.trips.TempTripTypeModel =
-    db.sequelize.define(tableName, {
-      activityType: { type: db.Sequelize.TEXT },
-      activitySubType: { type: db.Sequelize.TEXT },
-      tripUuid: { type: db.Sequelize.UUID },
-      idTripLegacyNtb: { type: db.Sequelize.TEXT },
-      primary: { type: db.Sequelize.BOOLEAN },
-      sortIndex: { type: db.Sequelize.INTEGER },
-      dataSource: { type: db.Sequelize.TEXT },
-      updatedAt: { type: db.Sequelize.DATE },
-    }, {
-      timestamps: false,
-      tableName,
+  // pois
+  let tableName = `${baseTableName}_trips`;
+  if (sync) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('id')
+        .primary();
+      table.text('idLegacyNtb');
+      table.text('activityType');
+      table.text('name');
+      table.text('nameLowerCase');
+      table.text('description');
+      table.text('descriptionPlain');
+      table.text('url');
+      table.text('grading');
+      table.boolean('suitableForChildren');
+      table.integer('distance');
+      table.text('direction');
+      table.integer('durationMinutes');
+      table.integer('durationHours');
+      table.integer('durationDays');
+      table.specificType('startingPoint', 'GEOMETRY');
+      table.specificType('path', 'GEOMETRY');
+      table.text('pathPolyline');
+      table.specificType('season', 'INTEGER[]');
+      table.text('htgtGeneral');
+      table.text('htgtWinter');
+      table.text('htgtSummer');
+      table.text('htgtPublicTransport');
+      table.boolean('htgtCarAllYear');
+      table.boolean('htgtCarSummer');
+      table.boolean('htgtBicycle');
+      table.boolean('htgtPublicTransportAvailable');
+      table.boolean('htgtBoatTransportAvailable');
+      table.text('license');
+      table.text('provider');
+      table.text('status');
+      table.text('dataSource');
+      table.timestamp('updatedAt');
     });
-  if (sync) await handler.trips.TempTripTypeModel.sync();
+  }
 
-  tableName = `${baseTableName}_trip_links`;
-  handler.trips.TempTripLinkModel =
-    db.sequelize.define(tableName, {
-      uuid: { type: db.Sequelize.UUID, primaryKey: true },
-      title: { type: db.Sequelize.TEXT, allowNull: true },
-      url: { type: db.Sequelize.TEXT },
-      tripUuid: { type: db.Sequelize.UUID, allowNull: true },
-      idTripLegacyNtb: { type: db.Sequelize.TEXT },
-      sortIndex: { type: db.Sequelize.INTEGER },
-      dataSource: { type: db.Sequelize.TEXT },
-      updatedAt: { type: db.Sequelize.DATE },
-    }, {
-      timestamps: false,
-      tableName,
-    });
-  await handler.trips.TempTripLinkModel.sync();
+  class TempTripModel extends Model {
+    static tableName = tableName;
+  }
+  handler.trips.TempTripModel = TempTripModel;
 
-  tableName = `${baseTableName}_trip_to_group`;
-  handler.trips.TempTripToGroupModel =
-    db.sequelize.define(tableName, {
-      tripUuid: { type: db.Sequelize.UUID },
-      groupUuid: { type: db.Sequelize.UUID },
-      tripLegacyId: { type: db.Sequelize.TEXT },
-      groupLegacyId: { type: db.Sequelize.TEXT },
-    }, {
-      timestamps: false,
-      tableName,
-    });
-  await handler.trips.TempTripToGroupModel.sync();
 
-  tableName = `${baseTableName}_trip_to_poi`;
-  handler.trips.TempTripToPoiModel =
-    db.sequelize.define(tableName, {
-      tripUuid: { type: db.Sequelize.UUID },
-      poiUuid: { type: db.Sequelize.UUID },
-      tripLegacyId: { type: db.Sequelize.TEXT },
-      poiLegacyId: { type: db.Sequelize.TEXT },
-    }, {
-      timestamps: false,
-      tableName,
+  // trip activity types
+  tableName = `${baseTableName}_trip_acttype`;
+  if (sync) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.increments();
+      table.text('activityType');
+      table.text('activitySubType');
+      table.uuid('tripId');
+      table.text('idTripLegacyNtb');
+      table.boolean('primary');
+      table.integer('sortIndex');
+      table.text('dataSource');
+      table.timestamp('updatedAt');
     });
-  await handler.trips.TempTripToPoiModel.sync();
+  }
 
-  tableName = `${baseTableName}_trip_pictures`;
-  handler.trips.TempTripPicturesModel =
-    db.sequelize.define(tableName, {
-      tripLegacyId: { type: db.Sequelize.TEXT },
-      tripUuid: { type: db.Sequelize.UUID },
-      pictureLegacyId: { type: db.Sequelize.TEXT },
-      sortIndex: { type: db.Sequelize.INTEGER },
-    }, {
-      timestamps: false,
-      tableName,
+  class TempTripTypeModel extends Model {
+    static tableName = tableName;
+  }
+  handler.trips.TempTripTypeModel = TempTripTypeModel;
+
+
+  // trip links
+  tableName = `${baseTableName}_trip_linkss`;
+  if (sync) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('id')
+        .primary();
+      table.text('title');
+      table.text('url');
+      table.uuid('tripId');
+      table.text('idTripLegacyNtb');
+      table.integer('sortIndex');
+      table.text('dataSource');
+      table.timestamp('updatedAt');
     });
-  await handler.trips.TempTripPicturesModel.sync();
+  }
+
+  class TempTripLinkModel extends Model {
+    static tableName = tableName;
+  }
+  handler.trips.TempTripLinkModel = TempTripLinkModel;
+
+
+  // trips to groups
+  tableName = `${baseTableName}_trip_group`;
+  if (sync) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('tripId');
+      table.uuid('groupId');
+      table.text('tripLegacyId');
+      table.text('groupLegacyId');
+
+      table.primary(['tripLegacyId', 'groupLegacyId']);
+    });
+  }
+
+  class TempTripToGroupModel extends Model {
+    static tableName = tableName;
+    static idColumn = ['tripLegacyId', 'groupLegacyId'];
+  }
+  handler.trips.TempTripToGroupModel = TempTripToGroupModel;
+
+
+  // trips to pois
+  tableName = `${baseTableName}_trip_poi`;
+  if (sync) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('tripId');
+      table.uuid('poiId');
+      table.text('tripLegacyId');
+      table.text('poiLegacyId');
+
+      table.primary(['tripLegacyId', 'poiLegacyId']);
+    });
+  }
+
+  class TempTripToPoiModel extends Model {
+    static tableName = tableName;
+    static idColumn = ['tripLegacyId', 'poiLegacyId'];
+  }
+  handler.trips.TempTripToPoiModel = TempTripToPoiModel;
+
+
+  // trip pics
+  tableName = `${baseTableName}_trip_pic`;
+  if (sync) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('tripId');
+      table.text('tripLegacyId');
+      table.text('pictureLegacyId');
+      table.integer('sortIndex');
+
+      table.primary(['tripLegacyId', 'pictureLegacyId']);
+    });
+  }
+
+  class TempTripPicturesModel extends Model {
+    static tableName = tableName;
+    static idColumn = ['tripLegacyId', 'pictureLegacyId'];
+  }
+  handler.trips.TempTripPicturesModel = TempTripPicturesModel;
 
 
   endDuration(durationId);
@@ -144,12 +185,13 @@ async function dropTempTables(handler) {
   logger.info('Dropping temporary tables');
   const durationId = startDuration();
 
-  await handler.trips.TempTripModel.drop();
-  await handler.trips.TempTripTypeModel.drop();
-  await handler.trips.TempTripLinkModel.drop();
-  await handler.trips.TempTripToGroupModel.drop();
-  await handler.trips.TempTripToPoiModel.drop();
-  await handler.trips.TempTripPicturesModel.drop();
+  knex.schema
+    .dropTableIfExists(handler.trips.TempTripModel.tableName)
+    .dropTableIfExists(handler.trips.TempTripTypeModel.tableName)
+    .dropTableIfExists(handler.trips.TempTripLinkModel.tableName)
+    .dropTableIfExists(handler.trips.TempTripToGroupModel.tableName)
+    .dropTableIfExists(handler.trips.TempTripToPoiModel.tableName)
+    .dropTableIfExists(handler.trips.TempTripPicturesModel.tableName);
 
   endDuration(durationId);
 }
@@ -187,8 +229,19 @@ async function populateTempTables(handler) {
 
   logger.info('Inserting trips to temporary table');
   durationId = startDuration();
-  const trips = handler.trips.processed.map((p) => p.trip);
-  await handler.trips.TempTripModel.bulkCreate(trips);
+  const trips = handler.trips.processed.map((p) => {
+    const { trip } = p;
+    if (trip.startingPoint) {
+      trip.startingPoint = geomFromGeoJSON(trip.startingPoint);
+    }
+    if (trip.path) {
+      trip.path = geomFromGeoJSON(trip.path);
+    }
+    return trip;
+  });
+  await handler.trips.TempTripModel
+    .query()
+    .insert(trips);
   endDuration(durationId);
 
   const tripToGroup = [];
@@ -224,31 +277,41 @@ async function populateTempTables(handler) {
   // Insert temp data for trip activity types
   logger.info('Inserting trip activity types to temporary table');
   durationId = startDuration();
-  await handler.trips.TempTripTypeModel.bulkCreate(activitySubTypes);
+  await handler.trips.TempTripTypeModel
+    .query()
+    .insert(activitySubTypes);
   endDuration(durationId);
 
   // Insert temp data for TripLink
   logger.info('Inserting trip links to temporary table');
   durationId = startDuration();
-  await handler.trips.TempTripLinkModel.bulkCreate(links);
+  await handler.trips.TempTripLinkModel
+    .query()
+    .insert(links);
   endDuration(durationId);
 
   // Insert temp data for TripToGroup
   logger.info('Inserting trip to group temporary table');
   durationId = startDuration();
-  await handler.trips.TempTripToGroupModel.bulkCreate(tripToGroup);
+  await handler.trips.TempTripToGroupModel
+    .query()
+    .insert(tripToGroup);
   endDuration(durationId);
 
   // Insert temp data for TripToPoi
   logger.info('Inserting trip to poi temporary table');
   durationId = startDuration();
-  await handler.trips.TempTripToPoiModel.bulkCreate(tripToPoi);
+  await handler.trips.TempTripToPoiModel
+    .query()
+    .insert(tripToPoi);
   endDuration(durationId);
 
   // Insert temp data for TripToPoi
   logger.info('Inserting trip pictures to temporary table');
   durationId = startDuration();
-  await handler.trips.TempTripPicturesModel.bulkCreate(pictures);
+  await handler.trips.TempTripPicturesModel
+    .query()
+    .insert(pictures);
   endDuration(durationId);
 }
 
@@ -262,9 +325,9 @@ async function mergeActivityType(handler) {
 
   // Merge primary types into prod table
   let sql = [
-    'INSERT INTO activity_type (name, "primary")',
+    'INSERT INTO activity_types (name, "primary")',
     'SELECT DISTINCT activity_type, TRUE',
-    `FROM public.${tableName}`,
+    `FROM "public"."${tableName}"`,
     'WHERE activity_type IS NOT NULL',
     'ON CONFLICT (name) DO UPDATE',
     'SET',
@@ -273,36 +336,36 @@ async function mergeActivityType(handler) {
 
   logger.info('Creating primary activity types');
   let durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Merge sub types into prod table
   ({ tableName } = handler.trips.TempTripTypeModel);
   sql = [
-    'INSERT INTO activity_type (name, "primary")',
+    'INSERT INTO activity_types (name, "primary")',
     'SELECT DISTINCT activity_sub_type, FALSE',
-    `FROM public.${tableName}`,
+    `FROM "public"."${tableName}"`,
     'WHERE activity_sub_type IS NOT NULL',
     'ON CONFLICT (name) DO NOTHING',
   ].join('\n');
 
   logger.info('Creating sub activity types');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Merge primary to sub type relations into prod table
   sql = [
-    'INSERT INTO activity_type_to_activity_type (primary_type, sub_type)',
+    'INSERT INTO activity_types_to_activity_types (primary_type, sub_type)',
     'SELECT DISTINCT activity_type, activity_sub_type',
-    `FROM public.${tableName}`,
+    `FROM "public"."${tableName}"`,
     'WHERE activity_sub_type IS NOT NULL AND activity_type IS NOT NULL',
     'ON CONFLICT (primary_type, sub_type) DO NOTHING',
   ].join('\n');
 
   logger.info('Creating primary to sub activity type relations');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 }
 
@@ -315,8 +378,8 @@ async function mergeTrip(handler) {
 
   // Merge into prod table
   const sql = [
-    'INSERT INTO trip (',
-    '  uuid,',
+    'INSERT INTO trips (',
+    '  id,',
     '  id_legacy_ntb,',
     '  activity_type,',
     '  name,',
@@ -331,7 +394,7 @@ async function mergeTrip(handler) {
     '  duration_hours,',
     '  duration_days,',
     '  starting_point,',
-    '  path_geojson,',
+    '  path,',
     '  path_polyline,',
     '  season,',
     '  htgt_general,',
@@ -345,7 +408,7 @@ async function mergeTrip(handler) {
     '  search_document_boost',
     ')',
     'SELECT',
-    '  uuid,',
+    '  id,',
     '  id_legacy_ntb,',
     '  activity_type,',
     '  name,',
@@ -360,7 +423,7 @@ async function mergeTrip(handler) {
     '  duration_hours,',
     '  duration_days,',
     '  starting_point,',
-    '  path_geojson,',
+    '  path,',
     '  path_polyline,',
     '  season,',
     '  htgt_general,',
@@ -372,7 +435,7 @@ async function mergeTrip(handler) {
     '  updated_at,',
     '  updated_at,',
     '  1',
-    `FROM public.${tableName}`,
+    `FROM "public"."${tableName}"`,
     'ON CONFLICT (id_legacy_ntb) DO UPDATE',
     'SET',
     '   "activity_type" = EXCLUDED."activity_type",',
@@ -388,7 +451,7 @@ async function mergeTrip(handler) {
     '   "duration_hours" = EXCLUDED.duration_hours,',
     '   "duration_days" = EXCLUDED.duration_days,',
     '   "starting_point" = EXCLUDED.starting_point,',
-    '   "path_geojson" = EXCLUDED.path_geojson,',
+    '   "path" = EXCLUDED.path,',
     '   "path_polyline" = EXCLUDED.path_polyline,',
     '   "season" = EXCLUDED.season,',
     '   "htgt_general" = EXCLUDED.htgt_general,',
@@ -401,10 +464,8 @@ async function mergeTrip(handler) {
 
   logger.info('Creating or updating trips');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -418,66 +479,62 @@ async function createTripToActivityTypes(handler) {
   let durationId;
   const { tableName } = handler.trips.TempTripTypeModel;
 
-  // Set UUIDs on trip to activity type temp data
+  // Set ids on trip to activity type temp data
   sql = [
-    `UPDATE public.${tableName} gt1 SET`,
-    '  trip_uuid = g.uuid',
-    `FROM public.${tableName} gt2`,
-    'INNER JOIN public.trip g ON',
+    `UPDATE "public"."${tableName}" gt1 SET`,
+    '  trip_id = g.id',
+    `FROM "public"."${tableName}" gt2`,
+    'INNER JOIN public.trips g ON',
     '  g.id_legacy_ntb = gt2.id_trip_legacy_ntb',
     'WHERE',
     '  gt1.id_trip_legacy_ntb = gt2.id_trip_legacy_ntb AND',
     '  gt1.id_trip_legacy_ntb IS NOT NULL',
   ].join('\n');
 
-  logger.info('Update uuids on trip to activity type temp data');
+  logger.info('Update ids on trip to activity type temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Create trip to activity type relations on primary activity types
   sql = [
-    'INSERT INTO trip_to_activity_type (',
-    '  activity_type_name, trip_uuid, "primary", sort_index, data_source',
+    'INSERT INTO trips_to_activity_types (',
+    '  activity_type_name, trip_id, "primary", sort_index, data_source',
     ')',
-    'SELECT DISTINCT ON (activity_type, trip_uuid)',
-    '  activity_type, trip_uuid, "primary", sort_index, :data_source',
-    `FROM public.${tableName}`,
-    'WHERE trip_uuid IS NOT NULL',
-    'ON CONFLICT (activity_type_name, trip_uuid) DO NOTHING',
+    'SELECT DISTINCT ON (activity_type, trip_id)',
+    '  activity_type, trip_id, "primary", sort_index, :data_source',
+    `FROM "public"."${tableName}"`,
+    'WHERE trip_id IS NOT NULL',
+    'ON CONFLICT (activity_type_name, trip_id) DO NOTHING',
   ].join('\n');
 
   logger.info(
     'Create new trip to activity type relations on primary activity types'
   );
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 
   // Create trip to activity type relations on sub activity types
   sql = [
-    'INSERT INTO trip_to_activity_type (',
-    '  activity_type_name, trip_uuid, "primary", sort_index, data_source',
+    'INSERT INTO trips_to_activity_types (',
+    '  activity_type_name, trip_id, "primary", sort_index, data_source',
     ')',
-    'SELECT DISTINCT ON (activity_sub_type, trip_uuid)',
-    '  activity_sub_type, trip_uuid, "primary", sort_index, :data_source',
-    `FROM public.${tableName}`,
-    'WHERE trip_uuid IS NOT NULL AND activity_sub_type IS NOT NULL',
-    'ON CONFLICT (activity_type_name, trip_uuid) DO NOTHING',
+    'SELECT DISTINCT ON (activity_sub_type, trip_id)',
+    '  activity_sub_type, trip_id, "primary", sort_index, :data_source',
+    `FROM "public"."${tableName}"`,
+    'WHERE trip_id IS NOT NULL AND activity_sub_type IS NOT NULL',
+    'ON CONFLICT (activity_type_name, trip_id) DO NOTHING',
   ].join('\n');
 
   logger.info(
     'Create new trip to activity type relations on sub activity types'
   );
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -489,68 +546,66 @@ async function createTripToActivityTypes(handler) {
 async function removeDepreactedTripToActivityTypes(handler) {
   const { tableName } = handler.trips.TempTripTypeModel;
   const sql = [
-    'DELETE FROM public.trip_to_activity_type',
-    'USING public.trip_to_activity_type cf',
-    `LEFT JOIN public.${tableName} te ON`,
+    'DELETE FROM public.trips_to_activity_types',
+    'USING public.trips_to_activity_types cf',
+    `LEFT JOIN "public"."${tableName}" te ON`,
     '  (',
     '    cf.activity_type_name = te.activity_type OR',
     '    cf.activity_type_name = te.activity_sub_type',
     '  ) AND',
-    '  cf.trip_uuid = te.trip_uuid',
+    '  cf.trip_id = te.trip_id',
     'WHERE',
     '  te.id_trip_legacy_ntb IS NULL AND',
     '  cf.data_source = :data_source AND',
-    '  public.trip_to_activity_type.activity_type_name =',
+    '  public.trips_to_activity_types.activity_type_name =',
     '    cf.activity_type_name AND',
-    '  public.trip_to_activity_type.trip_uuid = cf.trip_uuid',
+    '  public.trips_to_activity_types.trip_id = cf.trip_id',
   ].join('\n');
 
   logger.info('Deleting deprecated trip to activity type relations');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
 
 /**
- * Insert into `trip_link`-table or update if it already exists
+ * Insert into `trip_links`-table or update if it already exists
  */
 async function mergeTripLinks(handler) {
   let sql;
   let durationId;
   const { tableName } = handler.trips.TempTripLinkModel;
 
-  // Set UUIDs on tripLink temp data
+  // Set ids on tripLink temp data
   sql = [
-    `UPDATE public.${tableName} gl1 SET`,
-    '  trip_uuid = g.uuid',
-    `FROM public.${tableName} gl2`,
-    'INNER JOIN public.trip g ON',
+    `UPDATE "public"."${tableName}" gl1 SET`,
+    '  trip_id = g.id',
+    `FROM "public"."${tableName}" gl2`,
+    'INNER JOIN public.trips g ON',
     '  g.id_legacy_ntb = gl2.id_trip_legacy_ntb',
     'WHERE',
     '  gl1.id_trip_legacy_ntb = gl2.id_trip_legacy_ntb AND',
     '  gl1.sort_index = gl2.sort_index',
   ].join('\n');
 
-  logger.info('Update uuids on trip links temp data');
+  logger.info('Update ids on trip links temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Merge into prod table
   sql = [
-    'INSERT INTO trip_link (',
-    '  uuid, trip_uuid, title, url,',
+    'INSERT INTO trip_links (',
+    '  id, trip_id, title, url,',
     '  sort_index, data_source, created_at, updated_at',
     ')',
     'SELECT',
-    '  uuid, trip_uuid, title, url,',
+    '  id, trip_id, title, url,',
     '  sort_index, :data_source, now(), now()',
-    `FROM public.${tableName}`,
-    'ON CONFLICT (trip_uuid, sort_index) DO UPDATE',
+    `FROM "public"."${tableName}"`,
+    'ON CONFLICT (trip_id, sort_index) DO UPDATE',
     'SET',
     '  title = EXCLUDED.title,',
     '  url = EXCLUDED.url',
@@ -558,10 +613,8 @@ async function mergeTripLinks(handler) {
 
   logger.info('Creating or updating trip links');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -573,75 +626,71 @@ async function mergeTripLinks(handler) {
 async function removeDepreactedTripLinks(handler) {
   const { tableName } = handler.trips.TempTripLinkModel;
   const sql = [
-    'DELETE FROM public.trip_link',
-    'USING public.trip_link gl',
-    `LEFT JOIN public.${tableName} te ON`,
-    '  gl.trip_uuid = te.trip_uuid AND',
+    'DELETE FROM public.trip_links',
+    'USING public.trip_links gl',
+    `LEFT JOIN "public"."${tableName}" te ON`,
+    '  gl.trip_id = te.trip_id AND',
     '  gl.sort_index = te.sort_index',
     'WHERE',
     '  te.id_trip_legacy_ntb IS NULL AND',
     '  gl.data_source = :data_source AND',
-    '  public.trip_link.trip_uuid = gl.trip_uuid AND',
-    '  public.trip_link.sort_index = gl.sort_index',
+    '  public.trip_links.trip_id = gl.trip_id AND',
+    '  public.trip_links.sort_index = gl.sort_index',
   ].join('\n');
 
   logger.info('Deleting deprecated trip links');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
 
 
 /**
- * Insert into `trip_to_group`-table or update if it already exists
+ * Insert into `trips_to_groups`-table or update if it already exists
  */
 async function mergeTripToGroup(handler) {
   let sql;
   let durationId;
   const { tableName } = handler.trips.TempTripToGroupModel;
 
-  // Set UUIDs on tripToGroup temp data
+  // Set ids on tripToGroup temp data
   sql = [
-    `UPDATE public.${tableName} a1 SET`,
-    '  trip_uuid = c.uuid,',
-    '  group_uuid = a.uuid',
-    `FROM public.${tableName} a2`,
-    'INNER JOIN public.group a ON',
+    `UPDATE "public"."${tableName}" a1 SET`,
+    '  trip_id = c.id,',
+    '  group_id = a.id',
+    `FROM "public"."${tableName}" a2`,
+    'INNER JOIN public.groups a ON',
     '  a.id_legacy_ntb = a2.group_legacy_id',
-    'INNER JOIN public.trip c ON',
+    'INNER JOIN public.trips c ON',
     '  c.id_legacy_ntb = a2.trip_legacy_id',
     'WHERE',
     '  a1.group_legacy_id = a2.group_legacy_id AND',
     '  a1.trip_legacy_id = a2.trip_legacy_id',
   ].join('\n');
 
-  logger.info('Update uuids on trip-to-group temp data');
+  logger.info('Update ids on trip-to-group temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Merge into prod table
   sql = [
-    'INSERT INTO trip_to_group (',
-    '  trip_uuid, group_uuid, data_source, created_at, updated_at',
+    'INSERT INTO trips_to_groups (',
+    '  trip_id, group_id, data_source, created_at, updated_at',
     ')',
     'SELECT',
-    '  trip_uuid, group_uuid, :data_source, now(), now()',
-    `FROM public.${tableName}`,
-    'WHERE trip_uuid IS NOT NULL AND group_uuid IS NOT NULL',
-    'ON CONFLICT (trip_uuid, group_uuid) DO NOTHING',
+    '  trip_id, group_id, :data_source, now(), now()',
+    `FROM "public"."${tableName}"`,
+    'WHERE trip_id IS NOT NULL AND group_id IS NOT NULL',
+    'ON CONFLICT (trip_id, group_id) DO NOTHING',
   ].join('\n');
 
   logger.info('Creating or updating trip to group relations');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -654,75 +703,71 @@ async function removeDepreactedTripToGroup(handler) {
   const { tableName } = handler.trips.TempTripToGroupModel;
 
   const sql = [
-    'DELETE FROM public.trip_to_group',
-    'USING public.trip_to_group c2a',
-    `LEFT JOIN public.${tableName} te ON`,
-    '  c2a.trip_uuid = te.trip_uuid AND',
-    '  c2a.group_uuid = te.group_uuid',
+    'DELETE FROM public.trips_to_groups',
+    'USING public.trips_to_groups c2a',
+    `LEFT JOIN "public"."${tableName}" te ON`,
+    '  c2a.trip_id = te.trip_id AND',
+    '  c2a.group_id = te.group_id',
     'WHERE',
-    '  te.group_uuid IS NULL AND',
+    '  te.group_id IS NULL AND',
     '  c2a.data_source = :data_source AND',
-    '  public.trip_to_group.trip_uuid = c2a.trip_uuid AND',
-    '  public.trip_to_group.group_uuid = c2a.group_uuid',
+    '  public.trips_to_groups.trip_id = c2a.trip_id AND',
+    '  public.trips_to_groups.group_id = c2a.group_id',
   ].join('\n');
 
   logger.info('Deleting deprecated trip to group relations');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
 
 
 /**
- * Insert into `trip_to_poi`-table or update if it already exists
+ * Insert into `trips_to_pois`-table or update if it already exists
  */
 async function mergeTripToPoi(handler) {
   let sql;
   let durationId;
   const { tableName } = handler.trips.TempTripToPoiModel;
 
-  // Set UUIDs on tripToPoi temp data
+  // Set ids on tripToPoi temp data
   sql = [
-    `UPDATE public.${tableName} a1 SET`,
-    '  trip_uuid = c.uuid,',
-    '  poi_uuid = a.uuid',
-    `FROM public.${tableName} a2`,
-    'INNER JOIN public.poi a ON',
+    `UPDATE "public"."${tableName}" a1 SET`,
+    '  trip_id = c.id,',
+    '  poi_id = a.id',
+    `FROM "public"."${tableName}" a2`,
+    'INNER JOIN public.pois a ON',
     '  a.id_legacy_ntb = a2.poi_legacy_id',
-    'INNER JOIN public.trip c ON',
+    'INNER JOIN public.trips c ON',
     '  c.id_legacy_ntb = a2.trip_legacy_id',
     'WHERE',
     '  a1.poi_legacy_id = a2.poi_legacy_id AND',
     '  a1.trip_legacy_id = a2.trip_legacy_id',
   ].join('\n');
 
-  logger.info('Update uuids on trip-to-poi temp data');
+  logger.info('Update ids on trip-to-poi temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Merge into prod table
   sql = [
-    'INSERT INTO trip_to_poi (',
-    '  trip_uuid, poi_uuid, data_source, created_at, updated_at',
+    'INSERT INTO trips_to_pois (',
+    '  trip_id, poi_id, data_source, created_at, updated_at',
     ')',
     'SELECT',
-    '  trip_uuid, poi_uuid, :data_source, now(), now()',
-    `FROM public.${tableName}`,
-    'WHERE trip_uuid IS NOT NULL AND poi_uuid IS NOT NULL',
-    'ON CONFLICT (trip_uuid, poi_uuid) DO NOTHING',
+    '  trip_id, poi_id, :data_source, now(), now()',
+    `FROM "public"."${tableName}"`,
+    'WHERE trip_id IS NOT NULL AND poi_id IS NOT NULL',
+    'ON CONFLICT (trip_id, poi_id) DO NOTHING',
   ].join('\n');
 
   logger.info('Creating or updating trip to poi relations');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -735,72 +780,68 @@ async function removeDepreactedTripToPoi(handler) {
   const { tableName } = handler.trips.TempTripToPoiModel;
 
   const sql = [
-    'DELETE FROM public.trip_to_poi',
-    'USING public.trip_to_poi c2a',
-    `LEFT JOIN public.${tableName} te ON`,
-    '  c2a.trip_uuid = te.trip_uuid AND',
-    '  c2a.poi_uuid = te.poi_uuid',
+    'DELETE FROM public.trips_to_pois',
+    'USING public.trips_to_pois c2a',
+    `LEFT JOIN "public"."${tableName}" te ON`,
+    '  c2a.trip_id = te.trip_id AND',
+    '  c2a.poi_id = te.poi_id',
     'WHERE',
-    '  te.poi_uuid IS NULL AND',
+    '  te.poi_id IS NULL AND',
     '  c2a.data_source = :data_source AND',
-    '  public.trip_to_poi.trip_uuid = c2a.trip_uuid AND',
-    '  public.trip_to_poi.poi_uuid = c2a.poi_uuid',
+    '  public.trips_to_pois.trip_id = c2a.trip_id AND',
+    '  public.trips_to_pois.poi_id = c2a.poi_id',
   ].join('\n');
 
   logger.info('Deleting deprecated trip to poi relations');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
 
 
 /**
- * Insert trip uuid into `pictures`-table
+ * Insert trip id into `pictures`-table
  */
 async function setTripPictures(handler) {
   let sql;
   let durationId;
   const { tableName } = handler.trips.TempTripPicturesModel;
 
-  // Set UUIDs on tripToTrip temp data
+  // Set ids on tripToTrip temp data
   sql = [
-    `UPDATE public.${tableName} a1 SET`,
-    '  trip_uuid = a.uuid',
-    `FROM public.${tableName} a2`,
-    'INNER JOIN public.trip a ON',
+    `UPDATE "public"."${tableName}" a1 SET`,
+    '  trip_id = a.id',
+    `FROM "public"."${tableName}" a2`,
+    'INNER JOIN public.trips a ON',
     '  a.id_legacy_ntb = a2.trip_legacy_id',
     'WHERE',
     '  a1.trip_legacy_id = a2.trip_legacy_id AND',
     '  a1.picture_legacy_id = a2.picture_legacy_id',
   ].join('\n');
 
-  logger.info('Update uuids on trip-to-picture temp data');
+  logger.info('Update ids on trip-to-picture temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Merge into prod table
   sql = [
-    'UPDATE picture p1 SET',
-    '  trip_uuid = a.trip_uuid,',
+    'UPDATE pictures p1 SET',
+    '  trip_id = a.trip_id,',
     '  sort_index = a.sort_index',
-    'FROM picture p2',
-    `INNER JOIN public.${tableName} a ON`,
+    'FROM pictures p2',
+    `INNER JOIN "public"."${tableName}" a ON`,
     '  a.picture_legacy_id = p2.id_legacy_ntb',
     'WHERE',
-    '  p1.uuid = p2.uuid',
+    '  p1.id = p2.id',
   ].join('\n');
 
-  logger.info('Setting trip uuid on pictures');
+  logger.info('Setting trip id on pictures');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -812,23 +853,21 @@ async function setTripPictures(handler) {
 async function removeDepreactedTripPictures(handler) {
   const { tableName } = handler.trips.TempTripPicturesModel;
   const sql = [
-    'DELETE FROM public.picture',
-    'USING public.picture p2',
-    `LEFT JOIN public.${tableName} te ON`,
+    'DELETE FROM public.pictures',
+    'USING public.pictures p2',
+    `LEFT JOIN "public"."${tableName}" te ON`,
     '  p2.id_legacy_ntb = te.picture_legacy_id',
     'WHERE',
     '  te.picture_legacy_id IS NULL AND',
-    '  p2.trip_uuid IS NOT NULL AND',
+    '  p2.trip_id IS NOT NULL AND',
     '  p2.data_source = :data_source AND',
-    '  public.picture.uuid = p2.uuid',
+    '  public.pictures.id = p2.id',
   ].join('\n');
 
   logger.info('Deleting deprecated trip pictures');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -840,25 +879,23 @@ async function removeDepreactedTripPictures(handler) {
 async function removeDepreactedTrip(handler) {
   const { tableName } = handler.trips.TempTripModel;
   const sql = [
-    'UPDATE public.trip a1 SET',
+    'UPDATE public.trips a1 SET',
     '  status = :status',
-    'FROM public.trip a2',
-    `LEFT JOIN public.${tableName} t ON`,
+    'FROM public.trips a2',
+    `LEFT JOIN "public"."${tableName}" t ON`,
     '  t.id_legacy_ntb = a2.id_legacy_ntb',
     'WHERE',
     '  t.id_legacy_ntb IS NULL AND',
-    '  a1.uuid = a2.uuid AND',
+    '  a1.id = a2.id AND',
     '  a2.data_source = :data_source AND',
     '  a2.status != :status',
   ].join('\n');
 
   logger.info('Marking deprecated trips as deleted');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-      status: 'deleted',
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
+    status: 'deleted',
   });
   endDuration(durationId);
 }

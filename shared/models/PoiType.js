@@ -1,21 +1,7 @@
-export default (sequelize, DataTypes) => {
-  const PoiType = sequelize.define('PoiType', {
-    name: { type: DataTypes.TEXT, primaryKey: true },
-    description: { type: DataTypes.TEXT },
-  }, {
-    timestamps: false,
-  });
+import BaseModel from './BaseModel';
 
 
-  // Associations
-
-  PoiType.associate = (models) => {
-    models.PoiType.belongsToMany(models.Poi, {
-      as: 'Pois',
-      through: { model: models.PoiToPoiType },
-      foreignKey: 'poiType',
-    });
-  };
-
-  return PoiType;
-};
+export default class PoiType extends BaseModel {
+  static tableName = 'poiTypes';
+  static idColumn = 'name';
+}

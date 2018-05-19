@@ -1,13 +1,7 @@
-export default (sequelize, DataTypes) => {
-  const DocumentStatus = sequelize.define('DocumentStatus', {
-    name: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-      primaryKey: true,
-    },
-  }, {
-    timestamps: false,
-  });
+import BaseModel from './BaseModel';
 
-  return DocumentStatus;
-};
+
+export default class DocumentStatus extends BaseModel {
+  static tableName = 'documentStatuses';
+  static idColumn = 'name';
+}

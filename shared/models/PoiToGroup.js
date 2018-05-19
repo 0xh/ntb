@@ -1,42 +1,7 @@
-export default (sequelize, DataTypes) => {
-  const PoiToGroup = sequelize.define('PoiToGroup', {
-    poiUuid: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      primaryKey: true,
-      validate: {
-        isUUID: 4,
-      },
-    },
-
-    groupUuid: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      primaryKey: true,
-      validate: {
-        isUUID: 4,
-      },
-    },
-
-    dataSource: { type: DataTypes.TEXT },
-  }, {
-    timestamps: true,
-  });
+import BaseModel from './BaseModel';
 
 
-  // Associations
-
-  PoiToGroup.associate = (models) => {
-    models.PoiToGroup.belongsTo(models.Poi, {
-      as: 'Poi',
-      foreignKey: 'poiUuid',
-    });
-
-    models.PoiToGroup.belongsTo(models.Group, {
-      as: 'Group',
-      foreignKey: 'groupUuid',
-    });
-  };
-
-  return PoiToGroup;
-};
+export default class PoiToGroup extends BaseModel {
+  static tableName = 'poisToGroups';
+  static idColumn = ['poiId', 'groupId'];
+}

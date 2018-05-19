@@ -1,10 +1,7 @@
-export default (sequelize, DataTypes) => {
-  const CabinServiceLevel = sequelize.define('CabinServiceLevel', {
-    name: { type: DataTypes.TEXT, primaryKey: true },
-    description: { type: DataTypes.TEXT },
-  }, {
-    timestamps: false,
-  });
+import BaseModel from './BaseModel';
 
-  return CabinServiceLevel;
-};
+
+export default class CabinServiceLevel extends BaseModel {
+  static tableName = 'cabinServiceLevel';
+  static idColumn = 'name';
+}

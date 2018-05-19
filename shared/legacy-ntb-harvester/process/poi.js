@@ -1,6 +1,10 @@
-import db from '@turistforeningen/ntb-shared-models';
-import { createLogger, startDuration, endDuration } from
-  '@turistforeningen/ntb-shared-utils';
+import {
+  createLogger,
+  startDuration,
+  endDuration,
+} from '@turistforeningen/ntb-shared-utils';
+import { knex, Model } from '@turistforeningen/ntb-shared-db-utils';
+import { geomFromGeoJSON } from '@turistforeningen/ntb-shared-gis-utils';
 
 import * as legacy from '../legacy-structure/';
 
@@ -17,126 +21,179 @@ async function createTempTables(handler, first = false) {
   logger.info('Creating temporary tables');
   const durationId = startDuration();
 
-  const baseTableName = `_temp_legacy_ntb_harvest_${handler.timeStamp}`;
+  const baseTableName = `0_temp_legacy_ntb_harvest_${handler.timeStamp}`;
 
-  let tableName = `${baseTableName}_poi`;
-  handler.pois.TempPoiModel = db.sequelize.define(tableName, {
-    uuid: { type: db.Sequelize.UUID, primaryKey: true },
-    idLegacyNtb: { type: db.Sequelize.TEXT },
-    idSsr: { type: db.Sequelize.TEXT },
-    type: { type: db.Sequelize.TEXT },
-    name: { type: db.Sequelize.TEXT },
-    nameLowerCase: { type: db.Sequelize.TEXT },
-    description: { type: db.Sequelize.TEXT },
-    descriptionPlain: { type: db.Sequelize.TEXT },
-    coordinate: { type: db.Sequelize.GEOMETRY },
-    season: { type: db.Sequelize.ARRAY(db.Sequelize.INTEGER) },
-    open: { type: db.Sequelize.BOOLEAN },
-    license: { type: db.Sequelize.TEXT },
-    provider: { type: db.Sequelize.TEXT },
-    status: { type: db.Sequelize.TEXT },
-    dataSource: { type: db.Sequelize.TEXT },
-    updatedAt: { type: db.Sequelize.DATE },
-  }, {
-    timestamps: false,
-    tableName,
-  });
-  if (first) await handler.pois.TempPoiModel.sync();
 
+  // pois
+  let tableName = `${baseTableName}_areas`;
+  if (first) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('id')
+        .primary();
+      table.text('idLegacyNtb');
+      table.text('idSsr');
+      table.text('type');
+      table.text('name');
+      table.text('nameLowerCase');
+      table.text('description');
+      table.text('descriptionPlain');
+      table.specificType('coordinates', 'GEOMETRY');
+      table.specificType('season', 'INTEGER[]');
+      table.boolean('open');
+      table.uuid('countyId');
+      table.uuid('municipalityId');
+      table.text('license');
+      table.text('provider');
+      table.text('status');
+      table.text('dataSource');
+      table.timestamp('updatedAt');
+    });
+  }
+
+  class TempPoiModel extends Model {
+    static tableName = tableName;
+  }
+  handler.pois.TempPoiModel = TempPoiModel;
+
+
+  // poi types
+  tableName = `${baseTableName}_poi_type`;
+  if (first) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.text('type');
+      table.uuid('poiId');
+      table.boolean('primary');
+      table.text('idPoiLegacyNtb');
+      table.integer('sortIndex');
+      table.text('dataSource');
+      table.timestamp('updatedAt');
+
+      table.primary(['type', 'idPoiLegacyNtb']);
+    });
+  }
+
+  class TempPoiTypeModel extends Model {
+    static tableName = tableName;
+    static idColumn = ['type', 'idPoiLegacyNtb'];
+  }
+  handler.pois.TempPoiTypeModel = TempPoiTypeModel;
+
+
+  // poi links
   tableName = `${baseTableName}_poi_types`;
-  handler.pois.TempPoiTypeModel =
-    db.sequelize.define(tableName, {
-      type: { type: db.Sequelize.TEXT },
-      poiUuid: { type: db.Sequelize.UUID, allowNull: true },
-      primary: { type: db.Sequelize.BOOLEAN, default: false },
-      idPoiLegacyNtb: { type: db.Sequelize.TEXT },
-      sortIndex: { type: db.Sequelize.INTEGER },
-      dataSource: { type: db.Sequelize.TEXT },
-      updatedAt: { type: db.Sequelize.DATE },
-    }, {
-      timestamps: false,
-      tableName,
+  if (first) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('id')
+        .primary();
+      table.uuid('poiId');
+      table.text('title');
+      table.text('url');
+      table.text('idPoiLegacyNtb');
+      table.integer('sortIndex');
+      table.text('dataSource');
+      table.timestamp('updatedAt');
     });
-  if (first) await handler.pois.TempPoiTypeModel.sync();
+  }
 
-  tableName = `${baseTableName}_poi_links`;
-  handler.pois.TempPoiLinkModel =
-    db.sequelize.define(tableName, {
-      uuid: { type: db.Sequelize.UUID, primaryKey: true },
-      title: { type: db.Sequelize.TEXT, allowNull: true },
-      url: { type: db.Sequelize.TEXT },
-      poiUuid: { type: db.Sequelize.UUID, allowNull: true },
-      idPoiLegacyNtb: { type: db.Sequelize.TEXT },
-      sortIndex: { type: db.Sequelize.INTEGER },
-      dataSource: { type: db.Sequelize.TEXT },
-      updatedAt: { type: db.Sequelize.DATE },
-    }, {
-      timestamps: false,
-      tableName,
-    });
-  if (first) await handler.pois.TempPoiLinkModel.sync();
+  class TempPoiLinkModel extends Model {
+    static tableName = tableName;
+  }
+  handler.pois.TempPoiLinkModel = TempPoiLinkModel;
 
-  tableName = `${baseTableName}_poi_accessability`;
-  handler.pois.TempAccessabilityModel =
-    db.sequelize.define(tableName, {
-      name: { type: db.Sequelize.TEXT },
-    }, {
-      timestamps: false,
-      tableName,
-    });
-  if (first) await handler.pois.TempAccessabilityModel.sync();
 
-  tableName = `${baseTableName}_poi_accessabilities`;
-  handler.pois.TempPoiAccessabilityModel =
-    db.sequelize.define(tableName, {
-      name: { type: db.Sequelize.TEXT },
-      idPoiLegacyNtb: { type: db.Sequelize.TEXT },
-      poiUuid: { type: db.Sequelize.UUID },
-      description: { type: db.Sequelize.TEXT },
-    }, {
-      timestamps: false,
-      tableName,
+  // poi accessability
+  tableName = `${baseTableName}_poi_acc`;
+  if (first) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.increments();
+      table.text('name');
     });
-  if (first) await handler.pois.TempPoiAccessabilityModel.sync();
+  }
 
-  tableName = `${baseTableName}_poi_to_area`;
-  handler.pois.TempPoiToAreaModel =
-    db.sequelize.define(tableName, {
-      poi_uuid: { type: db.Sequelize.UUID },
-      area_uuid: { type: db.Sequelize.UUID },
-      poiLegacyId: { type: db.Sequelize.TEXT },
-      areaLegacyId: { type: db.Sequelize.TEXT },
-    }, {
-      timestamps: false,
-      tableName,
-    });
-  if (first) await handler.pois.TempPoiToAreaModel.sync();
+  class TempAccessabilityModel extends Model {
+    static tableName = tableName;
+  }
+  handler.pois.TempAccessabilityModel = TempAccessabilityModel;
 
-  tableName = `${baseTableName}_poi_to_group`;
-  handler.pois.TempPoiToGroupModel =
-    db.sequelize.define(tableName, {
-      poi_uuid: { type: db.Sequelize.UUID },
-      group_uuid: { type: db.Sequelize.UUID },
-      poiLegacyId: { type: db.Sequelize.TEXT },
-      groupLegacyId: { type: db.Sequelize.TEXT },
-    }, {
-      timestamps: false,
-      tableName,
-    });
-  if (first) await handler.pois.TempPoiToGroupModel.sync();
 
-  tableName = `${baseTableName}_poi_pictures`;
-  handler.pois.TempPoiPicturesModel =
-    db.sequelize.define(tableName, {
-      poiLegacyId: { type: db.Sequelize.TEXT },
-      poiUuid: { type: db.Sequelize.UUID },
-      pictureLegacyId: { type: db.Sequelize.TEXT },
-      sortIndex: { type: db.Sequelize.INTEGER },
-    }, {
-      timestamps: false,
-      tableName,
+  // poi accessabilities
+  tableName = `${baseTableName}_poi_acc_2`;
+  if (first) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.text('name');
+      table.text('idPoiLegacyNtb');
+      table.uuid('poiId');
+      table.text('description');
+
+      table.primary(['idPoiLegacyNtb', 'name']);
     });
-  if (first) await handler.pois.TempPoiPicturesModel.sync();
+  }
+
+  class TempPoiAccessabilityModel extends Model {
+    static tableName = tableName;
+    static idColumn = ['idPoiLegacyNtb', 'name'];
+  }
+  handler.pois.TempPoiAccessabilityModel = TempPoiAccessabilityModel;
+
+
+  // pois to areas
+  tableName = `${baseTableName}_poi_area`;
+  if (first) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('poiId');
+      table.uuid('areaId');
+      table.text('poiLegacyId');
+      table.text('areaLegacyId');
+
+      table.primary(['poiLegacyId', 'areaLegacyId']);
+    });
+  }
+
+  class TempPoiToAreaModel extends Model {
+    static tableName = tableName;
+    static idColumn = ['poiLegacyId', 'areaLegacyId'];
+  }
+  handler.pois.TempPoiToAreaModel = TempPoiToAreaModel;
+
+
+  // pois to groups
+  tableName = `${baseTableName}_poi_group`;
+  if (first) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('poiId');
+      table.uuid('groupId');
+      table.text('poiLegacyId');
+      table.text('groupLegacyId');
+
+      table.primary(['poiLegacyId', 'groupLegacyId']);
+    });
+  }
+
+  class TempPoiToGroupModel extends Model {
+    static tableName = tableName;
+    static idColumn = ['poiLegacyId', 'groupLegacyId'];
+  }
+  handler.pois.TempPoiToGroupModel = TempPoiToGroupModel;
+
+
+  // poi pictures
+  tableName = `${baseTableName}_poi_pic`;
+  if (first) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.text('poiLegacyId');
+      table.uuid('poiId');
+      table.text('pictureLegacyId');
+      table.integer('sortIndex');
+
+      table.primary(['poiLegacyId', 'pictureLegacyId']);
+    });
+  }
+
+  class TempPoiPicturesModel extends Model {
+    static tableName = tableName;
+    static idColumn = ['poiLegacyId', 'pictureLegacyId'];
+  }
+  handler.pois.TempPoiPicturesModel = TempPoiPicturesModel;
 
 
   endDuration(durationId);
@@ -150,14 +207,15 @@ async function dropTempTables(handler) {
   logger.info('Dropping temporary tables');
   const durationId = startDuration();
 
-  await handler.pois.TempPoiModel.drop();
-  await handler.pois.TempPoiTypeModel.drop();
-  await handler.pois.TempPoiLinkModel.drop();
-  await handler.pois.TempAccessabilityModel.drop();
-  await handler.pois.TempPoiAccessabilityModel.drop();
-  await handler.pois.TempPoiToAreaModel.drop();
-  await handler.pois.TempPoiToGroupModel.drop();
-  await handler.pois.TempPoiPicturesModel.drop();
+  knex.schema
+    .dropTableIfExists(handler.pois.TempPoiModel.tableName)
+    .dropTableIfExists(handler.pois.TempPoiTypeModel.tableName)
+    .dropTableIfExists(handler.pois.TempPoiLinkModel.tableName)
+    .dropTableIfExists(handler.pois.TempAccessabilityModel.tableName)
+    .dropTableIfExists(handler.pois.TempPoiAccessabilityModel.tableName)
+    .dropTableIfExists(handler.pois.TempPoiToAreaModel.tableName)
+    .dropTableIfExists(handler.pois.TempPoiToGroupModel.tableName)
+    .dropTableIfExists(handler.pois.TempPoiPicturesModel.tableName);
 
   endDuration(durationId);
 }
@@ -193,8 +251,16 @@ async function populateTempTables(handler) {
 
   logger.info('Inserting pois to temporary table');
   durationId = startDuration();
-  const pois = handler.pois.processed.map((p) => p.poi);
-  await handler.pois.TempPoiModel.bulkCreate(pois);
+  const pois = handler.pois.processed.map((p) => {
+    const { poi } = p;
+    if (poi.coordinates) {
+      poi.coordinates = geomFromGeoJSON(poi.coordinates);
+    }
+    return poi;
+  });
+  await handler.pois.TempPoiModel
+    .query()
+    .insert(pois);
   endDuration(durationId);
 
   const accessabilities = [];
@@ -246,45 +312,63 @@ async function populateTempTables(handler) {
   // Insert temp data for PoiLink
   logger.info('Inserting poi links to temporary table');
   durationId = startDuration();
-  await handler.pois.TempPoiLinkModel.bulkCreate(links);
+  await handler.pois.TempPoiLinkModel
+    .query()
+    .insert(links);
   endDuration(durationId);
 
   // Insert temp data for PoiType
   logger.info('Inserting poi types to temporary table');
   durationId = startDuration();
-  await handler.pois.TempPoiTypeModel.bulkCreate(poiTypes);
+  await handler.pois.TempPoiTypeModel
+    .query()
+    .insert(poiTypes);
   endDuration(durationId);
 
   // Insert temp data for Accessability
   logger.info('Inserting accessabilities to temporary table');
   durationId = startDuration();
-  await handler.pois.TempAccessabilityModel.bulkCreate(accessabilities);
+  const distinctAccessabilities = [];
+  accessabilities.forEach((a) => {
+    if (!distinctAccessabilities.includes(a.name)) {
+      distinctAccessabilities.push(a.name);
+    }
+  });
+  await handler.pois.TempAccessabilityModel
+    .query()
+    .insert(distinctAccessabilities.map((a) => ({ name: a })));
   endDuration(durationId);
 
   // Insert temp data for PoiAccessability
   logger.info('Inserting poi accessabilities to temporary table');
   durationId = startDuration();
-  await handler.pois.TempPoiAccessabilityModel.bulkCreate(
-    poiAccessabilities
-  );
+  await handler.pois.TempPoiAccessabilityModel
+    .query()
+    .insert(poiAccessabilities);
   endDuration(durationId);
 
   // Insert temp data for PoiAccessability
   logger.info('Inserting poi to area temporary table');
   durationId = startDuration();
-  await handler.pois.TempPoiToAreaModel.bulkCreate(poiToArea);
+  await handler.pois.TempPoiToAreaModel
+    .query()
+    .insert(poiToArea);
   endDuration(durationId);
 
   // Insert temp data for PoiToGroup
   logger.info('Inserting poi to group temporary table');
   durationId = startDuration();
-  await handler.pois.TempPoiToGroupModel.bulkCreate(poiToGroup);
+  await handler.pois.TempPoiToGroupModel
+    .query()
+    .insert(poiToGroup);
   endDuration(durationId);
 
   // Insert temp data for PoiToGroup
   logger.info('Inserting poi pictures to temporary table');
   durationId = startDuration();
-  await handler.pois.TempPoiPicturesModel.bulkCreate(pictures);
+  await handler.pois.TempPoiPicturesModel
+    .query()
+    .insert(pictures);
   endDuration(durationId);
 }
 
@@ -297,15 +381,15 @@ async function mergePoiTypes(handler) {
 
   // Merge into prod table
   const sql = [
-    'INSERT INTO poi_type (name)',
+    'INSERT INTO poi_types (name)',
     'SELECT DISTINCT type',
-    `FROM public.${tableName}`,
+    `FROM "public"."${tableName}"`,
     'ON CONFLICT (name) DO NOTHING',
   ].join('\n');
 
   logger.info('Creating poi types');
   const durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 }
 
@@ -318,8 +402,8 @@ async function mergePoi(handler) {
 
   // Merge into prod table
   const sql = [
-    'INSERT INTO poi (',
-    '  uuid,',
+    'INSERT INTO pois (',
+    '  id,',
     '  id_legacy_ntb,',
     '  id_ssr,',
     '  "type",',
@@ -327,7 +411,7 @@ async function mergePoi(handler) {
     '  name_lower_case,',
     '  description,',
     '  description_plain,',
-    '  coordinate,',
+    '  coordinates,',
     '  season,',
     '  open,',
     '  license,',
@@ -339,7 +423,7 @@ async function mergePoi(handler) {
     '  search_document_boost',
     ')',
     'SELECT',
-    '  uuid,',
+    '  id,',
     '  id_legacy_ntb,',
     '  id_ssr,',
     '  "type",',
@@ -347,7 +431,7 @@ async function mergePoi(handler) {
     '  name_lower_case,',
     '  description,',
     '  description_plain,',
-    '  coordinate,',
+    '  coordinates,',
     '  season,',
     '  open,',
     '  license,',
@@ -357,7 +441,7 @@ async function mergePoi(handler) {
     '  updated_at,',
     '  updated_at,',
     '  1',
-    `FROM public.${tableName}`,
+    `FROM "public"."${tableName}"`,
     'ON CONFLICT (id_legacy_ntb) DO UPDATE',
     'SET',
     '   "id_ssr" = EXCLUDED."id_ssr",',
@@ -366,7 +450,7 @@ async function mergePoi(handler) {
     '   "name_lower_case" = EXCLUDED."name_lower_case",',
     '   "description" = EXCLUDED."description",',
     '   "description_plain" = EXCLUDED."description_plain",',
-    '   "coordinate" = EXCLUDED."coordinate",',
+    '   "coordinates" = EXCLUDED."coordinates",',
     '   "season" = EXCLUDED."season",',
     '   "open" = EXCLUDED."open",',
     '   "license" = EXCLUDED."license",',
@@ -378,62 +462,58 @@ async function mergePoi(handler) {
 
   logger.info('Creating or updating pois');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
 
 
 /**
- * Insert into `poi_to_poi_type`-table or update if it already exists
+ * Insert into `pois_to_poi_types`-table or update if it already exists
  */
 async function mergePoiToPoiTypes(handler) {
   let sql;
   let durationId;
   const { tableName } = handler.pois.TempPoiTypeModel;
 
-  // Set UUIDs on poiLink temp data
+  // Set ids on poiLink temp data
   sql = [
-    `UPDATE public.${tableName} gl1 SET`,
-    '  poi_uuid = g.uuid',
-    `FROM public.${tableName} gl2`,
-    'INNER JOIN public.poi g ON',
+    `UPDATE "public"."${tableName}" gl1 SET`,
+    '  poi_id = g.id',
+    `FROM "public"."${tableName}" gl2`,
+    'INNER JOIN public.pois g ON',
     '  g.id_legacy_ntb = gl2.id_poi_legacy_ntb',
     'WHERE',
     '  gl1.id_poi_legacy_ntb = gl2.id_poi_legacy_ntb AND',
     '  gl1.sort_index = gl2.sort_index',
   ].join('\n');
 
-  logger.info('Update uuids on poi types temp data');
+  logger.info('Update ids on poi types temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Merge into prod table
   sql = [
-    'INSERT INTO poi_to_poi_type (',
-    '  poi_type, poi_uuid, "primary",',
+    'INSERT INTO pois_to_poi_types (',
+    '  poi_type, poi_id, "primary",',
     '  sort_index, data_source, created_at, updated_at',
     ')',
     'SELECT',
-    '  type, poi_uuid, "primary",',
+    '  type, poi_id, "primary",',
     '  sort_index, :data_source, now(), now()',
-    `FROM public.${tableName}`,
-    'ON CONFLICT (poi_uuid, sort_index) DO UPDATE',
+    `FROM "public"."${tableName}"`,
+    'ON CONFLICT (poi_id, sort_index) DO UPDATE',
     'SET',
     '  poi_type = EXCLUDED.poi_type,',
     '  "primary" = EXCLUDED."primary"',
   ].join('\n');
 
-  logger.info('Creating or updating poi links');
+  logger.info('Creating or updating pois to poi types');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -445,24 +525,22 @@ async function mergePoiToPoiTypes(handler) {
 async function removeDepreactedPoiToPoiTypes(handler) {
   const { tableName } = handler.pois.TempPoiTypeModel;
   const sql = [
-    'DELETE FROM public.poi_to_poi_type',
-    'USING public.poi_to_poi_type gl',
-    `LEFT JOIN public.${tableName} te ON`,
-    '  gl.poi_uuid = te.poi_uuid AND',
+    'DELETE FROM public.pois_to_poi_types',
+    'USING public.pois_to_poi_types gl',
+    `LEFT JOIN "public"."${tableName}" te ON`,
+    '  gl.poi_id = te.poi_id AND',
     '  gl.sort_index = te.sort_index',
     'WHERE',
     '  te.id_poi_legacy_ntb IS NULL AND',
     '  gl.data_source = :data_source AND',
-    '  public.poi_to_poi_type.poi_uuid = gl.poi_uuid AND',
-    '  public.poi_to_poi_type.sort_index = gl.sort_index',
+    '  public.pois_to_poi_types.poi_id = gl.poi_id AND',
+    '  public.pois_to_poi_types.sort_index = gl.sort_index',
   ].join('\n');
 
   logger.info('Deleting deprecated poi types');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -476,34 +554,34 @@ async function mergePoiLinks(handler) {
   let durationId;
   const { tableName } = handler.pois.TempPoiLinkModel;
 
-  // Set UUIDs on poiLink temp data
+  // Set ids on poiLink temp data
   sql = [
-    `UPDATE public.${tableName} gl1 SET`,
-    '  poi_uuid = g.uuid',
-    `FROM public.${tableName} gl2`,
-    'INNER JOIN public.poi g ON',
+    `UPDATE "public"."${tableName}" gl1 SET`,
+    '  poi_id = g.id',
+    `FROM "public"."${tableName}" gl2`,
+    'INNER JOIN public.pois g ON',
     '  g.id_legacy_ntb = gl2.id_poi_legacy_ntb',
     'WHERE',
     '  gl1.id_poi_legacy_ntb = gl2.id_poi_legacy_ntb AND',
     '  gl1.sort_index = gl2.sort_index',
   ].join('\n');
 
-  logger.info('Update uuids on poi links temp data');
+  logger.info('Update ids on poi links temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Merge into prod table
   sql = [
-    'INSERT INTO poi_link (',
-    '  uuid, poi_uuid, title, url,',
+    'INSERT INTO poi_links (',
+    '  id, poi_id, title, url,',
     '  sort_index, data_source, created_at, updated_at',
     ')',
     'SELECT',
-    '  uuid, poi_uuid, title, url,',
+    '  id, poi_id, title, url,',
     '  sort_index, :data_source, now(), now()',
-    `FROM public.${tableName}`,
-    'ON CONFLICT (poi_uuid, sort_index) DO UPDATE',
+    `FROM "public"."${tableName}"`,
+    'ON CONFLICT (poi_id, sort_index) DO UPDATE',
     'SET',
     '  title = EXCLUDED.title,',
     '  url = EXCLUDED.url',
@@ -511,10 +589,8 @@ async function mergePoiLinks(handler) {
 
   logger.info('Creating or updating poi links');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -526,24 +602,22 @@ async function mergePoiLinks(handler) {
 async function removeDepreactedPoiLinks(handler) {
   const { tableName } = handler.pois.TempPoiLinkModel;
   const sql = [
-    'DELETE FROM public.poi_link',
-    'USING public.poi_link gl',
-    `LEFT JOIN public.${tableName} te ON`,
-    '  gl.poi_uuid = te.poi_uuid AND',
+    'DELETE FROM public.poi_links',
+    'USING public.poi_links gl',
+    `LEFT JOIN "public"."${tableName}" te ON`,
+    '  gl.poi_id = te.poi_id AND',
     '  gl.sort_index = te.sort_index',
     'WHERE',
     '  te.id_poi_legacy_ntb IS NULL AND',
     '  gl.data_source = :data_source AND',
-    '  public.poi_link.poi_uuid = gl.poi_uuid AND',
-    '  public.poi_link.sort_index = gl.sort_index',
+    '  public.poi_links.poi_id = gl.poi_id AND',
+    '  public.poi_links.sort_index = gl.sort_index',
   ].join('\n');
 
   logger.info('Deleting deprecated poi links');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -555,15 +629,15 @@ async function removeDepreactedPoiLinks(handler) {
 async function createAccessabilities(handler) {
   const { tableName } = handler.pois.TempAccessabilityModel;
   const sql = [
-    'INSERT INTO accessability (name)',
+    'INSERT INTO accessabilities (name)',
     'SELECT DISTINCT name',
-    `FROM public.${tableName}`,
+    `FROM "public"."${tableName}"`,
     'ON CONFLICT (name) DO NOTHING',
   ].join('\n');
 
   logger.info('Create new accessabilities');
   const durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 }
 
@@ -576,39 +650,37 @@ async function createPoiAccessabilities(handler) {
   let durationId;
   const { tableName } = handler.pois.TempPoiAccessabilityModel;
 
-  // Set UUIDs on poiAccessability temp data
+  // Set ids on poiAccessability temp data
   sql = [
-    `UPDATE public.${tableName} gt1 SET`,
-    '  poi_uuid = g.uuid',
-    `FROM public.${tableName} gt2`,
-    'INNER JOIN public.poi g ON',
+    `UPDATE "public"."${tableName}" gt1 SET`,
+    '  poi_id = g.id',
+    `FROM "public"."${tableName}" gt2`,
+    'INNER JOIN public.pois g ON',
     '  g.id_legacy_ntb = gt2.id_poi_legacy_ntb',
     'WHERE',
     '  gt1.id_poi_legacy_ntb = gt2.id_poi_legacy_ntb',
   ].join('\n');
 
-  logger.info('Update uuids on poi accessability temp data');
+  logger.info('Update ids on poi accessability temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Create poi accessability relations
   sql = [
-    'INSERT INTO poi_accessability (',
-    '  accessability_name, poi_uuid, description, data_source',
+    'INSERT INTO poi_accessabilities (',
+    '  accessability_name, poi_id, description, data_source',
     ')',
     'SELECT',
-    '  name, poi_uuid, description, :data_source',
-    `FROM public.${tableName}`,
-    'ON CONFLICT (accessability_name, poi_uuid) DO NOTHING',
+    '  name, poi_id, description, :data_source',
+    `FROM "public"."${tableName}"`,
+    'ON CONFLICT (accessability_name, poi_id) DO NOTHING',
   ].join('\n');
 
   logger.info('Create new poi accessabilities');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -620,24 +692,22 @@ async function createPoiAccessabilities(handler) {
 async function removeDepreactedPoiAccessabilities(handler) {
   const { tableName } = handler.pois.TempPoiAccessabilityModel;
   const sql = [
-    'DELETE FROM public.poi_accessability',
-    'USING public.poi_accessability cf',
-    `LEFT JOIN public.${tableName} te ON`,
+    'DELETE FROM public.poi_accessabilities',
+    'USING public.poi_accessabilities cf',
+    `LEFT JOIN "public"."${tableName}" te ON`,
     '  cf.accessability_name = te.name AND',
-    '  cf.poi_uuid = te.poi_uuid',
+    '  cf.poi_id = te.poi_id',
     'WHERE',
     '  te.id_poi_legacy_ntb IS NULL AND',
     '  cf.data_source = :data_source AND',
-    '  public.poi_accessability.accessability_name = cf.accessability_name',
-    '  AND public.poi_accessability.poi_uuid = cf.poi_uuid',
+    '  public.poi_accessabilities.accessability_name = cf.accessability_name',
+    '  AND public.poi_accessabilities.poi_id = cf.poi_id',
   ].join('\n');
 
   logger.info('Deleting deprecated poi accessabilities');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -651,44 +721,42 @@ async function mergePoiToArea(handler) {
   let durationId;
   const { tableName } = handler.pois.TempPoiToAreaModel;
 
-  // Set UUIDs on poiToArea temp data
+  // Set ids on poiToArea temp data
   sql = [
-    `UPDATE public.${tableName} a1 SET`,
-    '  poi_uuid = c.uuid,',
-    '  area_uuid = a.uuid',
-    `FROM public.${tableName} a2`,
-    'INNER JOIN public.area a ON',
+    `UPDATE "public"."${tableName}" a1 SET`,
+    '  poi_id = c.id,',
+    '  area_id = a.id',
+    `FROM "public"."${tableName}" a2`,
+    'INNER JOIN public.areas a ON',
     '  a.id_legacy_ntb = a2.area_legacy_id',
-    'INNER JOIN public.poi c ON',
+    'INNER JOIN public.pois c ON',
     '  c.id_legacy_ntb = a2.poi_legacy_id',
     'WHERE',
     '  a1.area_legacy_id = a2.area_legacy_id AND',
     '  a1.poi_legacy_id = a2.poi_legacy_id',
   ].join('\n');
 
-  logger.info('Update uuids on poi-to-area temp data');
+  logger.info('Update ids on poi-to-area temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Merge into prod table
   sql = [
-    'INSERT INTO poi_to_area (',
-    '  poi_uuid, area_uuid, data_source, created_at, updated_at',
+    'INSERT INTO pois_to_areas (',
+    '  poi_id, area_id, data_source, created_at, updated_at',
     ')',
     'SELECT',
-    '  poi_uuid, area_uuid, :data_source, now(), now()',
-    `FROM public.${tableName}`,
-    'WHERE poi_uuid IS NOT NULL AND area_uuid IS NOT NULL',
-    'ON CONFLICT (poi_uuid, area_uuid) DO NOTHING',
+    '  poi_id, area_id, :data_source, now(), now()',
+    `FROM "public"."${tableName}"`,
+    'WHERE poi_id IS NOT NULL AND area_id IS NOT NULL',
+    'ON CONFLICT (poi_id, area_id) DO NOTHING',
   ].join('\n');
 
   logger.info('Creating or updating poi to area relations');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -701,75 +769,71 @@ async function removeDepreactedPoiToArea(handler) {
   const { tableName } = handler.pois.TempPoiToAreaModel;
 
   const sql = [
-    'DELETE FROM public.poi_to_area',
-    'USING public.poi_to_area c2a',
-    `LEFT JOIN public.${tableName} te ON`,
-    '  c2a.poi_uuid = te.poi_uuid AND',
-    '  c2a.area_uuid = te.area_uuid',
+    'DELETE FROM public.pois_to_areas',
+    'USING public.pois_to_areas c2a',
+    `LEFT JOIN "public"."${tableName}" te ON`,
+    '  c2a.poi_id = te.poi_id AND',
+    '  c2a.area_id = te.area_id',
     'WHERE',
-    '  te.area_uuid IS NULL AND',
+    '  te.area_id IS NULL AND',
     '  c2a.data_source = :data_source AND',
-    '  public.poi_to_area.poi_uuid = c2a.poi_uuid AND',
-    '  public.poi_to_area.area_uuid = c2a.area_uuid',
+    '  public.pois_to_areas.poi_id = c2a.poi_id AND',
+    '  public.pois_to_areas.area_id = c2a.area_id',
   ].join('\n');
 
   logger.info('Deleting deprecated poi to area relations');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
 
 
 /**
- * Insert into `poi_to_group`-table or update if it already exists
+ * Insert into `pois_to_groups`-table or update if it already exists
  */
 async function mergePoiToGroup(handler) {
   let sql;
   let durationId;
   const { tableName } = handler.pois.TempPoiToGroupModel;
 
-  // Set UUIDs on poiToGroup temp data
+  // Set ids on poiToGroup temp data
   sql = [
-    `UPDATE public.${tableName} a1 SET`,
-    '  poi_uuid = c.uuid,',
-    '  group_uuid = a.uuid',
-    `FROM public.${tableName} a2`,
-    'INNER JOIN public.group a ON',
+    `UPDATE "public"."${tableName}" a1 SET`,
+    '  poi_id = c.id,',
+    '  group_id = a.id',
+    `FROM "public"."${tableName}" a2`,
+    'INNER JOIN public.groups a ON',
     '  a.id_legacy_ntb = a2.group_legacy_id',
-    'INNER JOIN public.poi c ON',
+    'INNER JOIN public.pois c ON',
     '  c.id_legacy_ntb = a2.poi_legacy_id',
     'WHERE',
     '  a1.group_legacy_id = a2.group_legacy_id AND',
     '  a1.poi_legacy_id = a2.poi_legacy_id',
   ].join('\n');
 
-  logger.info('Update uuids on poi-to-group temp data');
+  logger.info('Update ids on poi-to-group temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Merge into prod table
   sql = [
-    'INSERT INTO poi_to_group (',
-    '  poi_uuid, group_uuid, data_source, created_at, updated_at',
+    'INSERT INTO pois_to_groups (',
+    '  poi_id, group_id, data_source, created_at, updated_at',
     ')',
     'SELECT',
-    '  poi_uuid, group_uuid, :data_source, now(), now()',
-    `FROM public.${tableName}`,
-    'WHERE poi_uuid IS NOT NULL AND group_uuid IS NOT NULL',
-    'ON CONFLICT (poi_uuid, group_uuid) DO NOTHING',
+    '  poi_id, group_id, :data_source, now(), now()',
+    `FROM "public"."${tableName}"`,
+    'WHERE poi_id IS NOT NULL AND group_id IS NOT NULL',
+    'ON CONFLICT (poi_id, group_id) DO NOTHING',
   ].join('\n');
 
   logger.info('Creating or updating poi to group relations');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -782,24 +846,22 @@ async function removeDepreactedPoiToGroup(handler) {
   const { tableName } = handler.pois.TempPoiToGroupModel;
 
   const sql = [
-    'DELETE FROM public.poi_to_group',
-    'USING public.poi_to_group c2a',
-    `LEFT JOIN public.${tableName} te ON`,
-    '  c2a.poi_uuid = te.poi_uuid AND',
-    '  c2a.group_uuid = te.group_uuid',
+    'DELETE FROM public.pois_to_groups',
+    'USING public.pois_to_groups c2a',
+    `LEFT JOIN "public"."${tableName}" te ON`,
+    '  c2a.poi_id = te.poi_id AND',
+    '  c2a.group_id = te.group_id',
     'WHERE',
-    '  te.group_uuid IS NULL AND',
+    '  te.group_id IS NULL AND',
     '  c2a.data_source = :data_source AND',
-    '  public.poi_to_group.poi_uuid = c2a.poi_uuid AND',
-    '  public.poi_to_group.group_uuid = c2a.group_uuid',
+    '  public.pois_to_groups.poi_id = c2a.poi_id AND',
+    '  public.pois_to_groups.group_id = c2a.group_id',
   ].join('\n');
 
   logger.info('Deleting deprecated poi to group relations');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -813,41 +875,39 @@ async function setPoiPictures(handler) {
   let durationId;
   const { tableName } = handler.pois.TempPoiPicturesModel;
 
-  // Set UUIDs on poiToPoi temp data
+  // Set ids on poiToPoi temp data
   sql = [
-    `UPDATE public.${tableName} a1 SET`,
-    '  poi_uuid = a.uuid',
-    `FROM public.${tableName} a2`,
-    'INNER JOIN public.poi a ON',
+    `UPDATE "public"."${tableName}" a1 SET`,
+    '  poi_id = a.id',
+    `FROM "public"."${tableName}" a2`,
+    'INNER JOIN public.pois a ON',
     '  a.id_legacy_ntb = a2.poi_legacy_id',
     'WHERE',
     '  a1.poi_legacy_id = a2.poi_legacy_id AND',
     '  a1.picture_legacy_id = a2.picture_legacy_id',
   ].join('\n');
 
-  logger.info('Update uuids on poi-to-picture temp data');
+  logger.info('Update ids on poi-to-pictures temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Merge into prod table
   sql = [
-    'UPDATE picture p1 SET',
-    '  poi_uuid = a.poi_uuid,',
+    'UPDATE pictures p1 SET',
+    '  poi_id = a.poi_id,',
     '  sort_index = a.sort_index',
-    'FROM picture p2',
-    `INNER JOIN public.${tableName} a ON`,
+    'FROM pictures p2',
+    `INNER JOIN "public"."${tableName}" a ON`,
     '  a.picture_legacy_id = p2.id_legacy_ntb',
     'WHERE',
-    '  p1.uuid = p2.uuid',
+    '  p1.id = p2.id',
   ].join('\n');
 
   logger.info('Setting poi uuid on pictures');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -859,23 +919,21 @@ async function setPoiPictures(handler) {
 async function removeDepreactedPoiPictures(handler) {
   const { tableName } = handler.pois.TempPoiPicturesModel;
   const sql = [
-    'DELETE FROM public.picture',
-    'USING public.picture p2',
-    `LEFT JOIN public.${tableName} te ON`,
+    'DELETE FROM public.pictures',
+    'USING public.pictures p2',
+    `LEFT JOIN "public"."${tableName}" te ON`,
     '  p2.id_legacy_ntb = te.picture_legacy_id',
     'WHERE',
     '  te.picture_legacy_id IS NULL AND',
-    '  p2.poi_uuid IS NOT NULL AND',
+    '  p2.poi_id IS NOT NULL AND',
     '  p2.data_source = :data_source AND',
-    '  public.picture.uuid = p2.uuid',
+    '  public.pictures.id = p2.id',
   ].join('\n');
 
   logger.info('Deleting deprecated poi pictures');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -887,25 +945,23 @@ async function removeDepreactedPoiPictures(handler) {
 async function removeDepreactedPoi(handler) {
   const { tableName } = handler.pois.TempPoiModel;
   const sql = [
-    'UPDATE public.poi a1 SET',
+    'UPDATE public.pois a1 SET',
     '  status = :status',
-    'FROM public.poi a2',
-    `LEFT JOIN public.${tableName} t ON`,
+    'FROM public.pois a2',
+    `LEFT JOIN "public"."${tableName}" t ON`,
     '  t.id_legacy_ntb = a2.id_legacy_ntb',
     'WHERE',
     '  t.id_legacy_ntb IS NULL AND',
-    '  a1.uuid = a2.uuid AND',
+    '  a1.id = a2.id AND',
     '  a2.data_source = :data_source AND',
     '  a2.status != :status',
   ].join('\n');
 
   logger.info('Marking deprecated pois as deleted');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-      status: 'deleted',
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
+    status: 'deleted',
   });
   endDuration(durationId);
 }

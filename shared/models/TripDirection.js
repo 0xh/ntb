@@ -1,14 +1,7 @@
-export default (sequelize, DataTypes) => {
-  const TripDirection =
-    sequelize.define('TripDirection', {
-      name: {
-        type: DataTypes.TEXT,
-        allowNull: false,
-        primaryKey: true,
-      },
-    }, {
-      timestamps: false,
-    });
+import BaseModel from './BaseModel';
 
-  return TripDirection;
-};
+
+export default class TripDirection extends BaseModel {
+  static tableName = 'tripDirections';
+  static idColumn = 'name';
+}

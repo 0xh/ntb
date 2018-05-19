@@ -1,6 +1,9 @@
-import db from '@turistforeningen/ntb-shared-models';
-import { createLogger, startDuration, endDuration } from
-  '@turistforeningen/ntb-shared-utils';
+import {
+  createLogger,
+  startDuration,
+  endDuration,
+} from '@turistforeningen/ntb-shared-utils';
+import { knex, Model } from '@turistforeningen/ntb-shared-db-utils';
 
 import * as legacy from '../legacy-structure/';
 
@@ -17,145 +20,188 @@ async function createTempTables(handler, sync = false) {
   logger.info('Creating temporary tables');
   const durationId = startDuration();
 
-  const baseTableName = `_temp_legacy_ntb_harvest_${handler.timeStamp}`;
+  const baseTableName = `0_temp_legacy_ntb_harvest_${handler.timeStamp}`;
 
+
+  // routes
   let tableName = `${baseTableName}_route`;
-  handler.routes.TempRouteModel = db.sequelize.define(tableName, {
-    uuid: { type: db.Sequelize.UUID, primaryKey: true },
-    idLegacyNtb: { type: db.Sequelize.TEXT },
-    code: { type: db.Sequelize.TEXT },
-    isWinter: { type: db.Sequelize.BOOLEAN },
-    name: { type: db.Sequelize.TEXT },
-    nameLowerCase: { type: db.Sequelize.TEXT },
-    description: { type: db.Sequelize.TEXT },
-    descriptionPlain: { type: db.Sequelize.TEXT },
-    url: { type: db.Sequelize.TEXT },
-    source: { type: db.Sequelize.TEXT },
-    notes: { type: db.Sequelize.TEXT },
+  if (sync) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('id')
+        .primary();
+      table.text('idLegacyNtb');
+      table.text('code');
+      table.boolean('isWinter');
+      table.text('name');
+      table.text('nameLowerCase');
+      table.text('description');
+      table.text('descriptionPlain');
+      table.text('url');
+      table.text('source');
+      table.text('notes');
+      table.text('grading');
+      table.boolean('suitableForChildren');
+      table.integer('distance');
+      table.text('direction');
+      table.boolean('waymarkWinterAllYear');
+      table.timestamp('waymarkWinterFrom');
+      table.timestamp('waymarkWinterTo');
+      table.text('waymarkWinterComment');
+      table.integer('durationMinutes');
+      table.integer('durationHours');
+      table.integer('durationDays');
+      table.specificType('season', 'INTEGER[]');
+      table.text('license');
+      table.text('provider');
+      table.text('status');
+      table.text('dataSource');
+      table.timestamp('updatedAt');
+    });
+  }
 
-    grading: { type: db.Sequelize.TEXT },
-    suitableForChildren: { type: db.Sequelize.BOOLEAN },
-    distance: { type: db.Sequelize.INTEGER },
+  class TempRouteModel extends Model {
+    static tableName = tableName;
+  }
+  handler.routes.TempRouteModel = TempRouteModel;
 
-    waymarkWinterAllYear: { type: db.Sequelize.BOOLEAN },
-    waymarkWinterFrom: { type: db.Sequelize.DATE },
-    waymarkWinterTo: { type: db.Sequelize.DATE },
-    waymarkWinterComment: { type: db.Sequelize.TEXT },
 
-    durationMinutes: { type: db.Sequelize.INTEGER },
-    durationHours: { type: db.Sequelize.INTEGER },
-    durationDays: { type: db.Sequelize.INTEGER },
-
-    season: { type: db.Sequelize.ARRAY(db.Sequelize.INTEGER) },
-
-    htgtGeneral: { type: db.Sequelize.TEXT },
-    htgtPublicTransport: { type: db.Sequelize.TEXT },
-
-    license: { type: db.Sequelize.TEXT },
-    provider: { type: db.Sequelize.TEXT },
-    status: { type: db.Sequelize.TEXT },
-    dataSource: { type: db.Sequelize.TEXT },
-    updatedAt: { type: db.Sequelize.DATE },
-  }, {
-    timestamps: false,
-    tableName,
-  });
-  if (sync) await handler.routes.TempRouteModel.sync();
-
+  // route types
   tableName = `${baseTableName}_route_types`;
-  handler.routes.TempRouteTypeModel =
-    db.sequelize.define(tableName, {
-      activityType: { type: db.Sequelize.TEXT },
-      activitySubType: { type: db.Sequelize.TEXT },
-      routeUuid: { type: db.Sequelize.UUID },
-      idRouteLegacyNtb: { type: db.Sequelize.TEXT },
-      primary: { type: db.Sequelize.BOOLEAN },
-      sortIndex: { type: db.Sequelize.INTEGER },
-      dataSource: { type: db.Sequelize.TEXT },
-      updatedAt: { type: db.Sequelize.DATE },
-    }, {
-      timestamps: false,
-      tableName,
+  if (sync) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.increments();
+      table.text('activityType');
+      table.text('activitySubType');
+      table.uuid('routeId');
+      table.text('idRouteLegacyNtb');
+      table.boolean('primary');
+      table.integer('sortIndex');
+      table.text('dataSource');
+      table.timestamp('updatedAt');
     });
-  if (sync) await handler.routes.TempRouteTypeModel.sync();
+  }
 
+  class TempRouteTypeModel extends Model {
+    static tableName = tableName;
+  }
+  handler.routes.TempRouteTypeModel = TempRouteTypeModel;
+
+
+  // route waymark types
   tableName = `${baseTableName}_route_wtype`;
-  handler.routes.TempRouteWaymarkTypeModel =
-    db.sequelize.define(tableName, {
-      name: { type: db.Sequelize.TEXT },
-    }, {
-      timestamps: false,
-      tableName,
+  if (sync) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.increments();
+      table.text('name');
     });
-  if (sync) await handler.routes.TempRouteWaymarkTypeModel.sync();
+  }
 
-  tableName = `${baseTableName}_route_route_wtype`;
+  class TempRouteWaymarkTypeModel extends Model {
+    static tableName = tableName;
+  }
+  handler.routes.TempRouteWaymarkTypeModel = TempRouteWaymarkTypeModel;
+
+
+  // routed to route waymark types
+  tableName = `${baseTableName}_route_wtype_2`;
+  if (sync) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.text('name');
+      table.text('idRouteLegacyNtb');
+      table.uuid('routeId');
+
+      table.primary(['name', 'idRouteLegacyNtb']);
+    });
+  }
+
+  class TempRouteRouteWaymarkTypeModel extends Model {
+    static tableName = tableName;
+    static idColumn = ['name', 'idRouteLegacyNtb'];
+  }
   handler.routes.TempRouteRouteWaymarkTypeModel =
-    db.sequelize.define(tableName, {
-      name: { type: db.Sequelize.TEXT },
-      idRouteLegacyNtb: { type: db.Sequelize.TEXT },
-      routeUuid: { type: db.Sequelize.UUID },
-    }, {
-      timestamps: false,
-      tableName,
-    });
-  if (sync) await handler.routes.TempRouteRouteWaymarkTypeModel.sync();
+    TempRouteRouteWaymarkTypeModel;
 
+
+  // route links
   tableName = `${baseTableName}_route_links`;
-  handler.routes.TempRouteLinkModel =
-    db.sequelize.define(tableName, {
-      uuid: { type: db.Sequelize.UUID, primaryKey: true },
-      title: { type: db.Sequelize.TEXT, allowNull: true },
-      url: { type: db.Sequelize.TEXT },
-      routeUuid: { type: db.Sequelize.UUID, allowNull: true },
-      idRouteLegacyNtb: { type: db.Sequelize.TEXT },
-      sortIndex: { type: db.Sequelize.INTEGER },
-      dataSource: { type: db.Sequelize.TEXT },
-      updatedAt: { type: db.Sequelize.DATE },
-    }, {
-      timestamps: false,
-      tableName,
+  if (sync) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('id');
+      table.text('title');
+      table.text('url');
+      table.uuid('routeId');
+      table.text('idRouteLegacyNtb');
+      table.integer('sortIndex');
+      table.text('dataSource');
+      table.timestamp('updatedAt');
     });
-  await handler.routes.TempRouteLinkModel.sync();
+  }
 
-  tableName = `${baseTableName}_route_to_group`;
-  handler.routes.TempRouteToGroupModel =
-    db.sequelize.define(tableName, {
-      routeUuid: { type: db.Sequelize.UUID },
-      groupUuid: { type: db.Sequelize.UUID },
-      routeLegacyId: { type: db.Sequelize.TEXT },
-      groupLegacyId: { type: db.Sequelize.TEXT },
-    }, {
-      timestamps: false,
-      tableName,
-    });
-  await handler.routes.TempRouteToGroupModel.sync();
+  class TempRouteLinkModel extends Model {
+    static tableName = tableName;
+  }
+  handler.routes.TempRouteLinkModel = TempRouteLinkModel;
 
-  tableName = `${baseTableName}_route_to_poi`;
-  handler.routes.TempRouteToPoiModel =
-    db.sequelize.define(tableName, {
-      routeUuid: { type: db.Sequelize.UUID },
-      poiUuid: { type: db.Sequelize.UUID },
-      routeLegacyId: { type: db.Sequelize.TEXT },
-      poiLegacyId: { type: db.Sequelize.TEXT },
-    }, {
-      timestamps: false,
-      tableName,
-    });
-  await handler.routes.TempRouteToPoiModel.sync();
 
-  tableName = `${baseTableName}_route_pictures`;
-  handler.routes.TempRoutePicturesModel =
-    db.sequelize.define(tableName, {
-      routeLegacyId: { type: db.Sequelize.TEXT },
-      routeUuid: { type: db.Sequelize.UUID },
-      pictureLegacyId: { type: db.Sequelize.TEXT },
-      sortIndex: { type: db.Sequelize.INTEGER },
-    }, {
-      timestamps: false,
-      tableName,
+  // routes to groups
+  tableName = `${baseTableName}_routes_to_groups`;
+  if (sync) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('routeId');
+      table.uuid('groupId');
+      table.text('routeLegacyId');
+      table.text('groupLegacyId');
+
+      table.primary(['routeLegacyId', 'groupLegacyId']);
     });
-  await handler.routes.TempRoutePicturesModel.sync();
+  }
+
+  class TempRouteToGroupModel extends Model {
+    static tableName = tableName;
+    static idColumn = ['routeLegacyId', 'groupLegacyId'];
+  }
+  handler.routes.TempRouteToGroupModel = TempRouteToGroupModel;
+
+
+  // routes to pois
+  tableName = `${baseTableName}_routes_to_poiss`;
+  if (sync) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('routeId');
+      table.uuid('poiId');
+      table.text('routeLegacyId');
+      table.text('poiLegacyId');
+
+      table.primary(['routeLegacyId', 'poiLegacyId']);
+    });
+  }
+
+  class TempRouteToPoiModel extends Model {
+    static tableName = tableName;
+    static idColumn = ['routeLegacyId', 'poiLegacyId'];
+  }
+  handler.routes.TempRouteToPoiModel = TempRouteToPoiModel;
+
+
+  // routes pictures
+  tableName = `${baseTableName}_route_pic`;
+  if (sync) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('routeId');
+      table.text('routeLegacyId');
+      table.text('pictureLegacyId');
+      table.integer('sortIndex');
+
+      table.primary(['routeLegacyId', 'pictureLegacyId']);
+    });
+  }
+
+  class TempRoutePicturesModel extends Model {
+    static tableName = tableName;
+    static idColumn = ['routeLegacyId', 'pictureLegacyId'];
+  }
+  handler.routes.TempRoutePicturesModel = TempRoutePicturesModel;
+
 
   endDuration(durationId);
 }
@@ -168,14 +214,15 @@ async function dropTempTables(handler) {
   logger.info('Dropping temporary tables');
   const durationId = startDuration();
 
-  await handler.routes.TempRouteModel.drop();
-  await handler.routes.TempRouteTypeModel.drop();
-  await handler.routes.TempRouteWaymarkTypeModel.drop();
-  await handler.routes.TempRouteRouteWaymarkTypeModel.drop();
-  await handler.routes.TempRouteLinkModel.drop();
-  await handler.routes.TempRouteToGroupModel.drop();
-  await handler.routes.TempRouteToPoiModel.drop();
-  await handler.routes.TempRoutePicturesModel.drop();
+  await knex.schema
+    .dropTableIfExists(handler.routes.TempRouteModel.tableName)
+    .dropTableIfExists(handler.routes.TempRouteTypeModel.tableName)
+    .dropTableIfExists(handler.routes.TempRouteWaymarkTypeModel.tableName)
+    .dropTableIfExists(handler.routes.TempRouteRouteWaymarkTypeModel.tableName)
+    .dropTableIfExists(handler.routes.TempRouteLinkModel.tableName)
+    .dropTableIfExists(handler.routes.TempRouteToGroupModel.tableName)
+    .dropTableIfExists(handler.routes.TempRouteToPoiModel.tableName)
+    .dropTableIfExists(handler.routes.TempRoutePicturesModel.tableName);
 
   endDuration(durationId);
 }
@@ -213,8 +260,13 @@ async function populateTempTables(handler) {
 
   logger.info('Inserting routes to temporary table');
   durationId = startDuration();
-  const routes = handler.routes.processed.map((p) => p.route);
-  await handler.routes.TempRouteModel.bulkCreate(routes);
+  const routes = handler.routes.processed.map((p) => {
+    const { route } = p;
+    return route;
+  });
+  await handler.routes.TempRouteModel
+    .query()
+    .insert(routes);
   endDuration(durationId);
 
   const routeWaymarkTypes = [];
@@ -265,13 +317,17 @@ async function populateTempTables(handler) {
   // Insert temp data for route activity types
   logger.info('Inserting route activity types to temporary table');
   durationId = startDuration();
-  await handler.routes.TempRouteTypeModel.bulkCreate(suitableActivityTypes);
+  await handler.routes.TempRouteTypeModel
+    .query()
+    .insert(suitableActivityTypes);
   endDuration(durationId);
 
   // Insert temp data for RouteWaymarkType
   logger.info('Inserting route waymark types to temporary table');
   durationId = startDuration();
-  await handler.routes.TempRouteWaymarkTypeModel.bulkCreate(routeWaymarkTypes);
+  await handler.routes.TempRouteWaymarkTypeModel
+    .query()
+    .insert(routeWaymarkTypes);
   endDuration(durationId);
 
   // Insert temp data for RouteToRouteWaymarkType
@@ -279,33 +335,41 @@ async function populateTempTables(handler) {
     'Inserting route to route waymark type relations temporary table'
   );
   durationId = startDuration();
-  await handler.routes.TempRouteRouteWaymarkTypeModel.bulkCreate(
-    routeRouteWaymarkTypes
-  );
+  await handler.routes.TempRouteRouteWaymarkTypeModel
+    .query()
+    .insert(routeRouteWaymarkTypes);
   endDuration(durationId);
 
   // Insert temp data for RouteLink
   logger.info('Inserting route links to temporary table');
   durationId = startDuration();
-  await handler.routes.TempRouteLinkModel.bulkCreate(links);
+  await handler.routes.TempRouteLinkModel
+    .query()
+    .insert(links);
   endDuration(durationId);
 
   // Insert temp data for RouteToGroup
   logger.info('Inserting route to group temporary table');
   durationId = startDuration();
-  await handler.routes.TempRouteToGroupModel.bulkCreate(routeToGroup);
+  await handler.routes.TempRouteToGroupModel
+    .query()
+    .insert(routeToGroup);
   endDuration(durationId);
 
   // Insert temp data for RouteToPoi
   logger.info('Inserting route to poi temporary table');
   durationId = startDuration();
-  await handler.routes.TempRouteToPoiModel.bulkCreate(routeToPoi);
+  await handler.routes.TempRouteToPoiModel
+    .query()
+    .insert(routeToPoi);
   endDuration(durationId);
 
   // Insert temp data for RouteToPoi
   logger.info('Inserting route pictures to temporary table');
   durationId = startDuration();
-  await handler.routes.TempRoutePicturesModel.bulkCreate(pictures);
+  await handler.routes.TempRoutePicturesModel
+    .query()
+    .insert(pictures);
   endDuration(durationId);
 }
 
@@ -316,21 +380,21 @@ async function populateTempTables(handler) {
 async function verifyRouteCodeCount(handler) {
   const { tableName } = handler.routes.TempRouteModel;
 
-  const sql = [
-    'SELECT r.code, COUNT(*) cnt',
-    `FROM public.${tableName} r`,
-    'GROUP BY r.code',
-    'HAVING',
-    '  COUNT(*) > 2',
-  ].join('\n');
-
   logger.info('Verifying that max 2 instances of each route code exists');
   const durationId = startDuration();
-  const res = await db.sequelize.query(sql);
+
+  const res = await knex({ r: tableName })
+    .select({
+      code: 'r.code',
+      cnt: knex.raw('COUNT(*)'),
+    })
+    .groupBy('r.code')
+    .having(knex.raw('COUNT(*) > 2'));
+
   endDuration(durationId);
 
-  if (res && res[0] && res[0].length) {
-    res[0].forEach((err) => {
+  if (res && res.length > 0) {
+    res.forEach((err) => {
       logger.error(
         `Route code «${err.code}» is found more that two times in legacy-ntb`
       );
@@ -350,9 +414,9 @@ async function mergeActivityType(handler) {
 
   // Merge primary types into prod table
   let sql = [
-    'INSERT INTO activity_type (name, "primary")',
+    'INSERT INTO activity_types (name, "primary")',
     'SELECT DISTINCT activity_type, TRUE',
-    `FROM public.${tableName}`,
+    `FROM "public"."${tableName}"`,
     'WHERE activity_type IS NOT NULL',
     'ON CONFLICT (name) DO UPDATE',
     'SET',
@@ -361,35 +425,35 @@ async function mergeActivityType(handler) {
 
   logger.info('Creating primary activity types');
   let durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Merge sub types into prod table
   sql = [
-    'INSERT INTO activity_type (name, "primary")',
+    'INSERT INTO activity_types (name, "primary")',
     'SELECT DISTINCT activity_sub_type, FALSE',
-    `FROM public.${tableName}`,
+    `FROM "public"."${tableName}"`,
     'WHERE activity_sub_type IS NOT NULL',
     'ON CONFLICT (name) DO NOTHING',
   ].join('\n');
 
   logger.info('Creating sub activity types');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Merge primary to sub type relations into prod table
   sql = [
-    'INSERT INTO activity_type_to_activity_type (primary_type, sub_type)',
+    'INSERT INTO activity_types_to_activity_types (primary_type, sub_type)',
     'SELECT DISTINCT activity_type, activity_sub_type',
-    `FROM public.${tableName}`,
+    `FROM "public"."${tableName}"`,
     'WHERE activity_sub_type IS NOT NULL AND activity_type IS NOT NULL',
     'ON CONFLICT (primary_type, sub_type) DO NOTHING',
   ].join('\n');
 
   logger.info('Creating primary to sub activity type relations');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 }
 
@@ -402,8 +466,8 @@ async function mergeRoute(handler) {
 
   // Merge into prod table
   const sql = [
-    'INSERT INTO route (',
-    '  uuid,',
+    'INSERT INTO routes (',
+    '  id,',
     '  id_legacy_ntb_ab,',
     '  id_legacy_ntb_ba,',
     '  code,',
@@ -437,7 +501,7 @@ async function mergeRoute(handler) {
     '  search_document_boost',
     ')',
     'SELECT',
-    '  a.uuid,',
+    '  a.id,',
     '  a.id_legacy_ntb,',
     '  b.id_legacy_ntb,',
     '  a.code,',
@@ -470,14 +534,14 @@ async function mergeRoute(handler) {
     '  a.updated_at,',
     '  1',
     'FROM (',
-    '  SELECT DISTINCT ON (r.code) r.code, r.uuid',
-    `  FROM "public".${tableName} r`,
+    '  SELECT DISTINCT ON (r.code) r.code, r.id',
+    `  FROM "public"."${tableName}" r`,
     '  ORDER BY r.code, r.id_legacy_ntb',
     ') r',
-    `INNER JOIN "public".${tableName} a`,
-    '  ON a.uuid = r.uuid',
-    `LEFT JOIN "public".${tableName} b`,
-    '  ON b.uuid != r.uuid AND b.code = r.code',
+    `INNER JOIN "public"."${tableName}" a`,
+    '  ON a.id = r.id',
+    `LEFT JOIN "public"."${tableName}" b`,
+    '  ON b.id != r.id AND b.code = r.code',
     'ON CONFLICT (id_legacy_ntb_ab) DO UPDATE',
     'SET',
     '   "code" = EXCLUDED."code",',
@@ -510,10 +574,8 @@ async function mergeRoute(handler) {
 
   logger.info('Creating or updating routes');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -523,16 +585,16 @@ async function mergeRoute(handler) {
  * Create new route to activity type relations
  */
 async function createRouteToActivityTypes(handler) {
-  let sql;
   let durationId;
+  let sql;
   const { tableName } = handler.routes.TempRouteTypeModel;
 
-  // Set UUIDs on route to activity type temp data
+  // Set ids on route to activity type temp data
   sql = [
-    `UPDATE public.${tableName} gt1 SET`,
-    '  route_uuid = g.uuid',
-    `FROM public.${tableName} gt2`,
-    'INNER JOIN public.route g ON',
+    `UPDATE "public"."${tableName}" gt1 SET`,
+    '  route_id = g.id',
+    `FROM "public"."${tableName}" gt2`,
+    'INNER JOIN public.routes g ON',
     '  g.id_legacy_ntb_ab = gt2.id_route_legacy_ntb OR',
     '  g.id_legacy_ntb_ba = gt2.id_route_legacy_ntb',
     'WHERE',
@@ -540,54 +602,52 @@ async function createRouteToActivityTypes(handler) {
     '  gt1.id_route_legacy_ntb IS NOT NULL',
   ].join('\n');
 
-  logger.info('Update uuids on route to activity type temp data');
+  logger.info('Update ids on route to activity type temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
+  });
   endDuration(durationId);
 
   // Create route to activity type relations on primary activity types
   sql = [
-    'INSERT INTO route_to_activity_type (',
-    '  activity_type_name, route_uuid, sort_index, data_source',
+    'INSERT INTO routes_to_activity_types (',
+    '  activity_type_name, route_id, sort_index, data_source',
     ')',
-    'SELECT DISTINCT ON (activity_type, route_uuid)',
-    '  activity_type, route_uuid, sort_index, :data_source',
-    `FROM public.${tableName}`,
-    'WHERE route_uuid IS NOT NULL',
-    'ON CONFLICT (activity_type_name, route_uuid) DO NOTHING',
+    'SELECT DISTINCT ON (activity_type, route_id)',
+    '  activity_type, route_id, sort_index, :data_source',
+    `FROM public."${tableName}"`,
+    'WHERE route_id IS NOT NULL',
+    'ON CONFLICT (activity_type_name, route_id) DO NOTHING',
   ].join('\n');
 
   logger.info(
     'Create new route to activity type relations on primary activity types'
   );
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 
   // Create route to activity type relations on sub activity types
   sql = [
-    'INSERT INTO route_to_activity_type (',
-    '  activity_type_name, route_uuid, sort_index, data_source',
+    'INSERT INTO routes_to_activity_types (',
+    '  activity_type_name, route_id, sort_index, data_source',
     ')',
-    'SELECT DISTINCT ON (activity_sub_type, route_uuid)',
-    '  activity_sub_type, route_uuid, sort_index, :data_source',
-    `FROM public.${tableName}`,
-    'WHERE route_uuid IS NOT NULL AND activity_sub_type IS NOT NULL',
-    'ON CONFLICT (activity_type_name, route_uuid) DO NOTHING',
+    'SELECT DISTINCT ON (activity_sub_type, route_id)',
+    '  activity_sub_type, route_id, sort_index, :data_source',
+    `FROM public."${tableName}"`,
+    'WHERE route_id IS NOT NULL AND activity_sub_type IS NOT NULL',
+    'ON CONFLICT (activity_type_name, route_id) DO NOTHING',
   ].join('\n');
 
   logger.info(
     'Create new route to activity type relations on sub activity types'
   );
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -599,28 +659,26 @@ async function createRouteToActivityTypes(handler) {
 async function removeDepreactedRouteToActivityTypes(handler) {
   const { tableName } = handler.routes.TempRouteTypeModel;
   const sql = [
-    'DELETE FROM public.route_to_activity_type',
-    'USING public.route_to_activity_type cf',
-    `LEFT JOIN public.${tableName} te ON`,
+    'DELETE FROM public.routes_to_activity_types',
+    'USING public.routes_to_activity_types cf',
+    `LEFT JOIN "public"."${tableName}" te ON`,
     '  (',
     '    cf.activity_type_name = te.activity_type OR',
     '    cf.activity_type_name = te.activity_sub_type',
     '  ) AND',
-    '  cf.route_uuid = te.route_uuid',
+    '  cf.route_id = te.route_id',
     'WHERE',
     '  te.id_route_legacy_ntb IS NULL AND',
     '  cf.data_source = :data_source AND',
-    '  public.route_to_activity_type.activity_type_name =',
+    '  public.routes_to_activity_types.activity_type_name =',
     '    cf.activity_type_name AND',
-    '  public.route_to_activity_type.route_uuid = cf.route_uuid',
+    '  public.routes_to_activity_types.route_id = cf.route_id',
   ].join('\n');
 
   logger.info('Deleting deprecated route to activity type relations');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -632,15 +690,15 @@ async function removeDepreactedRouteToActivityTypes(handler) {
 async function createRouteWaymarkTypes(handler) {
   const { tableName } = handler.routes.TempRouteWaymarkTypeModel;
   const sql = [
-    'INSERT INTO route_waymark_type (name)',
+    'INSERT INTO route_waymark_types (name)',
     'SELECT DISTINCT name',
-    `FROM public.${tableName}`,
+    `FROM "public"."${tableName}"`,
     'ON CONFLICT (name) DO NOTHING',
   ].join('\n');
 
   logger.info('Create new route waymark types');
   const durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 }
 
@@ -653,12 +711,12 @@ async function createRouteToRouteWaymarkTypes(handler) {
   let durationId;
   const { tableName } = handler.routes.TempRouteRouteWaymarkTypeModel;
 
-  // Set UUIDs on RouteWaymarkType temp data
+  // Set ids on RouteWaymarkType temp data
   sql = [
-    `UPDATE public.${tableName} gt1 SET`,
-    '  route_uuid = g.uuid',
-    `FROM public.${tableName} gt2`,
-    'INNER JOIN public.route g ON',
+    `UPDATE "public"."${tableName}" gt1 SET`,
+    '  route_id = g.id',
+    `FROM "public"."${tableName}" gt2`,
+    'INNER JOIN public.routes g ON',
     '  g.id_legacy_ntb_ab = gt2.id_route_legacy_ntb OR',
     '  g.id_legacy_ntb_ba = gt2.id_route_legacy_ntb',
     'WHERE',
@@ -666,29 +724,29 @@ async function createRouteToRouteWaymarkTypes(handler) {
     '  gt1.id_route_legacy_ntb IS NOT NULL',
   ].join('\n');
 
-  logger.info('Update uuids on route to route waymark type temp data');
+  logger.info('Update ids on route to route waymark type temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
+  });
   endDuration(durationId);
 
   // Create route to route waymark type relations
   sql = [
-    'INSERT INTO route_to_route_waymark_type (',
-    '  route_waymark_type_name, route_uuid, data_source',
+    'INSERT INTO routes_to_route_waymark_types (',
+    '  route_waymark_type_name, route_id, data_source',
     ')',
     'SELECT',
-    '  name, route_uuid, :data_source',
-    `FROM public.${tableName}`,
-    'WHERE route_uuid IS NOT NULL',
-    'ON CONFLICT (route_waymark_type_name, route_uuid) DO NOTHING',
+    '  name, route_id, :data_source',
+    `FROM public."${tableName}"`,
+    'WHERE route_id IS NOT NULL',
+    'ON CONFLICT (route_waymark_type_name, route_id) DO NOTHING',
   ].join('\n');
 
   logger.info('Create new route to route waymark type relations');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -701,25 +759,23 @@ async function createRouteToRouteWaymarkTypes(handler) {
 async function removeDepreactedRouteToRouteWaymarkTypes(handler) {
   const { tableName } = handler.routes.TempRouteRouteWaymarkTypeModel;
   const sql = [
-    'DELETE FROM public.route_to_route_waymark_type',
-    'USING public.route_to_route_waymark_type cf',
-    `LEFT JOIN public.${tableName} te ON`,
+    'DELETE FROM public.routes_to_route_waymark_types',
+    'USING public.routes_to_route_waymark_types cf',
+    `LEFT JOIN "public"."${tableName}" te ON`,
     '  cf.route_waymark_type_name = te.name AND',
-    '  cf.route_uuid = te.route_uuid',
+    '  cf.route_id = te.route_id',
     'WHERE',
     '  te.id_route_legacy_ntb IS NULL AND',
     '  cf.data_source = :data_source AND',
-    '  public.route_to_route_waymark_type.route_waymark_type_name =',
+    '  public.routes_to_route_waymark_types.route_waymark_type_name =',
     '    cf.route_waymark_type_name AND',
-    '  public.route_to_route_waymark_type.route_uuid = cf.route_uuid',
+    '  public.routes_to_route_waymark_types.route_id = cf.route_id',
   ].join('\n');
 
   logger.info('Deleting deprecated route to route waymark type relations');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -729,16 +785,16 @@ async function removeDepreactedRouteToRouteWaymarkTypes(handler) {
  * Insert into `route_link`-table or update if it already exists
  */
 async function mergeRouteLinks(handler) {
-  let sql;
   let durationId;
+  let sql;
   const { tableName } = handler.routes.TempRouteLinkModel;
 
-  // Set UUIDs on routeLink temp data
+  // Set ids on routeLink temp data
   sql = [
-    `UPDATE public.${tableName} gl1 SET`,
-    '  route_uuid = g.uuid',
-    `FROM public.${tableName} gl2`,
-    'INNER JOIN public.route g ON',
+    `UPDATE "public"."${tableName}" gl1 SET`,
+    '  route_id = g.id',
+    `FROM "public"."${tableName}" gl2`,
+    'INNER JOIN public.routes g ON',
     '  g.id_legacy_ntb_ab = gl2.id_route_legacy_ntb OR',
     '  g.id_legacy_ntb_ba = gl2.id_route_legacy_ntb',
     'WHERE',
@@ -746,22 +802,24 @@ async function mergeRouteLinks(handler) {
     '  gl1.sort_index = gl2.sort_index',
   ].join('\n');
 
-  logger.info('Update uuids on route links temp data');
+  logger.info('Update ids on route links temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
+  });
   endDuration(durationId);
 
   // Merge into prod table
   sql = [
-    'INSERT INTO route_link (',
-    '  uuid, route_uuid, title, url,',
+    'INSERT INTO route_links (',
+    '  id, route_id, title, url,',
     '  sort_index, data_source, created_at, updated_at',
     ')',
     'SELECT',
-    '  uuid, route_uuid, title, url,',
+    '  id, route_id, title, url,',
     '  sort_index, :data_source, now(), now()',
-    `FROM public.${tableName}`,
-    'ON CONFLICT (route_uuid, sort_index) DO UPDATE',
+    `FROM "public"."${tableName}"`,
+    'ON CONFLICT (route_id, sort_index) DO UPDATE',
     'SET',
     '  title = EXCLUDED.title,',
     '  url = EXCLUDED.url',
@@ -769,10 +827,8 @@ async function mergeRouteLinks(handler) {
 
   logger.info('Creating or updating route links');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -784,75 +840,73 @@ async function mergeRouteLinks(handler) {
 async function removeDepreactedRouteLinks(handler) {
   const { tableName } = handler.routes.TempRouteLinkModel;
   const sql = [
-    'DELETE FROM public.route_link',
-    'USING public.route_link gl',
-    `LEFT JOIN public.${tableName} te ON`,
-    '  gl.route_uuid = te.route_uuid AND',
+    'DELETE FROM public.route_links',
+    'USING public.route_links gl',
+    `LEFT JOIN "public"."${tableName}" te ON`,
+    '  gl.route_id = te.route_id AND',
     '  gl.sort_index = te.sort_index',
     'WHERE',
     '  te.id_route_legacy_ntb IS NULL AND',
     '  gl.data_source = :data_source AND',
-    '  public.route_link.route_uuid = gl.route_uuid AND',
-    '  public.route_link.sort_index = gl.sort_index',
+    '  public.route_links.route_id = gl.route_id AND',
+    '  public.route_links.sort_index = gl.sort_index',
   ].join('\n');
 
   logger.info('Deleting deprecated route links');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
 
 
 /**
- * Insert into `route_to_group`-table or update if it already exists
+ * Insert into `routes_to_groups`-table or update if it already exists
  */
 async function mergeRouteToGroup(handler) {
   let sql;
   let durationId;
   const { tableName } = handler.routes.TempRouteToGroupModel;
 
-  // Set UUIDs on routeToGroup temp data
+  // Set ids on routeToGroup temp data
   sql = [
-    `UPDATE public.${tableName} a1 SET`,
-    '  route_uuid = c.uuid,',
-    '  group_uuid = a.uuid',
-    `FROM public.${tableName} a2`,
-    'INNER JOIN public.group a ON',
+    `UPDATE "public"."${tableName}" a1 SET`,
+    '  route_id = c.id,',
+    '  group_id = a.id',
+    `FROM "public"."${tableName}" a2`,
+    'INNER JOIN public.groups a ON',
     '  a.id_legacy_ntb = a2.group_legacy_id',
-    'INNER JOIN public.route c ON',
+    'INNER JOIN public.routes c ON',
     '  c.id_legacy_ntb_ab = a2.route_legacy_id',
     'WHERE',
     '  a1.group_legacy_id = a2.group_legacy_id AND',
     '  a1.route_legacy_id = a2.route_legacy_id',
   ].join('\n');
 
-  logger.info('Update uuids on route-to-group temp data');
+  logger.info('Update ids on route-to-group temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
+  });
   endDuration(durationId);
 
   // Merge into prod table
   sql = [
-    'INSERT INTO route_to_group (',
-    '  route_uuid, group_uuid, data_source, created_at, updated_at',
+    'INSERT INTO routes_to_groups (',
+    '  route_id, group_id, data_source, created_at, updated_at',
     ')',
     'SELECT',
-    '  route_uuid, group_uuid, :data_source, now(), now()',
-    `FROM public.${tableName}`,
-    'WHERE route_uuid IS NOT NULL AND group_uuid IS NOT NULL',
-    'ON CONFLICT (route_uuid, group_uuid) DO NOTHING',
+    '  route_id, group_id, :data_source, now(), now()',
+    `FROM public."${tableName}"`,
+    'WHERE route_id IS NOT NULL AND group_id IS NOT NULL',
+    'ON CONFLICT (route_id, group_id) DO NOTHING',
   ].join('\n');
 
   logger.info('Creating or updating route to group relations');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -865,75 +919,73 @@ async function removeDepreactedRouteToGroup(handler) {
   const { tableName } = handler.routes.TempRouteToGroupModel;
 
   const sql = [
-    'DELETE FROM public.route_to_group',
-    'USING public.route_to_group c2a',
-    `LEFT JOIN public.${tableName} te ON`,
-    '  c2a.route_uuid = te.route_uuid AND',
-    '  c2a.group_uuid = te.group_uuid',
+    'DELETE FROM public.routes_to_groups',
+    'USING public.routes_to_groups c2a',
+    `LEFT JOIN "public"."${tableName}" te ON`,
+    '  c2a.route_id = te.route_id AND',
+    '  c2a.group_id = te.group_id',
     'WHERE',
-    '  te.group_uuid IS NULL AND',
+    '  te.group_id IS NULL AND',
     '  c2a.data_source = :data_source AND',
-    '  public.route_to_group.route_uuid = c2a.route_uuid AND',
-    '  public.route_to_group.group_uuid = c2a.group_uuid',
+    '  public.routes_to_groups.route_id = c2a.route_id AND',
+    '  public.routes_to_groups.group_id = c2a.group_id',
   ].join('\n');
 
   logger.info('Deleting deprecated route to group relations');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
 
 
 /**
- * Insert into `route_to_poi`-table or update if it already exists
+ * Insert into `routes_to_pois`-table or update if it already exists
  */
 async function mergeRouteToPoi(handler) {
   let sql;
   let durationId;
   const { tableName } = handler.routes.TempRouteToPoiModel;
 
-  // Set UUIDs on routeToPoi temp data
+  // Set ids on routeToPoi temp data
   sql = [
-    `UPDATE public.${tableName} a1 SET`,
-    '  route_uuid = c.uuid,',
-    '  poi_uuid = a.uuid',
-    `FROM public.${tableName} a2`,
-    'INNER JOIN public.poi a ON',
+    `UPDATE "public"."${tableName}" a1 SET`,
+    '  route_id = c.id,',
+    '  poi_id = a.id',
+    `FROM "public"."${tableName}" a2`,
+    'INNER JOIN public.pois a ON',
     '  a.id_legacy_ntb = a2.poi_legacy_id',
-    'INNER JOIN public.route c ON',
+    'INNER JOIN public.routes c ON',
     '  c.id_legacy_ntb_ab = a2.route_legacy_id',
     'WHERE',
     '  a1.poi_legacy_id = a2.poi_legacy_id AND',
     '  a1.route_legacy_id = a2.route_legacy_id',
   ].join('\n');
 
-  logger.info('Update uuids on route-to-poi temp data');
+  logger.info('Update ids on route-to-poi temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
+  });
   endDuration(durationId);
 
   // Merge into prod table
   sql = [
-    'INSERT INTO route_to_poi (',
-    '  route_uuid, poi_uuid, data_source, created_at, updated_at',
+    'INSERT INTO routes_to_pois (',
+    '  route_id, poi_id, data_source, created_at, updated_at',
     ')',
     'SELECT',
-    '  route_uuid, poi_uuid, :data_source, now(), now()',
-    `FROM public.${tableName}`,
-    'WHERE route_uuid IS NOT NULL AND poi_uuid IS NOT NULL',
-    'ON CONFLICT (route_uuid, poi_uuid) DO NOTHING',
+    '  route_id, poi_id, :data_source, now(), now()',
+    `FROM public."${tableName}"`,
+    'WHERE route_id IS NOT NULL AND poi_id IS NOT NULL',
+    'ON CONFLICT (route_id, poi_id) DO NOTHING',
   ].join('\n');
 
   logger.info('Creating or updating route to poi relations');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -946,43 +998,41 @@ async function removeDepreactedRouteToPoi(handler) {
   const { tableName } = handler.routes.TempRouteToPoiModel;
 
   const sql = [
-    'DELETE FROM public.route_to_poi',
-    'USING public.route_to_poi c2a',
-    `LEFT JOIN public.${tableName} te ON`,
-    '  c2a.route_uuid = te.route_uuid AND',
-    '  c2a.poi_uuid = te.poi_uuid',
+    'DELETE FROM public.routes_to_pois',
+    'USING public.routes_to_pois c2a',
+    `LEFT JOIN "public"."${tableName}" te ON`,
+    '  c2a.route_id = te.route_id AND',
+    '  c2a.poi_id = te.poi_id',
     'WHERE',
-    '  te.poi_uuid IS NULL AND',
+    '  te.poi_id IS NULL AND',
     '  c2a.data_source = :data_source AND',
-    '  public.route_to_poi.route_uuid = c2a.route_uuid AND',
-    '  public.route_to_poi.poi_uuid = c2a.poi_uuid',
+    '  public.routes_to_pois.route_id = c2a.route_id AND',
+    '  public.routes_to_pois.poi_id = c2a.poi_id',
   ].join('\n');
 
   logger.info('Deleting deprecated route to poi relations');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
 
 
 /**
- * Insert route uuid into `pictures`-table
+ * Insert route id into `pictures`-table
  */
 async function setRoutePictures(handler) {
-  let sql;
   let durationId;
+  let sql;
   const { tableName } = handler.routes.TempRoutePicturesModel;
 
-  // Set UUIDs on routeToRoute temp data
+  // Set ids on routeToRoute temp data
   sql = [
-    `UPDATE public.${tableName} a1 SET`,
-    '  route_uuid = a.uuid',
-    `FROM public.${tableName} a2`,
-    'INNER JOIN public.route a ON',
+    `UPDATE "public"."${tableName}" a1 SET`,
+    '  route_id = a.id',
+    `FROM "public"."${tableName}" a2`,
+    'INNER JOIN public.routes a ON',
     '  a.id_legacy_ntb_ab = a2.route_legacy_id OR',
     '  a.id_legacy_ntb_ba = a2.route_legacy_id',
     'WHERE',
@@ -990,29 +1040,30 @@ async function setRoutePictures(handler) {
     '  a1.picture_legacy_id = a2.picture_legacy_id',
   ].join('\n');
 
-  logger.info('Update uuids on route-to-picture temp data');
+  logger.info('Update ids on route-to-picture temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
+  });
   endDuration(durationId);
+
 
   // Merge into prod table
   sql = [
-    'UPDATE picture p1 SET',
-    '  route_uuid = a.route_uuid,',
+    'UPDATE pictures p1 SET',
+    '  route_id = a.route_id,',
     '  sort_index = a.sort_index',
-    'FROM picture p2',
-    `INNER JOIN public.${tableName} a ON`,
+    'FROM pictures p2',
+    `INNER JOIN "public"."${tableName}" a ON`,
     '  a.picture_legacy_id = p2.id_legacy_ntb',
     'WHERE',
-    '  p1.uuid = p2.uuid',
+    '  p1.id = p2.id',
   ].join('\n');
 
-  logger.info('Setting route uuid on pictures');
+  logger.info('Setting route id on pictures');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -1024,23 +1075,21 @@ async function setRoutePictures(handler) {
 async function removeDepreactedRoutePictures(handler) {
   const { tableName } = handler.routes.TempRoutePicturesModel;
   const sql = [
-    'DELETE FROM public.picture',
-    'USING public.picture p2',
-    `LEFT JOIN public.${tableName} te ON`,
+    'DELETE FROM public.pictures',
+    'USING public.pictures p2',
+    `LEFT JOIN "public"."${tableName}" te ON`,
     '  p2.id_legacy_ntb = te.picture_legacy_id',
     'WHERE',
     '  te.picture_legacy_id IS NULL AND',
-    '  p2.route_uuid IS NOT NULL AND',
+    '  p2.route_id IS NOT NULL AND',
     '  p2.data_source = :data_source AND',
-    '  public.picture.uuid = p2.uuid',
+    '  public.pictures.id = p2.id',
   ].join('\n');
 
   logger.info('Deleting deprecated route pictures');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -1052,26 +1101,24 @@ async function removeDepreactedRoutePictures(handler) {
 async function removeDepreactedRoute(handler) {
   const { tableName } = handler.routes.TempRouteModel;
   const sql = [
-    'UPDATE public.route a1 SET',
+    'UPDATE public.routes a1 SET',
     '  status = :status',
-    'FROM public.route a2',
-    `LEFT JOIN public.${tableName} t ON`,
+    'FROM public.routes a2',
+    `LEFT JOIN "public"."${tableName}" t ON`,
     '  t.id_legacy_ntb = a2.id_legacy_ntb_ab OR',
     '  t.id_legacy_ntb = a2.id_legacy_ntb_ba',
     'WHERE',
     '  t.id_legacy_ntb IS NULL AND',
-    '  a1.uuid = a2.uuid AND',
+    '  a1.id = a2.id AND',
     '  a2.data_source = :data_source AND',
     '  a2.status != :status',
   ].join('\n');
 
   logger.info('Marking deprecated routes as deleted');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-      status: 'deleted',
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
+    status: 'deleted',
   });
   endDuration(durationId);
 }

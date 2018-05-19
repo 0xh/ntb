@@ -1,27 +1,7 @@
-export default (sequelize, DataTypes) => {
-  const ListToGroup = sequelize.define('ListToGroup', {
-    listUuid: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      primaryKey: true,
-      validate: {
-        isUUID: 4,
-      },
-    },
+import BaseModel from './BaseModel';
 
-    groupUuid: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      primaryKey: true,
-      validate: {
-        isUUID: 4,
-      },
-    },
 
-    dataSource: { type: DataTypes.TEXT },
-  }, {
-    timestamps: true,
-  });
-
-  return ListToGroup;
-};
+export default class ListToGroup extends BaseModel {
+  static tableName = 'listsToGroups';
+  static idColumn = ['listId', 'groupId'];
+}

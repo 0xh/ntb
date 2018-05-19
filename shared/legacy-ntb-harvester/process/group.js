@@ -1,6 +1,9 @@
-import db from '@turistforeningen/ntb-shared-models';
-import { createLogger, startDuration, endDuration } from
-  '@turistforeningen/ntb-shared-utils';
+import { knex, Model } from '@turistforeningen/ntb-shared-db-utils';
+import {
+  createLogger,
+  startDuration,
+  endDuration,
+} from '@turistforeningen/ntb-shared-utils';
 
 import * as legacy from '../legacy-structure/';
 
@@ -17,56 +20,66 @@ async function createTempTables(handler, first = false) {
   logger.info('Creating temporary tables');
   const durationId = startDuration();
 
-  const baseTableName = `_temp_legacy_ntb_harvest_${handler.timeStamp}`;
+  const baseTableName = `0_temp_legacy_ntb_harvest_harvest_${handler.timeStamp}`;
 
-  handler.groups.TempGroupModel = db.sequelize.define(`${baseTableName}_g`, {
-    uuid: { type: db.Sequelize.UUID, primaryKey: true },
-    idLegacyNtb: { type: db.Sequelize.TEXT },
-    groupType: { type: db.Sequelize.TEXT, allowNull: true },
-    groupSubType: { type: db.Sequelize.TEXT, allowNull: true },
-    name: { type: db.Sequelize.TEXT },
-    nameLowerCase: { type: db.Sequelize.TEXT },
-    description: { type: db.Sequelize.TEXT, allowNull: true },
-    descriptionPlain: { type: db.Sequelize.TEXT, allowNull: true },
-    logo: { type: db.Sequelize.TEXT, allowNull: true },
-    organizationNumber: { type: db.Sequelize.TEXT, allowNull: true },
-    url: { type: db.Sequelize.TEXT, allowNull: true },
-    email: { type: db.Sequelize.TEXT, allowNull: true },
-    phone: { type: db.Sequelize.TEXT, allowNull: true },
-    mobile: { type: db.Sequelize.TEXT, allowNull: true },
-    fax: { type: db.Sequelize.TEXT, allowNull: true },
-    address1: { type: db.Sequelize.TEXT, allowNull: true },
-    address2: { type: db.Sequelize.TEXT, allowNull: true },
-    postalCode: { type: db.Sequelize.TEXT, allowNull: true },
-    postalName: { type: db.Sequelize.TEXT, allowNull: true },
-    license: { type: db.Sequelize.TEXT, allowNull: true },
-    provider: { type: db.Sequelize.TEXT, allowNull: true },
-    status: { type: db.Sequelize.TEXT },
-    dataSource: { type: db.Sequelize.TEXT },
-    updatedAt: { type: db.Sequelize.DATE },
-    municipalityUuid: { type: db.Sequelize.UUID, allowNull: true },
-  }, {
-    timestamps: false,
-    tableName: `${baseTableName}_g`,
-  });
-  if (first) await handler.groups.TempGroupModel.sync();
-
-  handler.groups.TempGroupLinkModel =
-    db.sequelize.define(`${baseTableName}_gl`, {
-      uuid: { type: db.Sequelize.UUID, primaryKey: true },
-      type: { type: db.Sequelize.TEXT },
-      title: { type: db.Sequelize.TEXT, allowNull: true },
-      url: { type: db.Sequelize.TEXT },
-      groupUuid: { type: db.Sequelize.UUID, allowNull: true },
-      idGroupLegacyNtb: { type: db.Sequelize.TEXT },
-      sortIndex: { type: db.Sequelize.INTEGER },
-      dataSource: { type: db.Sequelize.TEXT },
-      updatedAt: { type: db.Sequelize.DATE },
-    }, {
-      timestamps: false,
-      tableName: `${baseTableName}_gl`,
+  let tableName = `${baseTableName}_groups`;
+  if (first) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('id')
+        .primary();
+      table.text('idLegacyNtb');
+      table.text('groupType');
+      table.text('groupSubType');
+      table.text('name');
+      table.text('nameLowerCase');
+      table.text('description');
+      table.text('descriptionPlain');
+      table.text('logo');
+      table.text('organizationNumber');
+      table.text('url');
+      table.text('email');
+      table.text('phone');
+      table.text('mobile');
+      table.text('fax');
+      table.text('address1');
+      table.text('address2');
+      table.text('postalCode');
+      table.text('postalName');
+      table.text('license');
+      table.text('provider');
+      table.text('status');
+      table.text('dataSource');
+      table.timestamp('updatedAt');
+      table.uuid('municipalityId');
     });
-  if (first) await handler.groups.TempGroupLinkModel.sync();
+  }
+
+  class TempGroupModel extends Model {
+    static tableName = tableName;
+  }
+  handler.groups.TempGroupModel = TempGroupModel;
+
+
+  tableName = `${baseTableName}_grouplinks`;
+  if (first) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('id')
+        .primary();
+      table.text('type');
+      table.text('title');
+      table.text('url');
+      table.uuid('groupId');
+      table.text('idGroupLegacyNtb');
+      table.integer('sortIndex');
+      table.text('dataSource');
+      table.timestamp('updatedAt');
+    });
+  }
+
+  class TempGroupLinkModel extends Model {
+    static tableName = tableName;
+  }
+  handler.groups.TempGroupLinkModel = TempGroupLinkModel;
 
   endDuration(durationId);
 }
@@ -79,8 +92,9 @@ async function dropTempTables(handler) {
   logger.info('Dropping temporary tables');
   const durationId = startDuration();
 
-  await handler.groups.TempGroupModel.drop();
-  await handler.groups.TempGroupLinkModel.drop();
+  await knex.schema
+    .dropTableIfExists(handler.groups.TempGroupModel.tableName)
+    .dropTableIfExists(handler.groups.TempGroupLinkModel.tableName);
 
   endDuration(durationId);
 }
@@ -113,7 +127,9 @@ async function populateTempTables(handler) {
   logger.info('Inserting group to temporary table');
   durationId = startDuration();
   const groups = handler.groups.processed.map((p) => p.group);
-  await handler.groups.TempGroupModel.bulkCreate(groups);
+  await handler.groups.TempGroupModel
+    .query()
+    .insert(groups);
   endDuration(durationId);
 
   // Process data for links and tags
@@ -125,7 +141,9 @@ async function populateTempTables(handler) {
   // Insert temp data for GroupLink
   logger.info('Inserting group links to temporary table');
   durationId = startDuration();
-  await handler.groups.TempGroupLinkModel.bulkCreate(links);
+  await handler.groups.TempGroupLinkModel
+    .query()
+    .insert(links);
   endDuration(durationId);
 }
 
@@ -138,29 +156,29 @@ async function createGroupTypes(handler) {
 
   // Create primary group types
   let sql = [
-    'INSERT INTO group_type (name)',
+    'INSERT INTO group_types (name)',
     'SELECT DISTINCT group_type',
-    `FROM public.${tableName}`,
+    `FROM "public"."${tableName}"`,
     'ON CONFLICT (name) DO NOTHING',
   ].join('\n');
 
   logger.info('Create new primary group types');
   let durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Create sub group types
   sql = [
-    'INSERT INTO group_type (name, parent)',
+    'INSERT INTO group_types (name, parent)',
     'SELECT DISTINCT group_sub_type, group_type',
-    `FROM public.${tableName}`,
+    `FROM "public"."${tableName}"`,
     'WHERE group_sub_type IS NOT NULL',
     'ON CONFLICT (name) DO NOTHING',
   ].join('\n');
 
   logger.info('Create new sub group types');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 }
 
@@ -170,8 +188,8 @@ async function createGroupTypes(handler) {
  */
 async function mergeGroups(handler) {
   const sql = [
-    'INSERT INTO public.group (',
-    '  uuid,',
+    'INSERT INTO public.groups (',
+    '  id,',
     '  id_legacy_ntb,',
     '  group_type,',
     '  group_sub_type,',
@@ -196,11 +214,11 @@ async function mergeGroups(handler) {
     '  data_source,',
     '  created_at,',
     '  updated_at,',
-    '  municipality_uuid,',
+    '  municipality_id,',
     '  search_document_boost',
     ')',
     'SELECT',
-    '  uuid,',
+    '  id,',
     '  id_legacy_ntb,',
     '  group_type,',
     '  group_sub_type,',
@@ -225,9 +243,9 @@ async function mergeGroups(handler) {
     '  data_source,',
     '  updated_at,',
     '  updated_at,',
-    '  municipality_uuid,',
+    '  municipality_id,',
     '  1',
-    `FROM public.${handler.groups.TempGroupModel.tableName}`,
+    `FROM public."${handler.groups.TempGroupModel.tableName}"`,
     'ON CONFLICT (id_legacy_ntb) DO UPDATE',
     'SET',
     '  group_type = EXCLUDED.group_type,',
@@ -251,12 +269,12 @@ async function mergeGroups(handler) {
     '  provider = EXCLUDED.provider,',
     '  status = EXCLUDED.status,',
     '  updated_at = EXCLUDED.updated_at,',
-    '  municipality_uuid = EXCLUDED.municipality_uuid',
+    '  municipality_id = EXCLUDED.municipality_id',
   ].join('\n');
 
   logger.info('Creating or updating groups');
   const durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 }
 
@@ -270,32 +288,32 @@ async function mergeGroupLinks(handler) {
 
   // Set UUIDs on groupLink temp data
   sql = [
-    `UPDATE public.${handler.groups.TempGroupLinkModel.tableName} gl1 SET`,
-    '  group_uuid = g.uuid',
-    `FROM public.${handler.groups.TempGroupLinkModel.tableName} gl2`,
-    'INNER JOIN public.group g ON',
+    `UPDATE public."${handler.groups.TempGroupLinkModel.tableName}" gl1 SET`,
+    '  group_id = g.id',
+    `FROM public."${handler.groups.TempGroupLinkModel.tableName}" gl2`,
+    'INNER JOIN public.groups g ON',
     '  g.id_legacy_ntb = gl2.id_group_legacy_ntb',
     'WHERE',
     '  gl1.id_group_legacy_ntb = gl2.id_group_legacy_ntb AND',
     '  gl1.sort_index = gl2.sort_index',
   ].join('\n');
 
-  logger.info('Update uuids on group links temp data');
+  logger.info('Update ids on group links temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Merge into prod table
   sql = [
-    'INSERT INTO group_link (',
-    '  uuid, group_uuid, type, title, url,',
+    'INSERT INTO group_links (',
+    '  id, group_id, type, title, url,',
     '  sort_index, data_source, created_at, updated_at',
     ')',
     'SELECT',
-    '  uuid, group_uuid, type, title, url,',
+    '  id, group_id, type, title, url,',
     '  sort_index, :data_source, now(), now()',
-    `FROM public.${handler.groups.TempGroupLinkModel.tableName}`,
-    'ON CONFLICT (group_uuid, sort_index) DO UPDATE',
+    `FROM public."${handler.groups.TempGroupLinkModel.tableName}"`,
+    'ON CONFLICT (group_id, sort_index) DO UPDATE',
     'SET',
     '  type = EXCLUDED.type,',
     '  title = EXCLUDED.title,',
@@ -304,10 +322,8 @@ async function mergeGroupLinks(handler) {
 
   logger.info('Creating or updating group links');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -318,24 +334,22 @@ async function mergeGroupLinks(handler) {
  */
 async function removeDepreactedGroupLinks(handler) {
   const sql = [
-    'DELETE FROM public.group_link',
-    'USING public.group_link gl',
-    `LEFT JOIN public.${handler.groups.TempGroupLinkModel.tableName} te ON`,
-    '  gl.group_uuid = te.group_uuid AND',
+    'DELETE FROM public.group_links',
+    'USING public.group_links gl',
+    `LEFT JOIN public."${handler.groups.TempGroupLinkModel.tableName}" te ON`,
+    '  gl.group_id = te.group_id AND',
     '  gl.sort_index = te.sort_index',
     'WHERE',
-    '  te.group_uuid IS NULL AND',
+    '  te.group_id IS NULL AND',
     '  gl.data_source = :data_source AND',
-    '  public.group_link.group_uuid = gl.group_uuid AND',
-    '  public.group_link.sort_index = gl.sort_index',
+    '  public.group_links.group_id = gl.group_id AND',
+    '  public.group_links.sort_index = gl.sort_index',
   ].join('\n');
 
   logger.info('Deleting deprecated group links');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -347,25 +361,23 @@ async function removeDepreactedGroupLinks(handler) {
 async function removeDepreactedGroups(handler) {
   const { tableName } = handler.groups.TempGroupModel;
   const sql = [
-    'UPDATE public.group g1 SET',
+    'UPDATE public.groups g1 SET',
     '  status = :status',
-    'FROM public.group g2',
-    `LEFT JOIN public.${tableName} t ON`,
+    'FROM public.groups g2',
+    `LEFT JOIN "public"."${tableName}" t ON`,
     '  t.id_legacy_ntb = g2.id_legacy_ntb',
     'WHERE',
     '  t.id_legacy_ntb IS NULL AND',
-    '  g1.uuid = g2.uuid AND',
+    '  g1.id = g2.id AND',
     '  g2.data_source = :data_source AND',
     '  g2.status != :status',
   ].join('\n');
 
   logger.info('Marking deprecated groups as deleted');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-      status: 'deleted',
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
+    status: 'deleted',
   });
   endDuration(durationId);
 }

@@ -1,14 +1,13 @@
 import _ from 'lodash';
 
-import db from '@turistforeningen/ntb-shared-models';
 import { isObject, isString } from '@turistforeningen/ntb-shared-utils';
-import { getSqlFromFindAll } from '@turistforeningen/ntb-shared-db-utils';
+import { knex } from '@turistforeningen/ntb-shared-db-utils';
+import { BaseModel } from '@turistforeningen/ntb-shared-models';
+
+import runDBQuery from './run-db-query';
 
 
-const { Op } = db.Sequelize;
-
-
-async function createLateralIncludeSqlQuery(handler, include) {
+async function OLD_createLateralIncludeSqlQuery(handler, include) {
   const { association } = include;
   let sql = await getSqlFromFindAll(
     association.target,
@@ -51,7 +50,7 @@ async function createLateralIncludeSqlQuery(handler, include) {
 }
 
 
-async function getLateralInclude(handler, include, identifiers) {
+async function OLD_getLateralInclude(handler, include, identifiers) {
   if (
     include.sequelizeOptions.limit === undefined
     || include.sequelizeOptions.limit === null
@@ -75,7 +74,7 @@ async function getLateralInclude(handler, include, identifiers) {
 }
 
 
-async function getIncludeCount(handler, include, identifiers) {
+async function OLD_getIncludeCount(handler, include, identifiers) {
   const { association } = include;
   const countField = '*';
 
@@ -117,7 +116,7 @@ async function getIncludeCount(handler, include, identifiers) {
 }
 
 
-function getIncludeThroughSequelizeOptions(include, identifiers) {
+function OLD_getIncludeThroughSequelizeOptions(include, identifiers) {
   const { association, sequelizeOptions } = include;
 
   return {
@@ -139,7 +138,7 @@ function getIncludeThroughSequelizeOptions(include, identifiers) {
 }
 
 
-async function createLateralIncludeThroughSqlQuery(handler, include) {
+async function OLD_createLateralIncludeThroughSqlQuery(handler, include) {
   const { association } = include;
   const outerIdField = `"outer"."${association.toSource.targetKeyField}"`;
 
@@ -209,7 +208,7 @@ async function createLateralIncludeThroughSqlQuery(handler, include) {
 }
 
 
-async function getLateralThroughInclude(handler, include, identifiers) {
+async function OLD_getLateralThroughInclude(handler, include, identifiers) {
   if (
     include.sequelizeOptions.limit === undefined
     || include.sequelizeOptions.limit === null
@@ -233,7 +232,7 @@ async function getLateralThroughInclude(handler, include, identifiers) {
 }
 
 
-async function getThroughIncludeCount(handler, include, identifiers) {
+async function OLD_getThroughIncludeCount(handler, include, identifiers) {
   const { association } = include;
   const countField = '*';
 
@@ -274,7 +273,7 @@ async function getThroughIncludeCount(handler, include, identifiers) {
 }
 
 
-async function executeSingleAssociation(
+async function OLD_executeSingleAssociation(
   handler,
   include,
   key,
@@ -326,7 +325,7 @@ async function executeSingleAssociation(
   return includeInstances;
 }
 
-async function executeMultiAssociation(
+async function OLD_executeMultiAssociation(
   handler,
   include,
   key,
@@ -382,7 +381,7 @@ async function executeMultiAssociation(
 }
 
 
-async function executePaginatedMultiAssociation(
+async function OLD_executePaginatedMultiAssociation(
   handler,
   include,
   key,
@@ -460,7 +459,7 @@ async function executePaginatedMultiAssociation(
 }
 
 
-async function executeMultiThroughAssociation(
+async function OLD_executeMultiThroughAssociation(
   handler,
   include,
   key,
@@ -522,7 +521,7 @@ async function executeMultiThroughAssociation(
 }
 
 
-async function executePaginatedMultiThroughAssociation(
+async function OLD_executePaginatedMultiThroughAssociation(
   handler,
   include,
   key,
@@ -621,63 +620,219 @@ async function executePaginatedMultiThroughAssociation(
 }
 
 
+function createPaginatedMultiThroughMainQuery(handler, identifiersByProp) {
+  const { queryOptions, relation, model } = handler;
+
+  // Create sub query
+  let subQuery = model
+    .query()
+    .alias('inner');
+
+  // Join through table
+  subQuery = subQuery.innerJoin(relation.joinTable, function joinFn() {
+    const join = this;
+
+    // Filter on inner and join table attributes
+    relation.relatedProp.props.forEach((modelProp, idx) => {
+      const joinTableProp = relation.joinTableRelatedProp.props[idx];
+      const mProp = `"inner".${modelProp}`;
+      const jProp = `${relation.joinTable}.${joinTableProp}`;
+      join.on(mProp, '=', jProp);
+    });
+
+    // Filter from join table to outer table
+    relation.ownerProp.props.forEach((modelProp, idx) => {
+      const joinTableProp = relation.joinTableOwnerProp.props[idx];
+      const mProp = `"outer".${modelProp}`;
+      const jProp = `${relation.joinTable}.${joinTableProp}`;
+      join.on(mProp, '=', jProp);
+    });
+  });
+
+  // Attributes to select
+  if (queryOptions.attributes) {
+    const attrs = queryOptions.attributes
+      .map((a) => `inner.${a}`);
+    subQuery = subQuery.select(...attrs);
+  }
+
+  // Set ordering
+  if (queryOptions.order && queryOptions.order.length) {
+    queryOptions.order.forEach((order) => {
+      subQuery = subQuery.orderBy(order[0], order[1]);
+    });
+  }
+
+  // Set limit
+  if (queryOptions.limit) {
+    subQuery = subQuery.limit(queryOptions.limit);
+  }
+
+  // Set offset
+  if (queryOptions.offset) {
+    subQuery = subQuery.offset(queryOptions.offset);
+  }
+
+
+  // Set primary query select attributes
+  const attributes = relation.ownerProp.props
+    .map((p, idx) => `outer.${p} AS outerId${idx}`);
+
+  // Create primary query
+  let query = knex.select([...attributes, `${relation.name}.*`]);
+
+  // From
+  query = query.from({ outer: relation.ownerModelClass.tableName });
+
+  // Join lateral subquery
+  query = query.joinRaw(
+    `CROSS JOIN LATERAL (?) ${relation.name}`,
+    knex.raw(subQuery)
+  );
+
+  // Filter on outer identifiers
+  Object.keys(identifiersByProp).forEach((p) => {
+    const identifiers = identifiersByProp[p];
+    if (!identifiers.length) {
+      query = query.whereNull(`outer.${p}`);
+    }
+    else {
+      query = query.whereIn(`outer.${p}`, identifiers);
+    }
+  });
+
+  return query;
+}
+
+
+function createPaginatedMultiThroughCountQuery(handler, identifiersByProp) {
+
+}
+
+
+async function executePaginatedMultiThrough(
+  handler,
+  key,
+  outerInstances
+) {
+  const { relation } = handler;
+  const includeInstances = [];
+
+  // Find identifiers from outer instances
+  let identifiersFound = false;
+  const identifiersByProp = {};
+
+  relation.ownerProp.props.forEach((ownerTableProp, idx) => {
+    identifiersByProp[ownerTableProp] = outerInstances
+      .map((i) => i[ownerTableProp])
+      .filter((i) => i);
+
+    if (identifiersByProp[ownerTableProp].length) {
+      identifiersFound = true;
+    }
+  });
+
+  // Nothing to join on
+  if (!identifiersFound) {
+    return [];
+  }
+
+  // Create queries
+  const mainQuery = createPaginatedMultiThroughMainQuery(
+    handler, identifiersByProp
+  );
+  const countQuery = createPaginatedMultiThroughCountQuery(
+    handler, identifiersByProp
+  );
+
+  // Debug
+  query.debug();
+
+  // Retrieve result
+  const rows = await query;
+
+
+  const baseOpts = {
+    limit: handler.queryOptions.limit,
+    offset: handler.queryOptions.offset,
+  };
+
+  // Map the results to the include model
+  rows.forEach((row) => {
+    // Find the main rows
+    const outers = outerInstances
+      .filter((instance) => (
+        relation.ownerProp.props
+          .map((p, idx) => instance[p] === row[`outerId${idx}`])
+          .every((e) => e)
+      ));
+    if (!outers || !outers.length) {
+      throw new Error('Unable to map include.row with outer.row');
+    }
+
+    outers.forEach((outer) => {
+      if (!outer[relation.name]) {
+        outer[relation.name] = {
+          ...baseOpts,
+          rows: [],
+          count: 0,
+        };
+      }
+
+      outer[relation.name].rows.push(row);
+    });
+  });
+
+  return includeInstances;
+}
+
+
 async function executeIncludeQueries(handler, outerInstances) {
-  if (!Object.keys(handler.include).length) {
+  if (!Object.keys(handler.relations).length) {
     return;
   }
 
   await Promise.all(
-    Object.keys(handler.include).map(async (key) => {
-      const include = handler.include[key];
-      let includeInstances;
-      const { association } = include;
-      const { isSingleAssociation } = association;
+    Object.keys(handler.relations).map(async (key) => {
+      const relationHandler = handler.relations[key];
+      let relationInstances;
+      const { relation } = relationHandler;
 
-      if (include.config.paginate && association.through) {
-        includeInstances = await executePaginatedMultiThroughAssociation(
-          handler, include, key, outerInstances,
+      if (relationHandler.config.paginate && relation.joinTable) {
+        relationInstances = await executePaginatedMultiThrough(
+          relationHandler, key, outerInstances,
         );
       }
-      else if (isSingleAssociation) {
-        includeInstances = await executeSingleAssociation(
-          handler, include, key, outerInstances
-        );
-      }
-      else if (association.through) {
-        includeInstances = await executeMultiThroughAssociation(
-          handler, include, key, outerInstances
-        );
-      }
-      else if (include.config.paginate && association.isMultiAssociation) {
-        includeInstances = await executePaginatedMultiAssociation(
-          handler, include, key, outerInstances
-        );
-      }
-      else if (association.isMultiAssociation) {
-        includeInstances = await executeMultiAssociation(
-          handler, include, key, outerInstances
-        );
-      }
+      // else if (isSingleAssociation) {
+      //   includeInstances = await executeSingleAssociation(
+      //     handler, include, key, outerInstances
+      //   );
+      // }
+      // else if (association.through) {
+      //   includeInstances = await executeMultiThroughAssociation(
+      //     handler, include, key, outerInstances
+      //   );
+      // }
+      // else if (include.config.paginate && association.isMultiAssociation) {
+      //   includeInstances = await executePaginatedMultiAssociation(
+      //     handler, include, key, outerInstances
+      //   );
+      // }
+      // else if (association.isMultiAssociation) {
+      //   includeInstances = await executeMultiAssociation(
+      //     handler, include, key, outerInstances
+      //   );
+      // }
       else {
         throw new Error(
           'Not yet implemented this kind of include association'
         );
       }
 
-      // else if (include.single || !include.config.paginate) {
-      //   includeInstances = await executeUnpaginatedIncludeQueries(
-      //     handler, key, include, outerInstances
-      //   );
-      // }
-      // else {
-      //   includeInstances = await executePaginatedIncludeQueries(
-      //     handler, key, include, outerInstances
-      //   );
-      // }
-
       // Recursive include
-      if (Object.keys(include.include).length && includeInstances.length) {
-        await executeIncludeQueries(include, includeInstances);
+      const relatedRelations = Object.keys(relationHandler.relations).length;
+      if (relatedRelations && relationInstances.length) {
+        await executeIncludeQueries(relationHandler, relationInstances);
       }
     })
   );
@@ -685,23 +840,31 @@ async function executeIncludeQueries(handler, outerInstances) {
 
 
 async function executeMainQuery(handler) {
-  if (handler.sequelizeOptions.limit > 0 || !handler.config.paginate) {
-    const sql = await getSqlFromFindAll(handler.model, handler.sequelizeOptions);
-    const res = await handler.model.findAndCountAll(handler.sequelizeOptions);
-    res.rows.forEach((r) => {
-      r._targetDocument = r;
-    });
-    return res;
+  const res = {
+    limit: handler.queryOptions.limit,
+    offset: handler.queryOptions.offset,
+    rows: [],
+    count: 0,
+  };
+
+  const countQuery = runDBQuery(handler.model, handler.queryOptions, true);
+
+
+  if (handler.queryOptions.limit > 0 || !handler.config.paginate) {
+    const rowQuery = runDBQuery(handler.model, handler.queryOptions);
+
+    const [rows, count] = await Promise.all([rowQuery, countQuery]);
+
+    return {
+      ...res,
+      rows,
+      count,
+    };
   }
 
   return {
-    rows: [],
-    count: await handler.model.count({
-      ...handler.sequelizeOptions,
-      attributes: undefined,
-      limit: undefined,
-      offset: undefined,
-    }),
+    ...res,
+    count: await countQuery,
   };
 }
 
@@ -712,8 +875,8 @@ async function executeMainQuery(handler) {
  */
 async function executeQuery(handler) {
   const result = await executeMainQuery(handler);
-  result.limit = handler.sequelizeOptions.limit;
-  result.offset = handler.sequelizeOptions.offset;
+  result.limit = handler.queryOptions.limit;
+  result.offset = handler.queryOptions.offset;
 
   // Run any include queries
   if (result.rows.length > 0) {
@@ -762,7 +925,7 @@ function formatResults(handler, results) {
     rows = [results.rows[0]];
   }
   // Single document
-  else if (results instanceof db.Sequelize.Model) {
+  else if (results instanceof BaseModel) {
     rows = [results];
     singleDocument = true;
   }
@@ -772,7 +935,7 @@ function formatResults(handler, results) {
   }
 
   rows.forEach((row) => {
-    const document = row.format();
+    const document = row.$toJson();
 
     // Only return requested fields
     Object.keys(document).forEach((key) => {
@@ -783,14 +946,15 @@ function formatResults(handler, results) {
     });
 
     // Process includes
-    Object.keys(handler.include).forEach((includeKey) => {
-      if (row._targetDocument[includeKey]) {
-        document[includeKey] = formatResults(
-          handler.include[includeKey],
-          row._targetDocument[includeKey]
-        );
-      }
-    });
+    // TODO(Ror): fix
+    // Object.keys(handler.relations).forEach((relationKey) => {
+    //   if (row._targetDocument[relationKey]) {
+    //     document[relationKey] = formatResults(
+    //       handler.include[relationKey],
+    //       row._targetDocument[relationKey]
+    //     );
+    //   }
+    // });
 
     documents.push(document);
   });

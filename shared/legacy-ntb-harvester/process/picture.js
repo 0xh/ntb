@@ -1,6 +1,10 @@
-import db from '@turistforeningen/ntb-shared-models';
-import { createLogger, startDuration, endDuration } from
-  '@turistforeningen/ntb-shared-utils';
+import {
+  createLogger,
+  startDuration,
+  endDuration,
+} from '@turistforeningen/ntb-shared-utils';
+import { knex, Model } from '@turistforeningen/ntb-shared-db-utils';
+import { geomFromGeoJSON } from '@turistforeningen/ntb-shared-gis-utils';
 
 import * as legacy from '../legacy-structure/';
 
@@ -12,47 +16,48 @@ const logger = createLogger();
  * Create temporary tables that will hold the processed data harvested from
  * legacy-ntb
  */
-async function createTempTables(handler, sync = false) {
+async function createTempTables(handler, first = false) {
   logger.info('Creating temporary tables');
   const durationId = startDuration();
 
-  const baseTableName = `_temp_legacy_ntb_harvest_${handler.timeStamp}`;
-
+  const baseTableName = `0_temp_legacy_ntb_harvest_${handler.timeStamp}`;
   const tableName = `${baseTableName}_picture`;
-  handler.pictures.TempPictureModel = db.sequelize.define(tableName, {
-    uuid: { type: db.Sequelize.UUID, primaryKey: true },
-    idLegacyNtb: { type: db.Sequelize.TEXT },
-    areaUuid: { type: db.Sequelize.UUID },
-    cabinUuid: { type: db.Sequelize.UUID },
-    listUuid: { type: db.Sequelize.UUID },
-    poiUuid: { type: db.Sequelize.UUID },
-    routeUuid: { type: db.Sequelize.UUID },
-    tripUuid: { type: db.Sequelize.UUID },
 
-    photographerName: { type: db.Sequelize.TEXT },
-    photographerEmail: { type: db.Sequelize.TEXT },
-    photographerCredit: { type: db.Sequelize.TEXT },
-    description: { type: db.Sequelize.TEXT },
+  if (first) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('id')
+        .primary();
+      table.text('idLegacyNtb');
+      table.uuid('areaId');
+      table.uuid('cabinId');
+      table.uuid('listId');
+      table.uuid('poiId');
+      table.uuid('routeId');
+      table.uuid('tripId');
+      table.integer('sortIndex');
+      table.text('cabinPictureType');
+      table.text('photographerName');
+      table.text('photographerEmail');
+      table.text('photographerCredit');
+      table.text('description');
+      table.specificType('coordinates', 'GEOMETRY');
+      table.jsonb('original');
+      table.jsonb('exif');
+      table.jsonb('versions');
+      table.text('license');
+      table.text('provider');
+      table.text('legacyFirstTag');
+      table.specificType('legacyTags', 'TEXT[]');
+      table.text('status');
+      table.text('dataSource');
+      table.timestamp('updatedAt');
+    });
+  }
 
-    coordinates: { type: db.Sequelize.GEOMETRY },
-
-    original: { type: db.Sequelize.JSONB },
-    exif: { type: db.Sequelize.JSONB },
-    versions: { type: db.Sequelize.JSONB },
-
-    legacyFirstTag: { type: db.Sequelize.TEXT },
-    legacyTags: { type: db.Sequelize.ARRAY(db.Sequelize.TEXT) },
-
-    license: { type: db.Sequelize.TEXT },
-    provider: { type: db.Sequelize.TEXT },
-    status: { type: db.Sequelize.TEXT },
-    dataSource: { type: db.Sequelize.TEXT },
-    updatedAt: { type: db.Sequelize.DATE },
-  }, {
-    timestamps: false,
-    tableName,
-  });
-  if (sync) await handler.pictures.TempPictureModel.sync();
+  class TempPictureModel extends Model {
+    static tableName = tableName;
+  }
+  handler.pictures.TempPictureModel = TempPictureModel;
 
   endDuration(durationId);
 }
@@ -65,7 +70,8 @@ async function dropTempTables(handler) {
   logger.info('Dropping temporary tables');
   const durationId = startDuration();
 
-  await handler.pictures.TempPictureModel.drop();
+  await knex.schema
+    .dropTableIfExists(handler.pictures.TempPictureModel.tableName);
 
   endDuration(durationId);
 }
@@ -98,8 +104,29 @@ async function mapData(handler) {
 async function populateTempTables(handler) {
   logger.info('Inserting pictures to temporary table');
   const durationId = startDuration();
-  const pictures = handler.pictures.processed.map((p) => p.picture);
-  await handler.pictures.TempPictureModel.bulkCreate(pictures);
+  const pictures = handler.pictures.processed.map((p) => {
+    const { picture } = p;
+    if (picture.coordinates) {
+      picture.coordinates = geomFromGeoJSON(picture.coordinates);
+    }
+
+    if (picture.original) {
+      picture.original = JSON.stringify(picture.original);
+    }
+
+    if (picture.exif) {
+      picture.exif = JSON.stringify(picture.exif);
+    }
+
+    if (picture.versions) {
+      picture.versions = JSON.stringify(picture.versions);
+    }
+
+    return picture;
+  });
+  await handler.pictures.TempPictureModel
+    .query()
+    .insert(pictures);
   endDuration(durationId);
 }
 
@@ -111,8 +138,8 @@ async function mergePictures(handler) {
   const { tableName } = handler.pictures.TempPictureModel;
 
   const sql = [
-    'INSERT INTO public.picture (',
-    '  uuid,',
+    'INSERT INTO public.pictures (',
+    '  id,',
     '  id_legacy_ntb,',
     '  photographer_name,',
     '  photographer_email,',
@@ -132,7 +159,7 @@ async function mergePictures(handler) {
     '  updated_at',
     ')',
     'SELECT',
-    '  uuid,',
+    '  id,',
     '  id_legacy_ntb,',
     '  photographer_name,',
     '  photographer_email,',
@@ -150,7 +177,7 @@ async function mergePictures(handler) {
     '  data_source,',
     '  updated_at,',
     '  updated_at',
-    `FROM public.${tableName}`,
+    `FROM "public"."${tableName}"`,
     'ON CONFLICT (id_legacy_ntb) DO UPDATE',
     'SET',
     '  photographer_name = EXCLUDED.photographer_name,',
@@ -172,7 +199,7 @@ async function mergePictures(handler) {
 
   logger.info('Creating or updating pictures');
   const durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 }
 

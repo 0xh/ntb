@@ -1,6 +1,10 @@
-import db from '@turistforeningen/ntb-shared-models';
-import { createLogger, startDuration, endDuration } from
-  '@turistforeningen/ntb-shared-utils';
+import {
+  createLogger,
+  startDuration,
+  endDuration,
+} from '@turistforeningen/ntb-shared-utils';
+import { knex, Model } from '@turistforeningen/ntb-shared-db-utils';
+import { geomFromGeoJSON } from '@turistforeningen/ntb-shared-gis-utils';
 
 import * as legacy from '../legacy-structure/';
 
@@ -17,89 +21,122 @@ async function createTempTables(handler, first = false) {
   logger.info('Creating temporary tables');
   const durationId = startDuration();
 
-  const baseTableName = `_temp_legacy_ntb_harvest_${handler.timeStamp}`;
+  const baseTableName = `0_temp_legacy_ntb_harvest_${handler.timeStamp}`;
 
+  // lists
   let tableName = `${baseTableName}_list`;
-  handler.lists.TempListModel = db.sequelize.define(tableName, {
-    uuid: { type: db.Sequelize.UUID, primaryKey: true },
-    idLegacyNtb: { type: db.Sequelize.TEXT },
-    listType: { type: db.Sequelize.TEXT },
-    name: { type: db.Sequelize.TEXT },
-    nameLowerCase: { type: db.Sequelize.TEXT },
-    description: { type: db.Sequelize.TEXT },
-    descriptionPlain: { type: db.Sequelize.TEXT },
-    coordinates: { type: db.Sequelize.GEOMETRY },
-    startDate: { type: db.Sequelize.DATE },
-    endDate: { type: db.Sequelize.DATE },
-    license: { type: db.Sequelize.TEXT },
-    provider: { type: db.Sequelize.TEXT },
-    status: { type: db.Sequelize.TEXT },
-    dataSource: { type: db.Sequelize.TEXT },
-    updatedAt: { type: db.Sequelize.DATE },
-  }, {
-    timestamps: false,
-    tableName,
-  });
-  if (first) await handler.lists.TempListModel.sync();
+  if (first) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('id')
+        .primary();
+      table.text('idLegacyNtb');
+      table.text('listType');
+      table.text('name');
+      table.text('nameLowerCase');
+      table.text('description');
+      table.text('descriptionPlain');
+      table.specificType('coordinates', 'GEOMETRY');
+      table.timestamp('startDate');
+      table.timestamp('endDate');
+      table.text('license');
+      table.text('provider');
+      table.text('status');
+      table.text('dataSource');
+      table.timestamp('updatedAt');
+    });
+  }
 
+  class TempListModel extends Model {
+    static tableName = tableName;
+  }
+  handler.lists.TempListModel = TempListModel;
+
+
+  // list links
   tableName = `${baseTableName}_list_links`;
-  handler.lists.TempListLinkModel =
-    db.sequelize.define(tableName, {
-      uuid: { type: db.Sequelize.UUID, primaryKey: true },
-      title: { type: db.Sequelize.TEXT, allowNull: true },
-      url: { type: db.Sequelize.TEXT },
-      listUuid: { type: db.Sequelize.UUID, allowNull: true },
-      idListLegacyNtb: { type: db.Sequelize.TEXT },
-      type: { type: db.Sequelize.TEXT },
-      sortIndex: { type: db.Sequelize.INTEGER },
-      dataSource: { type: db.Sequelize.TEXT },
-      updatedAt: { type: db.Sequelize.DATE },
-    }, {
-      timestamps: false,
-      tableName,
+  if (first) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('id')
+        .primary();
+      table.text('title');
+      table.text('url');
+      table.uuid('listId');
+      table.text('idListLegacyNtb');
+      table.text('type');
+      table.integer('sortIndex');
+      table.text('dataSource');
+      table.timestamp('updatedAt');
     });
-  if (first) await handler.lists.TempListLinkModel.sync();
+  }
 
-  tableName = `${baseTableName}_list_to_cabinpoi`;
-  handler.lists.TempListCabinPoi =
-    db.sequelize.define(tableName, {
-      listUuid: { type: db.Sequelize.UUID },
-      documentUuid: { type: db.Sequelize.UUID },
-      listLegacyId: { type: db.Sequelize.TEXT },
-      documentLegacyId: { type: db.Sequelize.TEXT },
-      documentType: { type: db.Sequelize.TEXT },
-      sortIndex: { type: db.Sequelize.INTEGER },
-    }, {
-      timestamps: false,
-      tableName,
-    });
-  if (first) await handler.lists.TempListCabinPoi.sync();
+  class TempListLinkModel extends Model {
+    static tableName = tableName;
+  }
+  handler.lists.TempListLinkModel = TempListLinkModel;
 
-  tableName = `${baseTableName}_list_to_group`;
-  handler.lists.TempListToGroupModel =
-    db.sequelize.define(tableName, {
-      listUuid: { type: db.Sequelize.UUID },
-      groupUuid: { type: db.Sequelize.UUID },
-      listLegacyId: { type: db.Sequelize.TEXT },
-      groupLegacyId: { type: db.Sequelize.TEXT },
-    }, {
-      timestamps: false,
-      tableName,
-    });
-  if (first) await handler.lists.TempListToGroupModel.sync();
 
-  tableName = `${baseTableName}_list_pictures`;
-  handler.lists.TempListPicturesModel =
-    db.sequelize.define(tableName, {
-      listLegacyId: { type: db.Sequelize.TEXT },
-      listUuid: { type: db.Sequelize.UUID },
-      pictureLegacyId: { type: db.Sequelize.TEXT },
-      sortIndex: { type: db.Sequelize.INTEGER },
-    }, {
-      timestamps: false,
-      tableName,
+  // lists to cabins/pois
+  tableName = `${baseTableName}_list_cabpoi`;
+  if (first) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('listId');
+      table.uuid('documentId');
+      table.text('documentType');
+      table.text('listLegacyId');
+      table.text('documentLegacyId');
+      table.integer('sortIndex');
+
+      table.primary(['listLegacyId', 'documentLegacyId']);
     });
-  if (first) await handler.lists.TempListPicturesModel.sync();
+  }
+
+  class TempListCabinPoi extends Model {
+    static tableName = tableName;
+    static idColumn = ['listLegacyId', 'documentLegacyId'];
+  }
+  handler.lists.TempListCabinPoi = TempListCabinPoi;
+
+
+  // lists to groups
+  tableName = `${baseTableName}_list_group`;
+  if (first) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('listId');
+      table.uuid('groupId');
+      table.text('listLegacyId');
+      table.text('groupLegacyId');
+      table.integer('sortIndex');
+
+      table.primary(['listLegacyId', 'groupLegacyId']);
+    });
+  }
+
+  class TempListToGroupModel extends Model {
+    static tableName = tableName;
+    static idColumn = ['listLegacyId', 'groupLegacyId'];
+  }
+  handler.lists.TempListToGroupModel = TempListToGroupModel;
+
+
+  // lists pictures
+  tableName = `${baseTableName}_list_pic`;
+  if (first) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('listId');
+      table.text('listLegacyId');
+      table.text('pictureLegacyId');
+      table.integer('sortIndex');
+
+      table.primary(['listLegacyId', 'pictureLegacyId']);
+    });
+  }
+
+  class TempListPicturesModel extends Model {
+    static tableName = tableName;
+    static idColumn = ['listLegacyId', 'pictureLegacyId'];
+  }
+  handler.lists.TempListPicturesModel = TempListPicturesModel;
+
 
   endDuration(durationId);
 }
@@ -112,11 +149,12 @@ async function dropTempTables(handler) {
   logger.info('Dropping temporary tables');
   const durationId = startDuration();
 
-  await handler.lists.TempListModel.drop();
-  await handler.lists.TempListLinkModel.drop();
-  await handler.lists.TempListCabinPoi.drop();
-  await handler.lists.TempListToGroupModel.drop();
-  await handler.lists.TempListPicturesModel.drop();
+  await knex.schema
+    .dropTableIfExists(handler.lists.TempListModel.tableName)
+    .dropTableIfExists(handler.lists.TempListLinkModel.tableName)
+    .dropTableIfExists(handler.lists.TempListCabinPoi.tableName)
+    .dropTableIfExists(handler.lists.TempListToGroupModel.tableName)
+    .dropTableIfExists(handler.lists.TempListPicturesModel.tableName);
 
   endDuration(durationId);
 }
@@ -152,8 +190,16 @@ async function populateTempTables(handler) {
 
   logger.info('Inserting lists to temporary table');
   durationId = startDuration();
-  const lists = handler.lists.processed.map((p) => p.list);
-  await handler.lists.TempListModel.bulkCreate(lists);
+  const lists = handler.lists.processed.map((p) => {
+    const { list } = p;
+    if (list.coordinates) {
+      list.coordinates = geomFromGeoJSON(list.coordinates);
+    }
+    return list;
+  });
+  await handler.lists.TempListModel
+    .query()
+    .insert(lists);
   endDuration(durationId);
 
   const groups = [];
@@ -184,25 +230,33 @@ async function populateTempTables(handler) {
   // Insert temp data for ListLink
   logger.info('Inserting list links to temporary table');
   durationId = startDuration();
-  await handler.lists.TempListLinkModel.bulkCreate(links);
+  await handler.lists.TempListLinkModel
+    .query()
+    .insert(links);
   endDuration(durationId);
 
   // Insert temp data for List pictures
   logger.info('Inserting list pictures to temporary table');
   durationId = startDuration();
-  await handler.lists.TempListPicturesModel.bulkCreate(pictures);
+  await handler.lists.TempListPicturesModel
+    .query()
+    .insert(pictures);
   endDuration(durationId);
 
   // Insert temp data for ListCabinPoi
   logger.info('Inserting list documents to temporary table');
   durationId = startDuration();
-  await handler.lists.TempListCabinPoi.bulkCreate(poisAndCabins);
+  await handler.lists.TempListCabinPoi
+    .query()
+    .insert(poisAndCabins);
   endDuration(durationId);
 
   // Insert temp data for ListToGroup
   logger.info('Inserting list groups to temporary table');
   durationId = startDuration();
-  await handler.lists.TempListToGroupModel.bulkCreate(groups);
+  await handler.lists.TempListToGroupModel
+    .query()
+    .insert(groups);
   endDuration(durationId);
 }
 
@@ -215,8 +269,8 @@ async function mergeList(handler) {
 
   // Merge into prod table
   const sql = [
-    'INSERT INTO list (',
-    '  uuid,',
+    'INSERT INTO lists (',
+    '  id,',
     '  id_legacy_ntb,',
     '  list_type,',
     '  name,',
@@ -235,7 +289,7 @@ async function mergeList(handler) {
     '  search_document_boost',
     ')',
     'SELECT',
-    '  uuid,',
+    '  id,',
     '  id_legacy_ntb,',
     '  \'sjekkut\',',
     '  name,',
@@ -252,7 +306,7 @@ async function mergeList(handler) {
     '  updated_at,',
     '  updated_at,',
     '  1',
-    `FROM public.${tableName}`,
+    `FROM "public"."${tableName}"`,
     'ON CONFLICT (id_legacy_ntb) DO UPDATE',
     'SET',
     '   "name" = EXCLUDED."name",',
@@ -271,10 +325,8 @@ async function mergeList(handler) {
 
   logger.info('Creating or updating lists');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -288,28 +340,28 @@ async function mergeListLinks(handler) {
   let durationId;
   const { tableName } = handler.lists.TempListLinkModel;
 
-  // Set UUIDs on listLink temp data
+  // Set ids on listLink temp data
   sql = [
-    `UPDATE public.${tableName} gl1 SET`,
-    '  list_uuid = g.uuid',
-    `FROM public.${tableName} gl2`,
-    'INNER JOIN public.list g ON',
+    `UPDATE "public"."${tableName}" gl1 SET`,
+    '  list_id = g.id',
+    `FROM "public"."${tableName}" gl2`,
+    'INNER JOIN public.lists g ON',
     '  g.id_legacy_ntb = gl2.id_list_legacy_ntb',
     'WHERE',
     '  gl1.id_list_legacy_ntb = gl2.id_list_legacy_ntb AND',
     '  gl1.sort_index = gl2.sort_index',
   ].join('\n');
 
-  logger.info('Update uuids on list links temp data');
+  logger.info('Update ids on list links temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Merge into prod table
   sql = [
-    'INSERT INTO list_link (',
-    '  uuid,',
-    '  list_uuid,',
+    'INSERT INTO list_links (',
+    '  id,',
+    '  list_id,',
     '  title,',
     '  "type",',
     '  url,',
@@ -319,8 +371,8 @@ async function mergeListLinks(handler) {
     '  updated_at',
     ')',
     'SELECT',
-    '  uuid,',
-    '  list_uuid,',
+    '  id,',
+    '  list_id,',
     '  title,',
     '  "type",',
     '  url,',
@@ -328,8 +380,8 @@ async function mergeListLinks(handler) {
     '  :data_source,',
     '  now(),',
     '  now()',
-    `FROM public.${tableName}`,
-    'ON CONFLICT (list_uuid, sort_index) DO UPDATE',
+    `FROM "public"."${tableName}"`,
+    'ON CONFLICT (list_id, sort_index) DO UPDATE',
     'SET',
     '  title = EXCLUDED.title,',
     '  "type" = EXCLUDED."type",',
@@ -338,10 +390,8 @@ async function mergeListLinks(handler) {
 
   logger.info('Creating or updating list links');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -353,75 +403,71 @@ async function mergeListLinks(handler) {
 async function removeDepreactedListLinks(handler) {
   const { tableName } = handler.lists.TempListLinkModel;
   const sql = [
-    'DELETE FROM public.list_link',
-    'USING public.list_link gl',
-    `LEFT JOIN public.${tableName} te ON`,
-    '  gl.list_uuid = te.list_uuid AND',
+    'DELETE FROM public.list_links',
+    'USING public.list_links gl',
+    `LEFT JOIN "public"."${tableName}" te ON`,
+    '  gl.list_id = te.list_id AND',
     '  gl.sort_index = te.sort_index',
     'WHERE',
     '  te.id_list_legacy_ntb IS NULL AND',
     '  gl.data_source = :data_source AND',
-    '  public.list_link.list_uuid = gl.list_uuid AND',
-    '  public.list_link.sort_index = gl.sort_index',
+    '  public.list_links.list_id = gl.list_id AND',
+    '  public.list_links.sort_index = gl.sort_index',
   ].join('\n');
 
   logger.info('Deleting deprecated list links');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
 
 
 /**
- * Insert into `list_to_group`-table or update if it already exists
+ * Insert into `lists_to_groups`-table or update if it already exists
  */
 async function mergeListToGroup(handler) {
   let sql;
   let durationId;
   const { tableName } = handler.lists.TempListToGroupModel;
 
-  // Set UUIDs on listToGroup temp data
+  // Set ids on listToGroup temp data
   sql = [
-    `UPDATE public.${tableName} a1 SET`,
-    '  list_uuid = c.uuid,',
-    '  group_uuid = a.uuid',
-    `FROM public.${tableName} a2`,
-    'INNER JOIN public.group a ON',
+    `UPDATE "public"."${tableName}" a1 SET`,
+    '  list_id = c.id,',
+    '  group_id = a.id',
+    `FROM "public"."${tableName}" a2`,
+    'INNER JOIN public.groups a ON',
     '  a.id_legacy_ntb = a2.group_legacy_id',
-    'INNER JOIN public.list c ON',
+    'INNER JOIN public.lists c ON',
     '  c.id_legacy_ntb = a2.list_legacy_id',
     'WHERE',
     '  a1.group_legacy_id = a2.group_legacy_id AND',
     '  a1.list_legacy_id = a2.list_legacy_id',
   ].join('\n');
 
-  logger.info('Update uuids on list-to-group temp data');
+  logger.info('Update ids on list-to-group temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Merge into prod table
   sql = [
-    'INSERT INTO list_to_group (',
-    '  list_uuid, group_uuid, data_source, created_at, updated_at',
+    'INSERT INTO lists_to_groups (',
+    '  list_id, group_id, data_source, created_at, updated_at',
     ')',
     'SELECT',
-    '  list_uuid, group_uuid, :data_source, now(), now()',
-    `FROM public.${tableName}`,
-    'WHERE list_uuid IS NOT NULL AND group_uuid IS NOT NULL',
-    'ON CONFLICT (list_uuid, group_uuid) DO NOTHING',
+    '  list_id, group_id, :data_source, now(), now()',
+    `FROM "public"."${tableName}"`,
+    'WHERE list_id IS NOT NULL AND group_id IS NOT NULL',
+    'ON CONFLICT (list_id, group_id) DO NOTHING',
   ].join('\n');
 
   logger.info('Creating or updating list to group relations');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -434,72 +480,68 @@ async function removeDepreactedListToGroup(handler) {
   const { tableName } = handler.lists.TempListToGroupModel;
 
   const sql = [
-    'DELETE FROM public.list_to_group',
-    'USING public.list_to_group c2a',
-    `LEFT JOIN public.${tableName} te ON`,
-    '  c2a.list_uuid = te.list_uuid AND',
-    '  c2a.group_uuid = te.group_uuid',
+    'DELETE FROM public.lists_to_groups',
+    'USING public.lists_to_groups c2a',
+    `LEFT JOIN "public"."${tableName}" te ON`,
+    '  c2a.list_id = te.list_id AND',
+    '  c2a.group_id = te.group_id',
     'WHERE',
-    '  te.group_uuid IS NULL AND',
+    '  te.group_id IS NULL AND',
     '  c2a.data_source = :data_source AND',
-    '  public.list_to_group.list_uuid = c2a.list_uuid AND',
-    '  public.list_to_group.group_uuid = c2a.group_uuid',
+    '  public.lists_to_groups.list_id = c2a.list_id AND',
+    '  public.lists_to_groups.group_id = c2a.group_id',
   ].join('\n');
 
   logger.info('Deleting deprecated list to group relations');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
 
 
 /**
- * Insert list uuid into `pictures`-table
+ * Insert list id into `pictures`-table
  */
 async function setListPictures(handler) {
   let sql;
   let durationId;
   const { tableName } = handler.lists.TempListPicturesModel;
 
-  // Set UUIDs on listToList temp data
+  // Set ids on listToList temp data
   sql = [
-    `UPDATE public.${tableName} a1 SET`,
-    '  list_uuid = a.uuid',
-    `FROM public.${tableName} a2`,
-    'INNER JOIN public.list a ON',
+    `UPDATE "public"."${tableName}" a1 SET`,
+    '  list_id = a.id',
+    `FROM "public"."${tableName}" a2`,
+    'INNER JOIN public.lists a ON',
     '  a.id_legacy_ntb = a2.list_legacy_id',
     'WHERE',
     '  a1.list_legacy_id = a2.list_legacy_id AND',
     '  a1.picture_legacy_id = a2.picture_legacy_id',
   ].join('\n');
 
-  logger.info('Update uuids on list-to-picture temp data');
+  logger.info('Update ids on list-to-picture temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Merge into prod table
   sql = [
-    'UPDATE picture p1 SET',
-    '  list_uuid = a.list_uuid,',
+    'UPDATE pictures p1 SET',
+    '  list_id = a.list_id,',
     '  sort_index = a.sort_index',
-    'FROM picture p2',
-    `INNER JOIN public.${tableName} a ON`,
+    'FROM pictures p2',
+    `INNER JOIN "public"."${tableName}" a ON`,
     '  a.picture_legacy_id = p2.id_legacy_ntb',
     'WHERE',
-    '  p1.uuid = p2.uuid',
+    '  p1.id = p2.id',
   ].join('\n');
 
-  logger.info('Setting list uuid on pictures');
+  logger.info('Setting list id on pictures');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -511,23 +553,21 @@ async function setListPictures(handler) {
 async function removeDepreactedListPictures(handler) {
   const { tableName } = handler.lists.TempListPicturesModel;
   const sql = [
-    'DELETE FROM public.picture',
-    'USING public.picture p2',
-    `LEFT JOIN public.${tableName} te ON`,
+    'DELETE FROM public.pictures',
+    'USING public.pictures p2',
+    `LEFT JOIN "public"."${tableName}" te ON`,
     '  p2.id_legacy_ntb = te.picture_legacy_id',
     'WHERE',
     '  te.picture_legacy_id IS NULL AND',
-    '  p2.list_uuid IS NOT NULL AND',
+    '  p2.list_id IS NOT NULL AND',
     '  p2.data_source = :data_source AND',
-    '  public.picture.uuid = p2.uuid',
+    '  public.pictures.id = p2.id',
   ].join('\n');
 
   logger.info('Deleting deprecated list pictures');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -541,86 +581,84 @@ async function mergeListRelation(handler) {
   let durationId;
   const { tableName } = handler.lists.TempListCabinPoi;
 
-  // Set list UUIDs on TempListCabinPoi temp data
+  // Set list ids on TempListCabinPoi temp data
   sql = [
-    `UPDATE public.${tableName} a1 SET`,
-    '  list_uuid = c.uuid',
-    `FROM public.${tableName} a2`,
-    'INNER JOIN public.list c ON',
+    `UPDATE "public"."${tableName}" a1 SET`,
+    '  list_id = c.id',
+    `FROM "public"."${tableName}" a2`,
+    'INNER JOIN public.lists c ON',
     '  c.id_legacy_ntb = a2.list_legacy_id',
     'WHERE',
     '  a1.document_legacy_id = a2.document_legacy_id AND',
     '  a1.list_legacy_id = a2.list_legacy_id',
   ].join('\n');
 
-  logger.info('Update list uuids on list-relations temp data');
+  logger.info('Update list ids on list-relations temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
-  // Set cabin UUIDs on TempListCabinPoi temp data
+  // Set cabin ids on TempListCabinPoi temp data
   sql = [
-    `UPDATE public.${tableName} a1 SET`,
-    '  document_uuid = c.uuid,',
+    `UPDATE "public"."${tableName}" a1 SET`,
+    '  document_id = c.id,',
     '  document_type = \'cabin\'',
-    `FROM public.${tableName} a2`,
-    'INNER JOIN public.cabin c ON',
+    `FROM "public"."${tableName}" a2`,
+    'INNER JOIN public.cabins c ON',
     '  c.id_legacy_ntb = a2.document_legacy_id',
     'WHERE',
     '  a1.document_legacy_id = a2.document_legacy_id AND',
     '  a1.list_legacy_id = a2.list_legacy_id',
   ].join('\n');
 
-  logger.info('Update cabin uuids on list-relations temp data');
+  logger.info('Update cabin ids on list-relations temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
-  // Set poi UUIDs on TempListCabinPoi temp data
+  // Set poi ids on TempListCabinPoi temp data
   sql = [
-    `UPDATE public.${tableName} a1 SET`,
-    '  document_uuid = c.uuid,',
+    `UPDATE "public"."${tableName}" a1 SET`,
+    '  document_id = c.id,',
     '  document_type = \'poi\'',
-    `FROM public.${tableName} a2`,
-    'INNER JOIN public.poi c ON',
+    `FROM "public"."${tableName}" a2`,
+    'INNER JOIN public.pois c ON',
     '  c.id_legacy_ntb = a2.document_legacy_id',
     'WHERE',
     '  a1.document_legacy_id = a2.document_legacy_id AND',
     '  a1.list_legacy_id = a2.list_legacy_id',
   ].join('\n');
 
-  logger.info('Update poi uuids on list-relations temp data');
+  logger.info('Update poi ids on list-relations temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
 
   // Merge into prod table
   sql = [
-    'INSERT INTO list_relation (',
-    '  list_uuid,',
+    'INSERT INTO list_relations (',
+    '  list_id,',
     '  document_type,',
-    '  document_uuid,',
+    '  document_id,',
     '  sort_index,',
     '  data_source',
     ')',
     'SELECT',
-    '  list_uuid,',
+    '  list_id,',
     '  document_type,',
-    '  document_uuid,',
+    '  document_id,',
     '  sort_index,',
     '  :data_source',
-    `FROM public.${tableName}`,
-    'WHERE list_uuid IS NOT NULL AND document_uuid IS NOT NULL',
-    'ON CONFLICT (list_uuid, document_type, document_uuid) DO NOTHING',
+    `FROM "public"."${tableName}"`,
+    'WHERE list_id IS NOT NULL AND document_id IS NOT NULL',
+    'ON CONFLICT (list_id, document_type, document_id) DO NOTHING',
   ].join('\n');
 
-  logger.info('Creating or updating list to group relations');
+  logger.info('Creating or updating list to document relations');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -633,24 +671,22 @@ async function removeDepreactedListRelations(handler) {
   const { tableName } = handler.lists.TempListCabinPoi;
 
   const sql = [
-    'DELETE FROM public.list_relation',
-    'USING public.list_relation c2a',
-    `LEFT JOIN public.${tableName} te ON`,
-    '  c2a.list_uuid = te.list_uuid AND',
-    '  c2a.document_uuid = te.document_uuid',
+    'DELETE FROM public.list_relations',
+    'USING public.list_relations c2a',
+    `LEFT JOIN "public"."${tableName}" te ON`,
+    '  c2a.list_id = te.list_id AND',
+    '  c2a.document_id = te.document_id',
     'WHERE',
-    '  te.document_uuid IS NULL AND',
+    '  te.document_id IS NULL AND',
     '  c2a.data_source = :data_source AND',
-    '  public.list_relation.list_uuid = c2a.list_uuid AND',
-    '  public.list_relation.document_uuid = c2a.document_uuid',
+    '  public.list_relations.list_id = c2a.list_id AND',
+    '  public.list_relations.document_id = c2a.document_id',
   ].join('\n');
 
   logger.info('Deleting deprecated list relations');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -662,25 +698,23 @@ async function removeDepreactedListRelations(handler) {
 async function removeDepreactedList(handler) {
   const { tableName } = handler.lists.TempListModel;
   const sql = [
-    'UPDATE public.list a1 SET',
+    'UPDATE public.lists a1 SET',
     '  status = :status',
-    'FROM public.list a2',
-    `LEFT JOIN public.${tableName} t ON`,
+    'FROM public.lists a2',
+    `LEFT JOIN "public"."${tableName}" t ON`,
     '  t.id_legacy_ntb = a2.id_legacy_ntb',
     'WHERE',
     '  t.id_legacy_ntb IS NULL AND',
-    '  a1.uuid = a2.uuid AND',
+    '  a1.id = a2.id AND',
     '  a2.data_source = :data_source AND',
     '  a2.status != :status',
   ].join('\n');
 
   logger.info('Marking deprecated lists as deleted');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-      status: 'deleted',
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
+    status: 'deleted',
   });
   endDuration(durationId);
 }

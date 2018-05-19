@@ -1,40 +1,63 @@
-import fs from 'fs';
-import path from 'path';
-import { sequelize, Sequelize } from '@turistforeningen/ntb-shared-db-utils';
+export { default as BaseModel } from './BaseModel';
 
-
-const basename = path.basename(__filename);
-const db = {};
-
-
-// Loop through all .js files starting with an uppercase letter in the current
-// directory (not subdirectories). Every identified file is presumed to default
-// export a Sequelize model.
-fs
-  .readdirSync(__dirname)
-  .filter((file) => (
-    (file.indexOf('.') !== 0)
-    && (file !== basename)
-    && (file.slice(-3) === '.js')
-    && (file[0] === file[0].toUpperCase())
-  ))
-  .forEach((file) => {
-    const model = sequelize.import(path.join(__dirname, file));
-    db[model.name] = model;
-  });
-
-
-// Configure associations
-Object.keys(db).forEach((modelName) => {
-  if (db[modelName].associate) {
-    db[modelName].associate(db);
-  }
-});
-
-
-// Set sequelize instance on db for convinience when using in other modules
-db.sequelize = sequelize;
-db.Sequelize = Sequelize;
-
-
-export default db;
+export { default as Accessability } from './Accessability';
+export { default as ActivityType } from './ActivityType';
+export { default as ActivityTypesToActivityTypes } from
+  './ActivityTypesToActivityTypes';
+export { default as Area } from './Area';
+export { default as AreaToArea } from './AreaToArea';
+export { default as AreaToCounty } from './AreaToCounty';
+export { default as AreaToMunicipality } from './AreaToMunicipality';
+export { default as Cabin } from './Cabin';
+export { default as CabinAccessability } from './CabinAccessability';
+export { default as CabinFacility } from './CabinFacility';
+export { default as CabinLink } from './CabinLink';
+export { default as CabinOpeningHours } from './CabinOpeningHours';
+export { default as CabinOpeningHoursKeyType } from
+  './CabinOpeningHoursKeyType';
+export { default as CabinPictureType } from './CabinPictureType';
+export { default as CabinServiceLevel } from './CabinServiceLevel';
+export { default as CabinToArea } from './CabinToArea';
+export { default as CabinTranslation } from './CabinTranslation';
+export { default as County } from './County';
+export { default as CountyTranslation } from './CountyTranslation';
+export { default as DocumentStatus } from './DocumentStatus';
+export { default as Facility } from './Facility';
+export { default as Grading } from './Grading';
+export { default as Group } from './Group';
+export { default as GroupLink } from './GroupLink';
+export { default as GroupType } from './GroupType';
+export { default as List } from './List';
+export { default as ListLink } from './ListLink';
+export { default as ListRelation } from './ListRelation';
+export { default as ListToCounty } from './ListToCounty';
+export { default as ListToGroup } from './ListToGroup';
+export { default as ListToMunicipality } from './ListToMunicipality';
+export { default as ListType } from './ListType';
+export { default as Municipality } from './Municipality';
+export { default as MunicipalityTranslation } from './MunicipalityTranslation';
+export { default as Picture } from './Picture';
+export { default as Poi } from './Poi';
+export { default as PoiAccessability } from './PoiAccessability';
+export { default as PoiLink } from './PoiLink';
+export { default as PoiToArea } from './PoiToArea';
+export { default as PoiToGroup } from './PoiToGroup';
+export { default as PoiToPoiType } from './PoiToPoiType';
+export { default as PoiType } from './PoiType';
+export { default as Route } from './Route';
+export { default as RouteLink } from './RouteLink';
+export { default as RouteToActivityType } from './RouteToActivityType';
+export { default as RouteToCounty } from './RouteToCounty';
+export { default as RouteToGroup } from './RouteToGroup';
+export { default as RouteToPoi } from './RouteToPoi';
+export { default as RouteToRouteWaymarkType } from './RouteToRouteWaymarkType';
+export { default as RouteWaymarkType } from './RouteWaymarkType';
+export { default as SearchConfig } from './SearchConfig';
+export { default as SearchDocument } from './SearchDocument';
+export { default as Trip } from './Trip';
+export { default as TripDirection } from './TripDirection';
+export { default as TripLink } from './TripLink';
+export { default as TripToActivityType } from './TripToActivityType';
+export { default as TripToGroup } from './TripToGroup';
+export { default as TripToPoi } from './TripToPoi';
+export { default as Uuid } from './Uuid';

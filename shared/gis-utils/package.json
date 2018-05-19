@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "name": "@turistforeningen/ntb-shared-gis-utils",
+  "version": "0.0.0",
+  "dependencies": {
+    "@mapbox/polyline": "^1.0.0",
+    "@turistforeningen/ntb-shared-db-utils": "*",
+    "geojson-rewind": "^0.3.1",
+    "geojson-validation": "^0.2.1"
+  }
+}

@@ -1,6 +1,6 @@
 import uuid4 from 'uuid/v4';
-import mapboxPolyline from '@mapbox/polyline';
 
+import { geojsonToPolyline } from '@turistforeningen/ntb-shared-gis-utils';
 import {
   sanitizeHtml,
   stripHtml,
@@ -125,7 +125,7 @@ function setLinks(obj, res, handler) {
     obj.lenker.forEach((link, idx) => {
       if (link.url) {
         res.links.push({
-          uuid: uuid4(),
+          id: uuid4(),
           title: link.tittel,
           url: link.url,
           idTripLegacyNtb: obj._id,
@@ -228,7 +228,7 @@ async function mapping(obj, handler) {
   }
 
   res.trip = {
-    uuid: uuid4(),
+    id: uuid4(),
     idLegacyNtb: obj._id,
 
     name: obj.navn || 'mangler navn',
@@ -248,8 +248,8 @@ async function mapping(obj, handler) {
     durationDays: null,
 
     startingPoint: getStartingPoint(obj),
-    geojson: obj.geojson,
-    polyline: obj.geojson ? mapboxPolyline.fromGeoJSON(obj.geojson) : null,
+    path: obj.geojson,
+    pathPolyline: obj.geojson ? geojsonToPolyline(obj.geojson) : null,
 
     season: obj.sesong || [],
 
@@ -284,10 +284,10 @@ async function mapping(obj, handler) {
   setSuitableForChildren(obj, res, handler);
 
   // Areas, groups and pictures
-  res.areas = obj.områder || [];
-  res.pictures = obj.bilder || [];
-  res.groups = obj.grupper || [];
-  res.pois = obj.steder || [];
+  res.areas = Array.from(new Set(obj.områder || []));
+  res.pictures = Array.from(new Set(obj.bilder || []));
+  res.groups = Array.from(new Set(obj.grupper || []));
+  res.pois = Array.from(new Set(obj.steder || []));
 
   return res;
 }

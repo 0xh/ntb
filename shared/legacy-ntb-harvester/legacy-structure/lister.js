@@ -56,7 +56,7 @@ function setLinks(obj, res, handler) {
     obj.lenker.forEach((link, idx) => {
       if (link.url) {
         res.links.push({
-          uuid: uuid4(),
+          id: uuid4(),
           type: mapLinkType(link.type, res),
           title: link.tittel,
           url: link.url,
@@ -74,7 +74,7 @@ async function mapping(obj, handler) {
   const res = {};
 
   res.list = {
-    uuid: uuid4(),
+    id: uuid4(),
     idLegacyNtb: obj._id,
 
     name: obj.navn || 'mangler navn',
@@ -102,7 +102,7 @@ async function mapping(obj, handler) {
 
   res.groups = obj.grupper || [];
   res.pictures = obj.bilder || [];
-  res.poisAndCabins = obj.steder || [];
+  res.poisAndCabins = Array.from(new Set(obj.steder || []));
 
   return res;
 }

@@ -1,14 +1,7 @@
-export default (sequelize, DataTypes) => {
-  const Grading =
-    sequelize.define('Grading', {
-      name: {
-        type: DataTypes.TEXT,
-        allowNull: false,
-        primaryKey: true,
-      },
-    }, {
-      timestamps: false,
-    });
+import BaseModel from './BaseModel';
 
-  return Grading;
-};
+
+export default class Grading extends BaseModel {
+  static tableName = 'gradings';
+  static idColumn = 'name';
+}

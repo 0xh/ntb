@@ -1,60 +1,7 @@
-export default (sequelize, DataTypes) => {
-  const CabinOpeningHours = sequelize.define('CabinOpeningHours', {
-    uuid: {
-      type: DataTypes.UUID,
-      primaryKey: true,
-      defaultValue: DataTypes.UUIDV4,
-      validate: {
-        isUUID: 4,
-      },
-    },
-
-    cabinUuid: {
-      type: DataTypes.UUID,
-      unique: 'cabin-link-sort-index-key',
-      validate: {
-        isUUID: 4,
-      },
-    },
-
-    allYear: { type: DataTypes.BOOLEAN, default: false, allowNull: false },
-    from: { type: DataTypes.DATE },
-    to: { type: DataTypes.DATE },
-
-    serviceLevel: {
-      // Foreign key to CabinServiceLevel
-      type: DataTypes.TEXT,
-    },
-
-    key: {
-      type: DataTypes.TEXT,
-    },
-
-    sortIndex: {
-      type: DataTypes.INTEGER,
-      unique: 'cabin-link-sort-index-key',
-    },
-
-    dataSource: { type: DataTypes.TEXT },
-  }, {
-    timestamps: true,
-  });
+import BaseModel from './BaseModel';
 
 
-  // Associations
-
-  CabinOpeningHours.associate = (models) => {
-    models.CabinOpeningHours.belongsTo(models.CabinOpeningHoursKeyType, {
-      foreignKey: 'key',
-    });
-
-    models.CabinOpeningHours.belongsTo(models.Cabin);
-
-    models.CabinOpeningHours.belongsTo(models.CabinServiceLevel, {
-      as: 'ServiceLevel',
-      foreignKey: 'serviceLevel',
-    });
-  };
-
-  return CabinOpeningHours;
-};
+export default class CabinOpeningHours extends BaseModel {
+  static tableName = 'cabinOpeningHours';
+  static idColumn = 'id';
+}

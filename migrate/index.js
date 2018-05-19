@@ -1,113 +1,56 @@
 import path from 'path';
 
-import Umzug from 'umzug';
-
-import db from '@turistforeningen/ntb-shared-models';
+import { knex } from '@turistforeningen/ntb-shared-db-utils';
 import { createLogger } from '@turistforeningen/ntb-shared-utils';
 
 
 const logger = createLogger();
 
-const umzug = new Umzug({
-  storage: 'sequelize',
-  storageOptions: {
-    model: db.SequelizeMeta,
-  },
-
-  migrations: {
-    params: [db],
-    path: path.resolve(__dirname, 'migrations'),
-    pattern: /\.js$/,
-  },
-
-  logging: function log(...args) {
-    logger.info(args);
-  },
-});
+const migrateConfig = {
+  directory: path.resolve(__dirname, 'migrations'),
+  tableName: 'knex_migrations',
+  schemaName: 'public',
+  disableTransactions: false,
+  extension: 'js',
+  loadExtenstions: ['.js'],
+};
 
 
-function logUmzugEvent(eventName) {
-  return (name, migration) => {
-    logger.info(`${name} ${eventName}`);
-  };
+async function make() {
+  const name = process.argv[3].trim();
+
+  if (!name) {
+    throw new Error('Invalid migration name');
+  }
+
+  const migrationName = await knex.migrate.make(name, migrateConfig);
+  logger.info(`Created migration: ${migrationName}`);
 }
 
 
-umzug.on('migrating', logUmzugEvent('migrating'));
-umzug.on('migrated', logUmzugEvent('migrated'));
-umzug.on('reverting', logUmzugEvent('reverting'));
-umzug.on('reverted', logUmzugEvent('reverted'));
-
-
-function cmdStatus() {
-  const result = {};
-
-  return umzug.executed()
-    .then((executed) => {
-      result.executed = executed;
-      return umzug.pending();
-    })
-    .then((pending) => {
-      result.pending = pending;
-      return result;
-    })
-    .then(({ executed: ex, pending: pe }) => {
-      const executed = ex.map((m) => {
-        m.name = path.basename(m.file, '.js');
-        return m;
-      });
-      const pending = pe.map((m) => {
-        m.name = path.basename(m.file, '.js');
-        return m;
-      });
-
-      const current = executed.length > 0
-        ? executed[0].file
-        : '<NO_MIGRATIONS>';
-      const status = {
-        current,
-        executed: executed.map((m) => m.file),
-        pending: pending.map((m) => m.file),
-      };
-
-      logger.info(JSON.stringify(status, null, 2));
-
-      return { executed, pending };
-    });
+async function latest() {
+  await knex.migrate.latest(migrateConfig).spread((batchNo, log) => {
+    if (log.length === 0) {
+      logger.info('No migrations to run - you\'re up to date!');
+    }
+    else {
+      logger.info(`Batch ${batchNo} run: ${log.length} migrations \n`);
+      log.forEach((l) => logger.info(l));
+    }
+  });
 }
 
 
-function cmdMigrate() {
-  return umzug.up();
-}
-
-
-function cmdMigrateNext() {
-  return cmdStatus()
-    .then(({ executed, pending }) => {
-      if (pending.length === 0) {
-        return Promise.reject(new Error('No pending migrations'));
-      }
-      const next = pending[0].name;
-      return umzug.up({ to: next });
-    });
-}
-
-
-function cmdReset() {
-  return umzug.down({ to: 0 });
-}
-
-
-function cmdResetPrev() {
-  return cmdStatus()
-    .then(({ executed, pending }) => {
-      if (executed.length === 0) {
-        return Promise.reject(new Error('Already at initial state'));
-      }
-      const prev = executed[executed.length - 1].name;
-      return umzug.down({ to: prev });
-    });
+async function rollback() {
+  await knex.migrate.rollback(migrateConfig).spread((batchNo, log) => {
+    if (log.length === 0) {
+      logger.info('No migrations to run - you\'re up to date!');
+    }
+    else {
+      logger.info(`Batch ${batchNo} rolled back: ${log.length} migrations \n`);
+      log.forEach((l) => logger.info(l));
+    }
+  });
 }
 
 
@@ -118,32 +61,18 @@ export default function migrate(cmd) {
   logger.info(`${cmd.toUpperCase()} BEGIN`);
 
   switch (cmd) {
-    case 'status':
-      executedCmd = cmdStatus();
+    case 'make':
+      executedCmd = make();
       break;
-
-    case 'up':
-    case 'migrate':
-      executedCmd = cmdMigrate();
+    case 'latest':
+      executedCmd = latest();
       break;
-
-    case 'next':
-    case 'migrate-next':
-      executedCmd = cmdMigrateNext();
-      break;
-
-    case 'down':
-    case 'reset':
-      executedCmd = cmdReset();
-      break;
-
-    case 'prev':
-    case 'reset-prev':
-      executedCmd = cmdResetPrev();
+    case 'rollback':
+      executedCmd = rollback();
       break;
 
     default:
-      logger.info(`invalid cmd: ${cmd}`);
+      logger.error(`invalid cmd: ${cmd}`);
       process.exit(1);
   }
 
@@ -161,12 +90,6 @@ export default function migrate(cmd) {
         logger.error(err);
         logger.error(err.stack);
         logger.error('='.repeat(errorStr.length));
-      })
-      .then(() => {
-        if (cmd !== 'status' && cmd !== 'reset-hard') {
-          return cmdStatus();
-        }
-        return Promise.resolve();
       })
       .then(() => {
         process.exit(0);

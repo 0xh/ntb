@@ -1,11 +1,6 @@
 import uuid4 from 'uuid/v4';
 
-import { createLogger } from '@turistforeningen/ntb-shared-utils';
-
 import statusMapper from '../lib/statusMapper';
-
-
-const logger = createLogger();
 
 
 async function mapping(obj, handler) {
@@ -16,7 +11,7 @@ async function mapping(obj, handler) {
   }
 
   res.picture = {
-    uuid: uuid4(),
+    id: uuid4(),
     idLegacyNtb: obj._id,
 
     description: (obj.beskrivelse || '').trim(),
@@ -44,10 +39,6 @@ async function mapping(obj, handler) {
 
     dataSource: 'legacy-ntb',
   };
-
-  // if (obj.tags) logger.debug([obj.tags, obj._id]);
-  // if (obj.navn && !obj.navn.startsWith('Bilde fra')) logger.debug([obj.navn, obj.beskrivelse, obj._id]);
-  // if (obj.fotograf.kreditering) debugger;
 
   return res;
 }

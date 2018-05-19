@@ -99,7 +99,7 @@ function setLinks(obj, res, handler) {
       }
 
       res.links.push({
-        uuid: uuid4(),
+        id: uuid4(),
         type: mapLinkType(link.type, res),
         title: link.tittel,
         url: link.url,
@@ -283,7 +283,7 @@ function setOpeningHours(obj, res, handler) {
   if (obj.privat && obj.privat.åpningstider) {
     obj.privat.åpningstider.forEach((o, idx) => {
       res.openingHours.push({
-        uuid: uuid4(),
+        id: uuid4(),
         allYear: o.helårs ? o.helårs.toLowerCase() === 'ja' : false,
         from: o.fra, // date
         to: o.til, // date
@@ -406,7 +406,7 @@ async function setEnglishTranslation(obj, res, handler) {
 
   if (obj.description) {
     res.english = {
-      uuid: uuid4(),
+      id: uuid4(),
       name: obj.navn || 'name missing',
       nameLowerCase: obj.navn ? obj.navn.toLowerCase() : 'name missing',
       cabinIdLegacyNtb: obj._id,
@@ -426,7 +426,7 @@ async function mapping(obj, handler) {
   }
 
   res.cabin = {
-    uuid: uuid4(),
+    id: uuid4(),
     idLegacyNtb: obj._id,
     idSsr: obj.ssr_id,
     maintainerIdGroupLegacyNtb: obj.privat && obj.privat.vedlikeholdes_av
@@ -452,20 +452,20 @@ async function mapping(obj, handler) {
     url: obj.url,
     yearOfConstruction: obj.byggeår,
 
-    coordinate: obj.geojson,
+    coordinates: obj.geojson,
 
     serviceLevel: mapServiceLevel(obj.betjeningsgrad, obj),
 
     bedsExtra: obj.senger && obj.senger.ekstra
       ? obj.senger.ekstra
       : 0,
-    bedsServiced: obj.senger && obj.senger.betjent
+    bedsStaffed: obj.senger && obj.senger.betjent
       ? obj.senger.betjent
       : 0,
     bedsSelfService: obj.senger && obj.senger.selvbetjent
       ? obj.senger.selvbetjent
       : 0,
-    bedsUnmanned: obj.senger && obj.senger.ubetjent
+    bedsNoService: obj.senger && obj.senger.ubetjent
       ? obj.senger.ubetjent
       : 0,
     bedsWinter: obj.senger && obj.senger.vinter

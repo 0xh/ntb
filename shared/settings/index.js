@@ -88,23 +88,11 @@ if (!_dbName) {
 
 // DB_POOL_MIN
 const _dbPoolMin =
-  +(settingsJson.DB_POOL_MIN || process.env.DB_POOL_MIN || 0);
+  +(settingsJson.DB_POOL_MIN || process.env.DB_POOL_MIN || 1);
 
 // DB_POOL_MAX
 const _dbPoolMax =
   +(settingsJson.DB_POOL_MAX || process.env.DB_POOL_MAX || 5);
-
-// DB_POOL_IDLE
-const _dbPoolIdle =
-  +(settingsJson.DB_POOL_IDLE || process.env.DB_POOL_IDLE || 10000);
-
-// DB_POOL_ACQUIRE
-const _dbPoolAcquire =
-  +(settingsJson.DB_POOL_ACQUIRE || process.env.DB_POOL_ACQUIRE || 10000);
-
-// DB_POOL_EVICT
-const _dbPoolEvict =
-  +(settingsJson.DB_POOL_EVICT || process.env.DB_POOL_EVICT || 10000);
 
 // DB_MIN_QUERY_TIME_FOR_LOGGING
 const _dbMinQueryTimeForLogging = +(
@@ -130,8 +118,5 @@ export const DB_PASSWORD = _dbPassword;
 export const DB_NAME = _dbName;
 export const DB_POOL_MIN = _dbPoolMin;
 export const DB_POOL_MAX = _dbPoolMax;
-export const DB_POOL_IDLE = _dbPoolIdle;
-export const DB_POOL_ACQUIRE = _dbPoolAcquire;
-export const DB_POOL_EVICT = _dbPoolEvict;
 
 export const DB_MIN_QUERY_TIME_FOR_LOGGING = _dbMinQueryTimeForLogging;

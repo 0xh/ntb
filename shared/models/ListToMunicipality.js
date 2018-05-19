@@ -1,27 +1,7 @@
-export default (sequelize, DataTypes) => {
-  const ListToMunicipality = sequelize.define('ListToMunicipality', {
-    listUuid: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      primaryKey: true,
-      validate: {
-        isUUID: 4,
-      },
-    },
+import BaseModel from './BaseModel';
 
-    municipalityUuid: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      primaryKey: true,
-      validate: {
-        isUUID: 4,
-      },
-    },
 
-    dataSource: { type: DataTypes.TEXT },
-  }, {
-    timestamps: true,
-  });
-
-  return ListToMunicipality;
-};
+export default class ListToMunicipality extends BaseModel {
+  static tableName = 'listsToMunicipalities';
+  static idColumn = ['listId', 'municipalityId'];
+}

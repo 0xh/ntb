@@ -1,20 +1,7 @@
-export default (sequelize, DataTypes) => {
-  const RouteToRouteWaymarkType = sequelize.define('RouteToRouteWaymarkType', {
-    routeWaymarkTypeName: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-      primaryKey: true,
-    },
-    routeUuid: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      primaryKey: true,
-    },
+import BaseModel from './BaseModel';
 
-    dataSource: { type: DataTypes.TEXT },
-  }, {
-    timestamps: false,
-  });
 
-  return RouteToRouteWaymarkType;
-};
+export default class RouteToRouteWaymarkType extends BaseModel {
+  static tableName = 'routesToRouteWaymarkTypes';
+  static idColumn = ['routeId', 'routeWaymarkTypeName'];
+}

@@ -1,42 +1,7 @@
-export default (sequelize, DataTypes) => {
-  const RouteToPoi = sequelize.define('RouteToPoi', {
-    routeUuid: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      primaryKey: true,
-      validate: {
-        isUUID: 4,
-      },
-    },
-
-    poiUuid: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      primaryKey: true,
-      validate: {
-        isUUID: 4,
-      },
-    },
-
-    dataSource: { type: DataTypes.TEXT },
-  }, {
-    timestamps: true,
-  });
+import BaseModel from './BaseModel';
 
 
-  // Associations
-
-  RouteToPoi.associate = (models) => {
-    models.RouteToPoi.belongsTo(models.Route, {
-      as: 'Route',
-      foreignKey: 'routeUuid',
-    });
-
-    models.RouteToPoi.belongsTo(models.Poi, {
-      as: 'Poi',
-      foreignKey: 'poiUuid',
-    });
-  };
-
-  return RouteToPoi;
-};
+export default class RouteToPoi extends BaseModel {
+  static tableName = 'routesToPois';
+  static idColumn = ['routeId', 'poiId'];
+}

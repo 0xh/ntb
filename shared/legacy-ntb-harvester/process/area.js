@@ -1,6 +1,10 @@
-import db from '@turistforeningen/ntb-shared-models';
-import { createLogger, startDuration, endDuration } from
-  '@turistforeningen/ntb-shared-utils';
+import {
+  createLogger,
+  startDuration,
+  endDuration,
+} from '@turistforeningen/ntb-shared-utils';
+import { knex, Model } from '@turistforeningen/ntb-shared-db-utils';
+import { geomFromGeoJSON } from '@turistforeningen/ntb-shared-gis-utils';
 
 import * as legacy from '../legacy-structure/';
 
@@ -10,6 +14,7 @@ const DATASOURCE_NAME = 'legacy-ntb';
 
 
 /**
+ *
  * Create temporary tables that will hold the processed data harvested from
  * legacy-ntb
  */
@@ -17,54 +22,68 @@ async function createTempTables(handler, first = false) {
   logger.info('Creating temporary tables');
   const durationId = startDuration();
 
-  const baseTableName = `_temp_legacy_ntb_harvest_${handler.timeStamp}`;
+  const baseTableName = `0_temp_legacy_ntb_harvest_${handler.timeStamp}`;
 
-  handler.areas.TempAreaModel = db.sequelize.define(`${baseTableName}_a`, {
-    uuid: { type: db.Sequelize.UUID, primaryKey: true },
-    idLegacyNtb: { type: db.Sequelize.TEXT },
-    name: { type: db.Sequelize.TEXT },
-    nameLowerCase: { type: db.Sequelize.TEXT },
-    description: { type: db.Sequelize.TEXT },
-    descriptionPlain: { type: db.Sequelize.TEXT },
-    geometry: { type: db.Sequelize.GEOMETRY },
-    map: { type: db.Sequelize.TEXT },
-    url: { type: db.Sequelize.TEXT },
-    license: { type: db.Sequelize.TEXT },
-    provider: { type: db.Sequelize.TEXT },
-    status: { type: db.Sequelize.TEXT },
-    dataSource: { type: db.Sequelize.TEXT },
-    updatedAt: { type: db.Sequelize.DATE },
-  }, {
-    timestamps: false,
-    tableName: `${baseTableName}_a`,
-  });
-  if (first) await handler.areas.TempAreaModel.sync();
+  let tableName = `${baseTableName}_areas`;
+  if (first) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.uuid('id')
+        .primary();
+      table.text('idLegacyNtb');
+      table.text('name');
+      table.text('nameLowerCase');
+      table.text('description');
+      table.text('descriptionPlain');
+      table.specificType('geometry', 'GEOMETRY');
+      table.text('map');
+      table.text('url');
+      table.text('license');
+      table.text('provider');
+      table.text('status');
+      table.text('dataSource');
 
-  handler.areas.TempAreaAreaModel = db.sequelize.define(
-    `${baseTableName}_aa`, {
-      parentLegacyId: { type: db.Sequelize.TEXT },
-      parentUuid: { type: db.Sequelize.UUID },
-      childLegacyId: { type: db.Sequelize.TEXT },
-      childUuid: { type: db.Sequelize.UUID },
-    }, {
-      timestamps: false,
-      tableName: `${baseTableName}_aa`,
-    }
-  );
-  if (first) await handler.areas.TempAreaAreaModel.sync();
+      table.timestamps(true, true);
+    });
+  }
 
-  handler.areas.TempAreaPicturesModel = db.sequelize.define(
-    `${baseTableName}_ap`, {
-      areaLegacyId: { type: db.Sequelize.TEXT },
-      areaUuid: { type: db.Sequelize.UUID },
-      pictureLegacyId: { type: db.Sequelize.TEXT },
-      sortIndex: { type: db.Sequelize.INTEGER },
-    }, {
-      timestamps: false,
-      tableName: `${baseTableName}_ap`,
-    }
-  );
-  if (first) await handler.areas.TempAreaPicturesModel.sync();
+  class TempAreaModel extends Model {
+    static tableName = tableName;
+  }
+  handler.areas.TempAreaModel = TempAreaModel;
+
+
+  tableName = `${baseTableName}_areasareas`;
+  if (first) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.text('parentLegacyId');
+      table.uuid('parentId');
+      table.text('childLegacyId');
+      table.uuid('childId');
+    });
+  }
+
+  class TempAreaAreaModel extends Model {
+    static tableName = tableName;
+    static idColumn = ['parentLegacyId', 'childLegacyId'];
+  }
+  handler.areas.TempAreaAreaModel = TempAreaAreaModel;
+
+
+  tableName = `${baseTableName}_areaspic`;
+  if (first) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.text('areaLegacyId');
+      table.uuid('areaId');
+      table.text('pictureLegacyId');
+      table.integer('sortIndex');
+    });
+  }
+
+  class TempAreaPicturesModel extends Model {
+    static tableName = tableName;
+    static idColumn = ['areaLegacyId', 'pictureLegacyId'];
+  }
+  handler.areas.TempAreaPicturesModel = TempAreaPicturesModel;
 
   endDuration(durationId);
 }
@@ -76,9 +95,10 @@ async function dropTempTables(handler) {
   logger.info('Dropping temporary tables');
   const durationId = startDuration();
 
-  await handler.areas.TempAreaModel.drop();
-  await handler.areas.TempAreaAreaModel.drop();
-  await handler.areas.TempAreaPicturesModel.drop();
+  await knex.schema
+    .dropTableIfExists(handler.areas.TempAreaModel.tableName)
+    .dropTableIfExists(handler.areas.TempAreaAreaModel.tableName)
+    .dropTableIfExists(handler.areas.TempAreaPicturesModel.tableName);
 
   endDuration(durationId);
 }
@@ -110,8 +130,16 @@ async function populateTempTables(handler) {
 
   logger.info('Inserting areas to temporary table');
   durationId = startDuration();
-  const areas = handler.areas.processed.map((p) => p.area);
-  await handler.areas.TempAreaModel.bulkCreate(areas);
+  const areas = handler.areas.processed.map((p) => {
+    const { area } = p;
+    if (area.geometry) {
+      area.geometry = geomFromGeoJSON(area.geometry);
+    }
+    return area;
+  });
+  await handler.areas.TempAreaModel
+    .query()
+    .insert(areas);
   endDuration(durationId);
 
   // Process data for counties, minucipalities and area relations
@@ -132,13 +160,17 @@ async function populateTempTables(handler) {
   // Insert temp data for AreaArea
   logger.info('Inserting area<>area to temporary table');
   durationId = startDuration();
-  await handler.areas.TempAreaAreaModel.bulkCreate(areaArea);
+  await handler.areas.TempAreaAreaModel
+    .query()
+    .insert(areaArea);
   endDuration(durationId);
 
   // Insert temp data for AreaArea
-  logger.info('Inserting area<>picture to temporary table');
+  logger.info('Inserting areas<>pictures to temporary table');
   durationId = startDuration();
-  await handler.areas.TempAreaPicturesModel.bulkCreate(pictures);
+  await handler.areas.TempAreaPicturesModel
+    .query()
+    .insert(pictures);
   endDuration(durationId);
 }
 
@@ -148,8 +180,8 @@ async function populateTempTables(handler) {
  */
 async function mergeAreas(handler) {
   const sql = [
-    'INSERT INTO area (',
-    '  uuid,',
+    'INSERT INTO areas (',
+    '  id,',
     '  id_legacy_ntb,',
     '  name,',
     '  name_lower_case,',
@@ -167,7 +199,7 @@ async function mergeAreas(handler) {
     '  updated_at',
     ')',
     'SELECT',
-    '  uuid,',
+    '  id,',
     '  id_legacy_ntb,',
     '  name,',
     '  name_lower_case,',
@@ -183,7 +215,7 @@ async function mergeAreas(handler) {
     '  1,',
     '  updated_at,',
     '  updated_at',
-    `FROM public.${handler.areas.TempAreaModel.tableName}`,
+    `FROM "public"."${handler.areas.TempAreaModel.tableName}"`,
     'ON CONFLICT (id_legacy_ntb) DO UPDATE',
     'SET',
     '  name = EXCLUDED.name,',
@@ -201,13 +233,13 @@ async function mergeAreas(handler) {
 
   logger.info('Creating or updating areas');
   const durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 }
 
 
 /**
- * Insert into `area_to_area`-table or update if it already exists
+ * Insert into `areas_to_areas`-table or update if it already exists
  */
 async function mergeAreaToArea(handler) {
   let sql;
@@ -215,41 +247,39 @@ async function mergeAreaToArea(handler) {
 
   // Set UUIDs on areaToArea temp data
   sql = [
-    `UPDATE public.${handler.areas.TempAreaAreaModel.tableName} a1 SET`,
-    '  child_uuid = a_child.uuid,',
-    '  parent_uuid = a_parent.uuid',
-    `FROM public.${handler.areas.TempAreaAreaModel.tableName} a2`,
-    'INNER JOIN public.area a_parent ON',
+    `UPDATE public."${handler.areas.TempAreaAreaModel.tableName}" a1 SET`,
+    '  child_id = a_child.id,',
+    '  parent_id = a_parent.id',
+    `FROM public."${handler.areas.TempAreaAreaModel.tableName}" a2`,
+    'INNER JOIN public.areas a_parent ON',
     '  a_parent.id_legacy_ntb = a2.parent_legacy_id',
-    'INNER JOIN public.area a_child ON',
+    'INNER JOIN public.areas a_child ON',
     '  a_child.id_legacy_ntb = a2.child_legacy_id',
     'WHERE',
     '  a1.child_legacy_id = a2.child_legacy_id AND',
     '  a1.parent_legacy_id = a2.parent_legacy_id',
   ].join('\n');
 
-  logger.info('Update uuids on area-to-area temp data');
+  logger.info('Update ids on area-to-area temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Merge into prod table
   sql = [
-    'INSERT INTO area_to_area (',
-    '  parent_uuid, child_uuid, data_source, created_at, updated_at',
+    'INSERT INTO areas_to_areas (',
+    '  parent_id, child_id, data_source, created_at, updated_at',
     ')',
     'SELECT',
-    '  parent_uuid, child_uuid, :data_source, now(), now()',
-    `FROM public.${handler.areas.TempAreaAreaModel.tableName}`,
-    'ON CONFLICT (parent_uuid, child_uuid) DO NOTHING',
+    '  parent_id, child_id, :data_source, now(), now()',
+    `FROM public."${handler.areas.TempAreaAreaModel.tableName}"`,
+    'ON CONFLICT (parent_id, child_id) DO NOTHING',
   ].join('\n');
 
   logger.info('Creating or updating area to area relations');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -260,31 +290,29 @@ async function mergeAreaToArea(handler) {
  */
 async function removeDepreactedAreaToArea(handler) {
   const sql = [
-    'DELETE FROM public.area_to_area',
-    'USING public.area_to_area a2a',
-    `LEFT JOIN public.${handler.areas.TempAreaAreaModel.tableName} te ON`,
-    '  a2a.parent_uuid = te.parent_uuid AND',
-    '  a2a.child_uuid = te.child_uuid',
+    'DELETE FROM public.areas_to_areas',
+    'USING public.areas_to_areas a2a',
+    `LEFT JOIN public."${handler.areas.TempAreaAreaModel.tableName}" te ON`,
+    '  a2a.parent_id = te.parent_id AND',
+    '  a2a.child_id = te.child_id',
     'WHERE',
-    '  te.child_uuid IS NULL AND',
+    '  te.child_id IS NULL AND',
     '  a2a.data_source = :data_source AND',
-    '  public.area_to_area.parent_uuid = a2a.parent_uuid AND',
-    '  public.area_to_area.child_uuid = a2a.child_uuid',
+    '  public.areas_to_areas.parent_id = a2a.parent_id AND',
+    '  public.areas_to_areas.child_id = a2a.child_id',
   ].join('\n');
 
   logger.info('Deleting deprecated area to area relations');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
 
 
 /**
- * Insert area uuid into `pictures`-table
+ * Insert area id into `pictures`-table
  */
 async function setAreaPictures(handler) {
   let sql;
@@ -293,39 +321,37 @@ async function setAreaPictures(handler) {
 
   // Set UUIDs on areaToArea temp data
   sql = [
-    `UPDATE public.${tableName} a1 SET`,
-    '  area_uuid = a.uuid',
-    `FROM public.${tableName} a2`,
-    'INNER JOIN public.area a ON',
+    `UPDATE "public"."${tableName}" a1 SET`,
+    '  area_id = a.id',
+    `FROM "public"."${tableName}" a2`,
+    'INNER JOIN public.areas a ON',
     '  a.id_legacy_ntb = a2.area_legacy_id',
     'WHERE',
     '  a1.area_legacy_id = a2.area_legacy_id AND',
     '  a1.picture_legacy_id = a2.picture_legacy_id',
   ].join('\n');
 
-  logger.info('Update uuids on area-to-picture temp data');
+  logger.info('Update id on area-to-picture temp data');
   durationId = startDuration();
-  await db.sequelize.query(sql);
+  await knex.raw(sql);
   endDuration(durationId);
 
   // Merge into prod table
   sql = [
-    'UPDATE picture p1 SET',
-    '  area_uuid = a.area_uuid,',
+    'UPDATE pictures p1 SET',
+    '  area_id = a.area_id,',
     '  sort_index = a.sort_index',
-    'FROM picture p2',
-    `INNER JOIN public.${tableName} a ON`,
+    'FROM pictures p2',
+    `INNER JOIN "public"."${tableName}" a ON`,
     '  a.picture_legacy_id = p2.id_legacy_ntb',
     'WHERE',
-    '  p1.uuid = p2.uuid',
+    '  p1.id = p2.id',
   ].join('\n');
 
-  logger.info('Setting area uuid on pictures');
+  logger.info('Setting area id on pictures');
   durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -337,23 +363,21 @@ async function setAreaPictures(handler) {
 async function removeDepreactedAreaPictures(handler) {
   const { tableName } = handler.areas.TempAreaPicturesModel;
   const sql = [
-    'DELETE FROM public.picture',
-    'USING public.picture p2',
-    `LEFT JOIN public.${tableName} te ON`,
+    'DELETE FROM public.pictures',
+    'USING public.pictures p2',
+    `LEFT JOIN "public"."${tableName}" te ON`,
     '  p2.id_legacy_ntb = te.picture_legacy_id',
     'WHERE',
     '  te.picture_legacy_id IS NULL AND',
-    '  p2.area_uuid IS NOT NULL AND',
+    '  p2.area_id IS NOT NULL AND',
     '  p2.data_source = :data_source AND',
-    '  public.picture.uuid = p2.uuid',
+    '  public.pictures.id = p2.id',
   ].join('\n');
 
   logger.info('Deleting deprecated area pictures');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
   });
   endDuration(durationId);
 }
@@ -365,25 +389,23 @@ async function removeDepreactedAreaPictures(handler) {
 async function removeDepreactedArea(handler) {
   const { tableName } = handler.areas.TempAreaModel;
   const sql = [
-    'UPDATE public.area a1 SET',
+    'UPDATE public.areas a1 SET',
     '  status = :status',
-    'FROM public.area a2',
-    `LEFT JOIN public.${tableName} t ON`,
+    'FROM public.areas a2',
+    `LEFT JOIN "public"."${tableName}" t ON`,
     '  t.id_legacy_ntb = a2.id_legacy_ntb',
     'WHERE',
     '  t.id_legacy_ntb IS NULL AND',
-    '  a1.uuid = a2.uuid AND',
+    '  a1.id = a2.id AND',
     '  a2.data_source = :data_source AND',
     '  a2.status != :status',
   ].join('\n');
 
   logger.info('Marking deprecated areas as deleted');
   const durationId = startDuration();
-  await db.sequelize.query(sql, {
-    replacements: {
-      data_source: DATASOURCE_NAME,
-      status: 'deleted',
-    },
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
+    status: 'deleted',
   });
   endDuration(durationId);
 }

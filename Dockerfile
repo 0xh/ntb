@@ -1,4 +1,4 @@
-FROM node:9.4.0-alpine
+FROM node:10.1.0-alpine
 
 # Add our user and group first to make sure their IDs get assigned consistently
 RUN addgroup -S app && adduser -S -g app app

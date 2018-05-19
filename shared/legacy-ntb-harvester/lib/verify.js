@@ -1,4 +1,4 @@
-import GJV from 'geojson-validation';
+import { validateGeojson } from '@turistforeningen/ntb-shared-gis-utils';
 
 import * as helpers from './helpers';
 
@@ -100,14 +100,13 @@ export default function verify(
       }
       // verify GeoJson data
       else if (type === 'geojson') {
-        GJV.valid(value, (valid, errs) => {
-          if (!valid) {
-            isValid = false;
-            log.errors.push(
-              `GeoJSON error on ID: ${id} - ${errs}`
-            );
-          }
-        });
+        const [valid, errs] = validateGeojson(value);
+        if (!valid) {
+          isValid = false;
+          log.errors.push(
+            `GeoJSON error on ID: ${id} - ${errs}`
+          );
+        }
       }
 
       // Log if not valid

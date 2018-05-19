@@ -65,7 +65,7 @@ function setLinks(obj, res, handler) {
     obj.lenker.forEach((link) => {
       if (link.url && !routeCodeLinks[res.route.code].includes(link.url)) {
         res.links.push({
-          uuid: uuid4(),
+          id: uuid4(),
           title: link.tittel,
           url: link.url,
           idRouteLegacyNtb: obj._id,
@@ -187,7 +187,7 @@ async function mapping(obj, handler) {
   }
 
   res.route = {
-    uuid: uuid4(),
+    id: uuid4(),
     idLegacyNtb: obj._id,
     isWinter: obj.rute.type !== 'Sommer',
     code: obj.rute.kode,
@@ -217,9 +217,6 @@ async function mapping(obj, handler) {
     durationDays: null,
 
     season: obj.sesong || [],
-
-    htgtGeneral: obj.adkomst,
-    htgtPublicTransport: obj.kollektiv,
 
     license: obj.lisens.toString(),
 
