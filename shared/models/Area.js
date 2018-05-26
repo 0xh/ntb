@@ -84,6 +84,8 @@ export default class Area extends BaseModel {
     },
   };
 
+  static APIEntryModel = true;
+
   static getAPIConfig() {
     const config = {};
 
@@ -144,11 +146,13 @@ export default class Area extends BaseModel {
       switch (field) {
         case 'uri':
           return null;
+        case 'areaRelatedAt': // Extra field from Cabin->CabinToArea->Area
+          return field;
         default:
           if (attrs.includes(field)) {
             return [field];
           }
-          throw new Error(`Unable to translate field ${field} on Area model`);
+          return null;
       }
     }).filter((field) => field !== null));
 

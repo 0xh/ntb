@@ -4,6 +4,12 @@ import BaseModel from './BaseModel';
 export default class Cabin extends BaseModel {
   static tableName = 'cabins';
   static idColumn = 'id';
+  static virtualAttributes = ['uri'];
+
+
+  get uri() {
+    return `cabin/${this.id}`;
+  }
 
 
   static relationMappings = {
@@ -14,11 +20,36 @@ export default class Cabin extends BaseModel {
         from: 'cabins.id',
         through: {
           modelClass: 'CabinToArea',
-          extra: { c2cCreatedAt: 'createdAt' },
           from: 'cabinsToAreas.cabinId',
           to: 'cabinsToAreas.areaId',
         },
         to: 'areas.id',
+      },
+    },
+    facilities: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Facility',
+      join: {
+        from: 'cabins.id',
+        through: {
+          modelClass: 'CabinFacility',
+          from: 'cabinFacilities.cabinId',
+          to: 'cabinFacilities.facilityName',
+        },
+        to: 'facilities.name',
+      },
+    },
+    accessabilities: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Accessability',
+      join: {
+        from: 'cabins.id',
+        through: {
+          modelClass: 'CabinAccessability',
+          from: 'cabinAccessabilities.cabinId',
+          to: 'cabinAccessabilities.facilityName',
+        },
+        to: 'accessabilities.name',
       },
     },
   };
@@ -87,6 +118,8 @@ export default class Cabin extends BaseModel {
   };
 
 
+  static APIEntryModel = true;
+
   static getAPIConfig() {
     const config = {};
 
@@ -145,12 +178,7 @@ export default class Cabin extends BaseModel {
         case 'uri':
           return null;
         default:
-          if (attrs.includes(field)) {
-            return [field];
-          }
-          throw new Error(
-            `Unable to translate field ${field} on ${this.name} model`
-          );
+          return null;
       }
     }).filter((field) => field !== null));
 

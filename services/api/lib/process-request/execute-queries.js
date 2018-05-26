@@ -620,16 +620,14 @@ async function OLD_executePaginatedMultiThroughAssociation(
 }
 
 
-function createPaginatedMultiThroughMainQuery(handler, identifiersByProp) {
-  const { queryOptions, relation, model } = handler;
+function createPaginatedMultiThroughSubQuery(handler, joinOnOuter = true) {
+  const { relation, model } = handler;
 
   // Create sub query
-  let subQuery = model
-    .query()
-    .alias('inner');
+  let query = model.query().alias('inner');
 
   // Join through table
-  subQuery = subQuery.innerJoin(relation.joinTable, function joinFn() {
+  query = query.innerJoin(relation.joinTable, function joinFn() {
     const join = this;
 
     // Filter on inner and join table attributes
@@ -641,18 +639,39 @@ function createPaginatedMultiThroughMainQuery(handler, identifiersByProp) {
     });
 
     // Filter from join table to outer table
-    relation.ownerProp.props.forEach((modelProp, idx) => {
-      const joinTableProp = relation.joinTableOwnerProp.props[idx];
-      const mProp = `"outer".${modelProp}`;
-      const jProp = `${relation.joinTable}.${joinTableProp}`;
-      join.on(mProp, '=', jProp);
-    });
+    if (joinOnOuter) {
+      relation.ownerProp.props.forEach((modelProp, idx) => {
+        const joinTableProp = relation.joinTableOwnerProp.props[idx];
+        const mProp = `"outer".${modelProp}`;
+        const jProp = `${relation.joinTable}.${joinTableProp}`;
+        join.on(mProp, '=', jProp);
+      });
+    }
   });
+
+  return query;
+}
+
+function createPaginatedMultiThroughMainQuery(handler, identifiersByProp) {
+  const { queryOptions, relation } = handler;
+
+  // Create sub query
+  let subQuery = createPaginatedMultiThroughSubQuery(handler, true);
 
   // Attributes to select
   if (queryOptions.attributes) {
+    const extras = {};
+
+    (relation.joinTableExtras || []).forEach((e) => {
+      extras[e.aliasProp] = e.joinTableCol;
+    });
     const attrs = queryOptions.attributes
-      .map((a) => `inner.${a}`);
+      .map((a) => {
+        if (Object.keys(extras).includes(a)) {
+          return `${relation.joinTable}.${extras[a]} AS ${a}`;
+        }
+        return `inner.${a}`;
+      });
     subQuery = subQuery.select(...attrs);
   }
 
@@ -701,12 +720,49 @@ function createPaginatedMultiThroughMainQuery(handler, identifiersByProp) {
     }
   });
 
+  // Debug
+  query.debug();
+
   return query;
 }
 
 
 function createPaginatedMultiThroughCountQuery(handler, identifiersByProp) {
+  const { relation } = handler;
 
+  // Create query
+  let query = createPaginatedMultiThroughSubQuery(handler, false);
+
+  const groupByProps = relation.joinTableOwnerProp.props
+    .map((p) => `${relation.joinTable}.${p}`);
+  const selectProps = groupByProps
+    .map((p, idx) => `${p} AS outerId${idx}`);
+
+  query = query
+    .select(...selectProps, knex.raw('COUNT(*) AS count'))
+    .groupBy(groupByProps);
+
+  // Filter on outer identifiers
+  Object.keys(identifiersByProp).forEach((ownerProp) => {
+    // Find the index of ownerProp
+    const idx = relation.ownerProp.props.indexOf(ownerProp);
+
+    // Map index to same index of join table
+    const prop = relation.joinTableOwnerProp.props[idx];
+
+    const identifiers = identifiersByProp[ownerProp];
+    if (!identifiers.length) {
+      query = query.whereNull(`${relation.joinTable}.${prop}`);
+    }
+    else {
+      query = query.whereIn(`${relation.joinTable}.${prop}`, identifiers);
+    }
+  });
+
+  // Debug
+  query.debug();
+
+  return query;
 }
 
 
@@ -715,7 +771,7 @@ async function executePaginatedMultiThrough(
   key,
   outerInstances
 ) {
-  const { relation } = handler;
+  const { relation, queryOptions } = handler;
   const includeInstances = [];
 
   // Find identifiers from outer instances
@@ -737,28 +793,62 @@ async function executePaginatedMultiThrough(
     return [];
   }
 
-  // Create queries
-  const mainQuery = createPaginatedMultiThroughMainQuery(
-    handler, identifiersByProp
-  );
-  const countQuery = createPaginatedMultiThroughCountQuery(
-    handler, identifiersByProp
-  );
+  // Create count query
+  const promises = [
+    createPaginatedMultiThroughCountQuery(
+      handler, identifiersByProp
+    ),
+  ];
 
-  // Debug
-  query.debug();
+  // Add main query if limit > 1
+  if (queryOptions.limit) {
+    promises.push(createPaginatedMultiThroughMainQuery(
+      handler, identifiersByProp
+    ));
+  }
 
   // Retrieve result
-  const rows = await query;
-
+  const [counts, rows] = await Promise.all(promises);
 
   const baseOpts = {
     limit: handler.queryOptions.limit,
     offset: handler.queryOptions.offset,
   };
 
-  // Map the results to the include model
-  rows.forEach((row) => {
+  // Map the rows to the include model
+  (rows || []).forEach((row) => {
+    // Find the main rows
+    const outers = outerInstances
+      .filter((instance) => (
+        relation.ownerProp.props
+          .map((p, idx) => instance[p] === row[`outerId${idx}`])
+          .every((e) => e)
+      ));
+    if (!outers || !outers.length) {
+      throw new Error('Unable to map include.row with outer.row');
+    }
+
+    const instance = relation.relatedModelClass
+      .fromJson(row, { skipValidation: true });
+
+    outers.forEach((outer) => {
+      if (!outer[relation.name]) {
+        outer[relation.name] = {
+          ...baseOpts,
+          rows: [],
+          count: 0,
+        };
+      }
+
+      outer[relation.name].rows.push(instance);
+    });
+
+    // Add instance for nested relations later
+    includeInstances.push(instance);
+  });
+
+  // Map the counts to the include model
+  counts.forEach((row) => {
     // Find the main rows
     const outers = outerInstances
       .filter((instance) => (
@@ -779,7 +869,7 @@ async function executePaginatedMultiThrough(
         };
       }
 
-      outer[relation.name].rows.push(row);
+      outer[relation.name].count = +row.count;
     });
   });
 
@@ -858,13 +948,13 @@ async function executeMainQuery(handler) {
     return {
       ...res,
       rows,
-      count,
+      count: +count,
     };
   }
 
   return {
     ...res,
-    count: await countQuery,
+    count: +(await countQuery),
   };
 }
 
@@ -939,22 +1029,21 @@ function formatResults(handler, results) {
 
     // Only return requested fields
     Object.keys(document).forEach((key) => {
-      const verifyFields = handler.fields.concat(handler.throughFields || []);
-      if (!verifyFields.includes(key)) {
+      if (!handler.fields.includes(key)) {
         delete document[key];
       }
     });
 
+
     // Process includes
-    // TODO(Ror): fix
-    // Object.keys(handler.relations).forEach((relationKey) => {
-    //   if (row._targetDocument[relationKey]) {
-    //     document[relationKey] = formatResults(
-    //       handler.include[relationKey],
-    //       row._targetDocument[relationKey]
-    //     );
-    //   }
-    // });
+    Object.keys(handler.relations).forEach((relationKey) => {
+      if (row[relationKey]) {
+        document[relationKey] = formatResults(
+          handler.relations[relationKey],
+          row[relationKey]
+        );
+      }
+    });
 
     documents.push(document);
   });

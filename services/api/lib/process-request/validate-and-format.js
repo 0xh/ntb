@@ -225,7 +225,7 @@ function validateLimit(requestObject, handler) {
 
     if (qLimit.value) {
       handler.errors.push(
-        `Invalid ${trace}${qLimit.originalKey} value "${qLimit.value}"`
+        `Invalid ${trace}${qLimit.originalKey} value '${qLimit.value}'`
       );
     }
   }
@@ -267,7 +267,7 @@ function validateOffset(requestObject, handler) {
     }
 
     handler.errors.push(
-      `Invalid ${trace}${qOffset.originalKey} value "${qOffset.value}"`
+      `Invalid ${trace}${qOffset.originalKey} value '${qOffset.value}'`
     );
   }
 
@@ -346,7 +346,7 @@ function setOrdering(handler) {
       if (!values.length) {
         handler.errors.push(
           `Invalid ${trace}${qOrder.originalKey} value ` +
-          `"${qOrder.errorReportingValue}"`
+          `'${qOrder.errorReportingValue}'`
         );
       }
       else {
@@ -358,9 +358,9 @@ function setOrdering(handler) {
           if (o.length !== 2) {
             handler.errors.push(
               `Invalid ${trace}${qOrder.originalKey} value ` +
-              `"${qOrder.errorReportingValue}"` +
-              `${values.length > 1 ? ` on "${orderExpression}".` : '. '}` +
-              'The correct format is "<field_name> asc|desc"'
+              `'${qOrder.errorReportingValue}'` +
+              `${values.length > 1 ? ` on '${orderExpression}'.` : '. '}` +
+              'The correct format is \'<field_name> asc|desc\''
             );
             valid = false;
           }
@@ -371,8 +371,8 @@ function setOrdering(handler) {
             if (!config.validOrderFields.includes(o[0])) {
               handler.errors.push(
                 `Invalid ${trace}${qOrder.originalKey} value ` +
-                `"${qOrder.errorReportingValue}"` +
-                `${values.length > 1 ? ` on "${orderExpression}".` : '. '}` +
+                `'${qOrder.errorReportingValue}'` +
+                `${values.length > 1 ? ` on '${orderExpression}'.` : '. '}` +
                 'The field name is not a valid order field.'
               );
               valid = false;
@@ -380,9 +380,9 @@ function setOrdering(handler) {
             if (o[1] !== 'asc' && o[1] !== 'desc') {
               handler.errors.push(
                 `Invalid ${trace}${qOrder.originalKey} value ` +
-                `"${qOrder.errorReportingValue}"` +
-                `${values.length > 1 ? ` on "${orderExpression}".` : '. '}` +
-                'The order direction must be either "asc" or "desc".'
+                `'${qOrder.errorReportingValue}'` +
+                `${values.length > 1 ? ` on '${orderExpression}'.` : '. '}` +
+                'The order direction must be either \'asc\' or \'desc\'.'
               );
               valid = false;
             }
@@ -410,10 +410,18 @@ function setFields(handler) {
     requestObject,
     trace,
     model,
+    relation,
   } = handler;
 
   const validFieldKeys = model.getBaseFields(handler.referrer);
   const validRelationKeys = Object.keys(model.relationMappings || {});
+
+  // Relation extra fields
+  if (relation && relation.joinTableExtras) {
+    relation.joinTableExtras.forEach((extra) => {
+      validFieldKeys.push(extra.aliasProp);
+    });
+  }
 
   // Set default fields
   handler.fields = config.defaultFields;
@@ -454,7 +462,7 @@ function setFields(handler) {
     if (!values.length) {
       handler.errors.push(
         `Invalid ${trace}${qFields.originalKey} value ` +
-        `"${qFields.errorReportingValue}"`
+        `'${qFields.errorReportingValue}'`
       );
     }
     else {
@@ -469,8 +477,8 @@ function setFields(handler) {
         ) {
           handler.errors.push(
             `Invalid ${trace}${qFields.originalKey} value ` +
-            `"${qFields.errorReportingValue}"` +
-            `${values.length > 1 ? ` on "${fieldExpression}". ` : '. '}` +
+            `'${qFields.errorReportingValue}'` +
+            `${values.length > 1 ? ` on '${fieldExpression}'. ` : '. '}` +
             'This is not a valid field.'
           );
           valid = false;
@@ -540,7 +548,7 @@ function validateIncludeKeys(handler) {
       ) {
         handler.errors.push(
           `Invalid query parameter: ${handler.trace}${rawKey}. ` +
-          `"${rawSubKey}" is not a valid filter on "${rawRelationKey}"."`
+          `'${rawSubKey}' is not a valid filter on '${rawRelationKey}'.`
         );
       }
       else if (
@@ -553,7 +561,7 @@ function validateIncludeKeys(handler) {
       ) {
         handler.errors.push(
           `Invalid query parameter: ${handler.trace}${rawKey}. ` +
-          `"${rawRelationKey}" is not included in fields."`
+          `'${rawRelationKey}' is not included in fields.`
         );
       }
     }

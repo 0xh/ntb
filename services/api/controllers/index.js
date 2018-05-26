@@ -3,7 +3,7 @@ import morgan from 'morgan';
 import _ from 'lodash';
 import expressParams from 'express-params';
 
-import db from '@turistforeningen/ntb-shared-models';
+import * as Models from '@turistforeningen/ntb-shared-models';
 
 import processRequest from '../lib/process-request';
 import asyncHandler from '../lib/express-async-handler';
@@ -59,7 +59,7 @@ router.get('/robots.txt', (req, res, next) => {
 
 
 // Add entry models
-Object.values(db.sequelize.models).forEach((model) => {
+Object.values(Models).forEach((model) => {
   if (model.APIEntryModel) {
     const name = _.snakeCase(model.name);
     console.log('******', name);  // eslint-disable-line
