@@ -30,7 +30,6 @@ export default class Area extends BaseModel {
         from: 'areas.id',
         through: {
           modelClass: 'AreaToArea',
-          extra: { a2aCreatedAt: 'createdAt' },
           from: 'areasToAreas.parentId',
           to: 'areasToAreas.childId',
         },
@@ -141,20 +140,12 @@ export default class Area extends BaseModel {
 
 
   static getAPIFieldsToAttributes(referrer, fields) {
-    const attrs = this.getBaseFields(referrer);
-    const attributes = [].concat(...fields.map((field) => {
-      switch (field) {
-        case 'uri':
-          return null;
-        case 'areaRelatedAt': // Extra field from Cabin->CabinToArea->Area
-          return field;
-        default:
-          if (attrs.includes(field)) {
-            return [field];
-          }
-          return null;
-      }
-    }).filter((field) => field !== null));
+    const extra = {
+      // Related extra field from Cabin
+      areaRelatedAt: 'areaRelatedAt',
+    };
+
+    const attributes = super.getAPIFieldsToAttributes(referrer, fields, extra);
 
     return attributes;
   }

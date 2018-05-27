@@ -68,10 +68,10 @@ export function printDone(m1 = 'a', m2 = 'b', clearMarks = true, comment) {
 /**
  * Start a duration timer and return the mark id
  */
-export function startDuration() {
-  const mark = uuid4();
-  performance.mark(mark);
-  return mark;
+export function startDuration(mark) {
+  const markId = mark || uuid4();
+  performance.mark(markId);
+  return markId;
 }
 
 

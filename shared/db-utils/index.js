@@ -1,11 +1,20 @@
 import _ from 'lodash';
 
+import * as settings from '@turistforeningen/ntb-shared-settings';
+import {
+  startDuration,
+  endDuration,
+  printDone,
+  createLogger,
+} from '@turistforeningen/ntb-shared-utils';
+
 import _Knex from 'knex';
 import { Model as _Model, AjvValidator as _AjvValidator } from 'objection';
 import { knexIdentifierMappers } from 'objection/lib/utils/identifierMapping';
 import knexPostgis from 'knex-postgis';
 
-import * as settings from '@turistforeningen/ntb-shared-settings';
+
+const logger = createLogger();
 
 
 // ##################################
@@ -34,6 +43,7 @@ export const knexConfig = {
     max: settings.DB_POOL_MAX,
     min: settings.DB_POOL_MIN,
   },
+  // debug: true,
 
   // Use lodash to set correct identifier case.
   // We use lodash and not the ObjectionJS internal one in order to be sure
@@ -50,6 +60,25 @@ export const knex = Knex(knexConfig);
 
 // Install postgis function
 knexPostgis(knex);
+
+
+knex.on('query', (data) => {
+  logger.debug('Query start');
+  logger.debug(data.sql);
+  startDuration(data.__knexQueryUid);
+});
+
+
+knex.on('query-error', (data) => {
+  logger.debug('Query failed');
+  endDuration(data.__knexQueryUid);
+});
+
+
+knex.on('query-response', (data) => {
+  logger.debug('Query success');
+  endDuration(data.__knexQueryUid);
+});
 
 
 // Give the knex object to objection.

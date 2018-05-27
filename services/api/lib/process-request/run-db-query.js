@@ -35,9 +35,6 @@ export default async function (model, queryOptions, count = false) {
     query = query.offset(queryOptions.offset);
   }
 
-  // Dbugging
-  query.debug(true);
-
 
   // Wait for query to finish
   const res = await query;

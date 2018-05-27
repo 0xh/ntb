@@ -33,6 +33,7 @@ export default class Cabin extends BaseModel {
         from: 'cabins.id',
         through: {
           modelClass: 'CabinFacility',
+          extra: { cabinFacilityDescription: 'description' },
           from: 'cabinFacilities.cabinId',
           to: 'cabinFacilities.facilityName',
         },
@@ -46,10 +47,35 @@ export default class Cabin extends BaseModel {
         from: 'cabins.id',
         through: {
           modelClass: 'CabinAccessability',
+          extra: { cabinAccessabilityDescription: 'description' },
           from: 'cabinAccessabilities.cabinId',
-          to: 'cabinAccessabilities.facilityName',
+          to: 'cabinAccessabilities.accessabilityName',
         },
         to: 'accessabilities.name',
+      },
+    },
+    ownerGroup: {
+      relation: BaseModel.BelongsToOneRelation,
+      modelClass: 'Group',
+      join: {
+        from: 'cabins.ownerGroupId',
+        to: 'groups.id',
+      },
+    },
+    contactGroup: {
+      relation: BaseModel.BelongsToOneRelation,
+      modelClass: 'Group',
+      join: {
+        from: 'cabins.contactGroupId',
+        to: 'groups.id',
+      },
+    },
+    maintainerGroup: {
+      relation: BaseModel.BelongsToOneRelation,
+      modelClass: 'Group',
+      join: {
+        from: 'cabins.maintainerGroupId',
+        to: 'groups.id',
       },
     },
   };
@@ -68,7 +94,7 @@ export default class Cabin extends BaseModel {
     properties: {
       uri: { type: 'text', readOnly: true },
       id: { format: 'uuid', readOnly: true },
-      idLegacyNtb: { type: 'text', readOnly: true },
+      idLegacyNtb: { type: 'text', readOnly: true, noApiReturn: true },
       dntCabin: { type: 'boolean', default: false },
       dntDiscount: { type: 'boolean', default: false },
       name: { type: 'text', minLength: 2, maxLength: 100 },
@@ -120,6 +146,7 @@ export default class Cabin extends BaseModel {
 
   static APIEntryModel = true;
 
+
   static getAPIConfig() {
     const config = {};
 
@@ -149,10 +176,14 @@ export default class Cabin extends BaseModel {
         'status',
         'updatedAt',
       ],
-      defaultRelations: [],
+      defaultRelations: [
+        'ownerGroup',
+        'contactGroup',
+        'maintainerGroup',
+      ],
     };
 
-    // Default configuration when included from another model
+    // Default configuration when an instance in accessed directly
     config['*single'] = config['*list'];
 
     // Default configuration when included from another model
@@ -167,20 +198,26 @@ export default class Cabin extends BaseModel {
       defaultRelations: [],
     };
 
+    // Configuration when included through Accessability.cabins
+    config['Accessability.cabins'] = {
+      ...config.default,
+      defaultFields: [
+        ...config.default.defaultFields,
+        'cabinAccessabilityDescription',
+      ],
+    };
+
     return config;
   }
 
 
   static getAPIFieldsToAttributes(referrer, fields) {
-    const attrs = this.getBaseFields(referrer);
-    const attributes = [].concat(...fields.map((field) => {
-      switch (field) {
-        case 'uri':
-          return null;
-        default:
-          return null;
-      }
-    }).filter((field) => field !== null));
+    const extra = {
+      // Related extra field from Accessability
+      cabinAccessabilityDescription: 'cabinAccessabilityDescription',
+    };
+
+    const attributes = super.getAPIFieldsToAttributes(referrer, fields, extra);
 
     return attributes;
   }

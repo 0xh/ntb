@@ -9,23 +9,47 @@ import documentStatusSchema from './schemas/document-status';
 export default class BaseModel extends Model {
   static modelPaths = [__dirname];
 
-  static getBaseFields(referrers) {
+  static getBaseFields(referrers, includeNoReturn = false) {
     const schema = this.jsonSchema || { properties: {} };
     return Object.keys(schema.properties)
       .filter((f) => {
-        if (!f.availableForReferrers) {
+        const filter = schema.properties[f];
+
+        if (filter.noApiReturn && !includeNoReturn) {
+          return false;
+        }
+
+        if (!filter.availableForReferrers) {
           return true;
         }
 
         let found = false;
         referrers.forEach((referrer) => {
-          if (f.availableForReferrers.includes(referrer)) {
+          if (filter.availableForReferrers.includes(referrer)) {
             found = true;
           }
         });
 
         return found;
       });
+  }
+
+  static getAPIFieldsToAttributes(referrer, fields, extra = {}) {
+    const attrs = this.getBaseFields(referrer, true);
+    const attributes = [].concat(...fields.map((field) => {
+      if (field === 'uri') {
+        return null;
+      }
+      if (attrs.includes(field)) {
+        return [field];
+      }
+      if (extra[field]) {
+        return extra[field];
+      }
+      return null;
+    }).filter((field) => field !== null));
+
+    return attributes;
   }
 
   static createValidator() {
