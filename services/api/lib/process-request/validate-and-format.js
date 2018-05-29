@@ -4,7 +4,6 @@ import {
   isNumber,
   isObject,
 } from '@turistforeningen/ntb-shared-utils';
-import * as models from '@turistforeningen/ntb-shared-models';
 
 import validateAndProcessFilters from './validate-and-process-filters';
 
@@ -32,6 +31,9 @@ function getAPIConfig(model, referrer) {
   if (!selectedConfig) {
     selectedConfig = apiConfig.default;
   }
+
+  // Set some defaults
+  selectedConfig.validRelationFilters = {};
 
   return selectedConfig;
 }
@@ -68,6 +70,7 @@ function setValidKeys(handler) {
   let validKeys = ['fields'];
   const validDotKeys = [];
   const { config, association, model } = handler;
+  const relations = model.getRelations();
   const associationType = association
     ? association.associationType
     : null;
@@ -92,52 +95,54 @@ function setValidKeys(handler) {
   }
 
   // Relation keys
-  Object.keys(model.relationMappings || {}).forEach((key) => {
+  Object.keys(relations || {}).forEach((key) => {
     validKeys.push(key);
     validDotKeys.push(key);
   });
 
   // Filter keys
-  const validFilters = { self: [], includes: {} };
-  // if (!handler.id) {
-  //   validFilters.self = Object.keys((handler.config.validFilters || {}));
+  const validFilters = { self: [], relations: {} };
+  if (!handler.id) {
+    validFilters.self = Object.keys((handler.config.validFilters || {}));
 
-  //   // Valid relation filters
-  //   Object.keys(config.include || {}).forEach((key) => {
-  //     const referrer = getNextReferrerId(handler, key);
-  //     const associationName = config.include[key].association;
-  //     const model = handler.model.associations[associationName].target;
-  //     const includeAPIConfig = getAPIConfig(model, referrer);
-  //     const validIncludeFilters = Object.keys(
-  //       includeAPIConfig.validFilters || {}
-  //     );
+    // Valid relation filters
+    Object.keys(relations || {}).forEach((key) => {
+      const relation = relations[key];
+      const referrer = getNextReferrerId(handler, key);
+      const relatedModel = relation.relatedModelClass;
+      const relationAPIConfig = getAPIConfig(relatedModel, referrer);
+      const validIncludeFilters = Object.keys(
+        relationAPIConfig.validFilters || {}
+      );
 
-  //     if (validIncludeFilters.length) {
-  //       validFilters.includes[key] = validIncludeFilters;
-  //     }
-  //   });
+      if (validIncludeFilters.length) {
+        validFilters.relations[key] = validIncludeFilters;
+        handler.config.validRelationFilters[key] =
+          relationAPIConfig.validFilters;
+      }
+    });
 
-  //   // Enable `df` if this is an associated reference (not main entry model)
-  //   if (
-  //     handler.usExpressJSRequestObject
-  //     && handler.association
-  //     && validFilters.self.length
-  //   ) {
-  //     validKeys.push('df');
-  //     validDotKeys.push('df');
-  //   }
-  //   // Enable keys for all named filters on model
-  //   else if (handler.usExpressJSRequestObject) {
-  //     validKeys = validKeys.concat(validFilters.self);
-  //   }
-  //   // If it's a structured object, enable the `filters` key
-  //   else if (
-  //     validFilters.self.length
-  //     || Object.keys(validFilters.includes).length
-  //   ) {
-  //     validKeys.push('filters');
-  //   }
-  // }
+    // Enable `df` if this is an associated reference (not main entry model)
+    if (
+      handler.usExpressJSRequestObject
+      && handler.relation
+      && validFilters.self.length
+    ) {
+      validKeys.push('df');
+      validDotKeys.push('df');
+    }
+    // Enable keys for all named filters on model
+    else if (handler.usExpressJSRequestObject) {
+      validKeys = validKeys.concat(validFilters.self);
+    }
+    // If it's a structured object, enable the `filters` key
+    else if (
+      validFilters.self.length
+      || Object.keys(validFilters.relations).length
+    ) {
+      validKeys.push('filters');
+    }
+  }
 
   handler.validKeys = validKeys;
   handler.validDotKeys = validDotKeys;
@@ -151,7 +156,6 @@ function setValidKeys(handler) {
  */
 function validateKeys(handler) {
   const keys = Object.keys(handler.requestObject);
-
   keys.forEach((rawKey) => {
     const key = _.camelCase(rawKey.split('.', 1)[0].toLowerCase().trim());
     if (
@@ -504,17 +508,30 @@ function setFields(handler) {
 
 function setFilters(handler) {
   if (handler.id) {
+    if (Array.isArray(handler.model.idColumn)) {
+      throw new Error('Multi-column IDs are not supported here');
+    }
+
     handler.queryOptions.where = {
-      uuid: handler.id,
+      $and: [
+        {
+          whereType: 'where',
+          options: [
+            `[[MODEL-TABLE]].${handler.model.idColumn}`,
+            '=',
+            handler.id,
+          ],
+        },
+      ],
     };
     return;
   }
 
-  // validateAndProcessFilters(handler);
+  validateAndProcessFilters(handler);
 }
 
 
-function validateIncludeKeys(handler) {
+function validateRelationKeys(handler) {
   const keys = Object.keys(handler.requestObject);
   const { model } = handler;
 
@@ -543,8 +560,8 @@ function validateIncludeKeys(handler) {
         && subKey.length
         && !['limit', 'offset', 'order', 'df'].includes(subKey)
         && !handler.relationFields.includes(key)
-        && Object.keys(handler.validFilters.includes).includes(key)
-        && !handler.validFilters.includes[key].includes(subKey)
+        && Object.keys(handler.validFilters.relations).includes(key)
+        && !handler.validFilters.relations[key].includes(subKey)
       ) {
         handler.errors.push(
           `Invalid query parameter: ${handler.trace}${rawKey}. ` +
@@ -648,7 +665,7 @@ function setRelations(handler) {
  * @param {object} handler
  * @param {key} key
  */
-function getIncludeQueryObject(handler, key) {
+function getRelationQueryObject(handler, key) {
   let extendQueryObject = {};
   const values = getKeyValue(handler.requestObject, key);
   const snakedKey = _.snakeCase(key);
@@ -666,11 +683,15 @@ function getIncludeQueryObject(handler, key) {
         const prefix = `${snakedKey}.`;
         if (value.originalKey.startsWith(prefix)) {
           const subKey = value.originalKey.substr(prefix.length);
+          const camelCasedSubKey = subKey
+            .split('.')
+            .map((k) => _.camelCase(k))
+            .join('.');
 
-          // If it's not a valid include-filter on the current model
+          // If it's not a valid relation-filter on the current model
           if (
-            !Object.keys(handler.validFilters.includes).includes(key)
-            || !handler.validFilters.includes[key].includes(subKey)
+            !Object.keys(handler.validFilters.relations).includes(key)
+            || !handler.validFilters.relations[key].includes(camelCasedSubKey)
           ) {
             extendQueryObject[subKey] = value.value;
           }
@@ -752,21 +773,21 @@ function processRequestParameters(referrer, handler) {
   setOrdering(handler);
   setFields(handler);
   setFilters(handler);
-  validateIncludeKeys(handler);
+  validateRelationKeys(handler);
   setRelations(handler);
 
   // Update queryOptions with relations and recursive request parameter
   // processing
   if (Object.keys(handler.relations).length) {
     Object.keys(handler.relations).forEach((key) => {
-      const extendQueryObject = getIncludeQueryObject(handler, key);
+      const extendQueryObject = getRelationQueryObject(handler, key);
 
       const extendHandler = getDefaultHandler(
         handler.relations[key].relatedModelClass,
         extendQueryObject,
         handler.usExpressJSRequestObject,
         handler.errors,
-        `${handler.trace}${key}.`
+        `${handler.trace}${_.snakeCase(key)}.`
       );
 
       const relations = handler.model.getRelations();

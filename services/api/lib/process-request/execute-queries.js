@@ -1,10 +1,95 @@
 import _ from 'lodash';
 
-import { isObject } from '@turistforeningen/ntb-shared-utils';
+import { isObject, isString } from '@turistforeningen/ntb-shared-utils';
 import { knex } from '@turistforeningen/ntb-shared-db-utils';
 import { BaseModel } from '@turistforeningen/ntb-shared-models';
 
-import runDBQuery from './run-db-query';
+
+function addJoins(queryInstance, model, modelAlias, queryOptions) {
+  let query = queryInstance;
+  const relations = model.getRelations();
+  queryOptions.relations.forEach((relationOptions) => {
+    const { relationKey } = relationOptions;
+    const relation = relations[relationKey];
+
+    // Join the through table if set
+    if (relation.joinTable) {
+      query = query.leftJoin(
+        `${relation.joinTable}`,
+        function joinFn() {
+          const join = this;
+
+          // Filter from model table to related table
+          relation.ownerProp.props.forEach((modelProp, idx) => {
+            const joinProp = relation.joinTableOwnerProp.props[idx];
+            const mProp = `${modelAlias}."${modelProp}"`;
+            const jProp = `${relation.joinTable}."${joinProp}"`;
+            join.on(mProp, '=', jProp);
+          });
+        }
+      );
+    }
+
+    query = query.leftJoin(
+      `${relation.relatedModelClass.tableName} as ${relationKey}`,
+      function joinFn() {
+        const join = this;
+
+        // Join with the through table if set
+        if (relation.joinTable) {
+          relation.joinTableRelatedProp.props.forEach((joinProp, idx) => {
+            const relatedProp = relation.relatedProp.props[idx];
+            const jProp = `${relation.joinTable}."${joinProp}"`;
+            const rProp = `${relationKey}."${relatedProp}"`;
+            join.on(jProp, '=', rProp);
+          });
+        }
+        // Join from model table to related table
+        else {
+          relation.ownerProp.props.forEach((modelProp, idx) => {
+            const relatedProp = relation.relatedProp.props[idx];
+            const mProp = `${modelAlias}."${modelProp}"`;
+            const rProp = `${relationKey}."${relatedProp}"`;
+            join.on(mProp, '=', rProp);
+          });
+        }
+      }
+    );
+  });
+
+  return query;
+}
+
+
+function setFilters(queryInstance, modelAlias, baseFilters) {
+  const and = !!baseFilters.$and;
+  const filters = baseFilters.$and || baseFilters.$or;
+  const baseWhere = and ? 'where' : 'orWhere';
+
+  const query = queryInstance[baseWhere](function whereFn() {
+    const w = this;
+    filters.forEach((filter) => {
+      if (filter.$and || filter.$or) {
+        w[baseWhere](function nestedWhereFn() {
+          setFilters(this, modelAlias, filter);
+        });
+      }
+      else {
+        const whereType = filter.whereType.replace('where', baseWhere);
+        const modelRef = whereType.endsWith('Raw')
+          ? _.snakeCase(modelAlias)
+          : modelAlias;
+        const options = filter.options
+          .map((o) => (
+            isString(o) ? o.replace('[[MODEL-TABLE]]', modelRef) : o
+          ));
+        w[whereType](...options);
+      }
+    });
+  });
+
+  return query;
+}
 
 
 function findIdentifiersForThroughRelations(relation, outerInstances) {
@@ -582,6 +667,16 @@ async function executeSingleOrMultiRelation(
     }
   );
 
+  // Add relations joins (for filters and eager loading)
+  if (queryOptions.relations) {
+    query = addJoins(query, model, model.tableName, queryOptions);
+  }
+
+  // Filters
+  if (queryOptions.where) {
+    query = setFilters(query, model.tableName, queryOptions.where);
+  }
+
   // Set ordering
   if (queryOptions.order && queryOptions.order.length) {
     queryOptions.order.forEach((order) => {
@@ -637,11 +732,10 @@ async function executeSingleOrMultiRelation(
 
 
 async function executePaginatedMultiRelation(handler, key, outerInstances) {
-  const { relation, model, queryOptions } = handler;
+  const { relation, queryOptions } = handler;
   const includeInstances = [];
 
   // Set owner table id columns
-  const ownerTableName = relation.ownerModelClass.tableName;
   const ownerIdColumns = Array.isArray(relation.ownerModelClass.idColumn)
     ? relation.ownerModelClass.idColumn
     : [relation.ownerModelClass.idColumn];
@@ -827,6 +921,65 @@ async function executeRelationQueries(handler, outerInstances) {
 }
 
 
+async function executeMainQueryPart(model, queryOptions, count = false) {
+  let query = model.query();
+
+  // Attributes to select if it's a count query
+  if (count) {
+    query = query.count({ count: '*' });
+  }
+
+  // Attributes to select if it's not a count query
+  if (queryOptions.attributes && !count) {
+    const attrs = queryOptions.attributes
+      .map((a) => `${model.tableName}.${a}`);
+    query = query.select(...attrs);
+  }
+
+  // Joins
+  if (queryOptions.relations) {
+    query = addJoins(query, model, model.tableName, queryOptions);
+  }
+
+  // Filters
+  if (queryOptions.where) {
+    query = setFilters(query, model.tableName, queryOptions.where);
+  }
+
+  // Set ordering
+  if (queryOptions.order && queryOptions.order.length && !count) {
+    queryOptions.order.forEach((order) => {
+      query = query.orderBy(order[0], order[1]);
+    });
+  }
+
+  // Set limit
+  if (queryOptions.limit && !count) {
+    query = query.limit(queryOptions.limit);
+  }
+
+  // Set offset
+  if (queryOptions.offset && !count) {
+    query = query.offset(queryOptions.offset);
+  }
+
+
+  // Wait for query to finish
+  const res = await query;
+
+  // Return count
+  if (count) {
+    if (res.length && res[0].count) {
+      return res[0].count;
+    }
+    return 0;
+  }
+
+  // Return rows
+  return res;
+}
+
+
 async function executeMainQuery(handler) {
   const res = {
     limit: handler.queryOptions.limit,
@@ -835,11 +988,13 @@ async function executeMainQuery(handler) {
     count: 0,
   };
 
-  const countQuery = runDBQuery(handler.model, handler.queryOptions, true);
+  const countQuery = executeMainQueryPart(
+    handler.model, handler.queryOptions, true
+  );
 
 
   if (handler.queryOptions.limit > 0 || !handler.config.paginate) {
-    const rowQuery = runDBQuery(handler.model, handler.queryOptions);
+    const rowQuery = executeMainQueryPart(handler.model, handler.queryOptions);
 
     const [rows, count] = await Promise.all([rowQuery, countQuery]);
 

@@ -1,5 +1,5 @@
 export default {
-  type: 'text',
+  type: 'string',
   enum: [
     'private',
     'draft',

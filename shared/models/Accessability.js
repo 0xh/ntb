@@ -40,9 +40,9 @@ export default class Accessability extends BaseModel {
     ],
 
     properties: {
-      uri: { type: 'text', readOnly: true },
-      name: { format: 'text' },
-      description: { format: 'text' },
+      uri: { type: 'string', readOnly: true },
+      name: { type: 'string' },
+      description: { type: 'string' },
     },
   };
 
@@ -59,6 +59,9 @@ export default class Accessability extends BaseModel {
       ordering: false,
       defaultOrder: [['name', 'ASC']],
       validOrderFields: ['name'],
+      validFilters: {
+        name: {},
+      },
       defaultFields: [
         'name',
         'description',

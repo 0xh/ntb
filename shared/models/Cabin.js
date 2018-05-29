@@ -1,4 +1,5 @@
 import BaseModel from './BaseModel';
+import DocumentStatusSchema from './schemas/document-status';
 
 
 export default class Cabin extends BaseModel {
@@ -92,52 +93,52 @@ export default class Cabin extends BaseModel {
     ],
 
     properties: {
-      uri: { type: 'text', readOnly: true },
-      id: { format: 'uuid', readOnly: true },
-      idLegacyNtb: { type: 'text', readOnly: true, noApiReturn: true },
+      uri: { type: 'string', readOnly: true },
+      id: { type: 'string', format: 'uuid', readOnly: true },
+      idLegacyNtb: { type: 'string', readOnly: true, noApiReturn: true },
       dntCabin: { type: 'boolean', default: false },
       dntDiscount: { type: 'boolean', default: false },
-      name: { type: 'text', minLength: 2, maxLength: 100 },
+      name: { type: 'string', minLength: 2, maxLength: 100 },
       nameAlt: {
         type: 'array',
         items: [
           {
-            type: 'text',
+            type: 'string',
             minLength: 2,
             maxLength: 100,
           },
         ],
       },
-      description: { type: 'text', maxLength: 100000 },
+      description: { type: 'string', maxLength: 100000 },
       contact: {
         type: 'object',
         properties: {
-          contactName: { type: 'text', maxLength: 100 },
-          email: { type: 'text', format: 'email', maxLength: 100 },
-          phone: { type: 'text', maxLength: 100 },
-          mobile: { type: 'text', maxLength: 100 },
-          fax: { type: 'text', maxLength: 100 },
-          address1: { type: 'text', maxLength: 100 },
-          address2: { type: 'text', maxLength: 100 },
-          postalCode: { type: 'text', maxLength: 100 },
-          postalName: { type: 'text', maxLength: 100 },
+          contactName: { type: 'string', maxLength: 100 },
+          email: { type: 'string', format: 'email', maxLength: 100 },
+          phone: { type: 'string', maxLength: 100 },
+          mobile: { type: 'string', maxLength: 100 },
+          fax: { type: 'string', maxLength: 100 },
+          address1: { type: 'string', maxLength: 100 },
+          address2: { type: 'string', maxLength: 100 },
+          postalCode: { type: 'string', maxLength: 100 },
+          postalName: { type: 'string', maxLength: 100 },
         },
       },
-      url: { type: 'text', maxLength: 100 },
-      yearOfConstruction: { type: 'text', maxLength: 100 },
+      url: { type: 'string', maxLength: 100 },
+      yearOfConstruction: { type: 'string', maxLength: 100 },
       coordinates: { type: 'object' },
-      map: { type: 'text', maxLength: 300 },
-      mapAlt: { type: 'array', items: [{ type: 'text', maxLength: 400 }] },
+      map: { type: 'string', maxLength: 300 },
+      mapAlt: { type: 'array', items: [{ type: 'string', maxLength: 400 }] },
       c2aCreatedAt: {
-        format: 'date',
+        type: 'string',
         readOnly: true,
         availableForReferrers: [
           'Area.children',
         ],
       },
-      license: { type: 'text', maxLength: 300 },
-      provider: { type: 'text', maxLength: 300, readOnly: true },
-      status: { $ref: 'DocumentStatus' },
+      license: { type: 'string', maxLength: 300 },
+      provider: { type: 'string', maxLength: 300, readOnly: true },
+      status: { ...DocumentStatusSchema },
       updatedAt: { format: 'date', readOnly: true },
       createdAt: { format: 'date', readOnly: true },
     },
@@ -163,6 +164,17 @@ export default class Cabin extends BaseModel {
         'updatedAt',
         'createdAt',
       ],
+      validFilters: {
+        id: {},
+        dntCabin: {},
+        dntDiscount: {},
+        name: {},
+        provider: {},
+        status: {},
+        coordinates: {
+          geojsonType: 'point',
+        },
+      },
       defaultOrder: [['name', 'ASC']],
       defaultFields: [
         'uri',

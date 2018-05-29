@@ -1,4 +1,4 @@
-import ajvKeywords from 'ajv-keywords';
+// import ajvKeywords from 'ajv-keywords';
 
 import { Model, AjvValidator } from '@turistforeningen/ntb-shared-db-utils';
 
@@ -55,7 +55,7 @@ export default class BaseModel extends Model {
   static createValidator() {
     const validator = new AjvValidator({
       onCreateAjv: (ajv) => {
-        ajvKeywords(ajv);
+        // ajvKeywords(ajv);
         ajv.addSchema(geojsonPolygonSchema, 'GeojsonPolygon');
         ajv.addSchema(documentStatusSchema, 'DocumentStatus');
       },

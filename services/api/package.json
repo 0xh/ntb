@@ -12,10 +12,10 @@
   "@turistforeningen/ntb-shared-utils": "*",
   "body-parser": "^1.18.2",
   "express": "^4.16.2",
-  "express-params": "^0.0.3",
   "lodash": "^4.17.5",
   "morgan": "^1.9.0",
   "response-time": "^2.3.2",
-  "swagger-jsdoc": "^1.9.7"
+  "swagger-jsdoc": "^1.9.7",
+  "uuid-validate": "^0.0.3"
  }
 }

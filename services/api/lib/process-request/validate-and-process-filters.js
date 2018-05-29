@@ -1,4 +1,7 @@
 import _ from 'lodash';
+import uuidValidate from 'uuid-validate';
+
+import { isString } from 'util';
 
 
 function processExpressJSQueryObjectDeepFilter(
@@ -18,8 +21,14 @@ function processExpressJSQueryObjectDeepFilter(
       : null;
 
     if (
-      !handler.validFilters.self.includes(key)
-      && !Object.keys(handler.validFilters.includes).includes(key)
+      (
+        !handler.validFilters.self.includes(key)
+        && !Object.keys(handler.validFilters.relations).includes(key)
+      )
+      || (
+        handler.validFilters.self.includes(key)
+        && subKey !== null
+      )
     ) {
       handler.errors.push(
         `Invalid query parameter: ${handler.trace}df.${rawKey}. ` +
@@ -28,7 +37,7 @@ function processExpressJSQueryObjectDeepFilter(
     }
     else if (
       !handler.validFilters.self.includes(key)
-      && !handler.validFilters.includes[key].includes(subKey)
+      && !handler.validFilters.relations[key].includes(subKey)
     ) {
       handler.errors.push(
         `Invalid query parameter: ${handler.trace}df.${rawKey}. ` +
@@ -36,16 +45,23 @@ function processExpressJSQueryObjectDeepFilter(
       );
     }
     else {
-      const rawQueryValue = handler.queryObject[`df.${rawKey}`];
+      const rawQueryValue = handler.requestObject[`df.${rawKey}`];
       const rawValues = Array.isArray(rawQueryValue)
         ? rawQueryValue
         : [rawQueryValue];
 
+      const options = subKey
+        ? handler.config.validRelationFilters[key][subKey]
+        : handler.config.validFilters[key];
+
       filters.$and = filters.$and.concat(rawValues.map((rawValue) => ({
-        includeKey: subKey ? key : null,
         key: subKey || key,
-        rawValue,
-        trace: `${handler.trace}df.${rawKey}`,
+        relationKey: subKey ? key : null,
+        query: {
+          rawValue,
+          trace: `${handler.trace}df.${rawKey}`,
+        },
+        options,
       })));
     }
   });
@@ -53,27 +69,57 @@ function processExpressJSQueryObjectDeepFilter(
 
 
 function processExpressJSQueryObject(handler) {
-  const queryKeys = Object.keys(handler.queryObject || {});
+  const queryKeys = Object.keys(handler.requestObject || {});
   const filters = { $and: [] };
 
-  // If it's an association, only parse deep-filters (df)
-  if (handler.association) {
+  // If it's a relation, only parse deep-filters (df)
+  if (handler.relation) {
     processExpressJSQueryObjectDeepFilter(handler, queryKeys, filters);
   }
   else {
-    const filterKeys = Object.keys(handler.config.validFilters || {})
-      .filter((k) => queryKeys.includes(k));
+    const validRelationFilterKeys = [];
+    Object.keys(handler.validFilters.relations).forEach((relationKey) => {
+      handler.validFilters.relations[relationKey].forEach((key) => {
+        validRelationFilterKeys.push(
+          `${_.snakeCase(relationKey)}.${_.snakeCase(key)}`
+        );
+      });
+    });
+    const validKeys = [].concat(
+      handler.validFilters.self,
+      validRelationFilterKeys
+    );
+    const filterKeys = validKeys.filter((k) => queryKeys.includes(k));
 
-    filterKeys.forEach((key) => {
-      const rawQueryValue = handler.queryObject[key];
+    filterKeys.forEach((rawKey) => {
+      const rawQueryValue = handler.requestObject[rawKey];
       const rawValues = Array.isArray(rawQueryValue)
         ? rawQueryValue
         : [rawQueryValue];
 
+      let relationKey = null;
+      let key = null;
+      let options = null;
+      if (validRelationFilterKeys.includes(rawKey)) {
+        const splittedKey = rawKey.split('.');
+        relationKey = _.camelCase(splittedKey[0]);
+        key = splittedKey.slice(1).map((k) => _.camelCase(k)).join('.');
+        const { validRelationFilters } = handler.config;
+        options = validRelationFilters[relationKey][key];
+      }
+      else {
+        key = _.camelCase(rawKey);
+        options = handler.config.validFilters[key];
+      }
+
       filters.$and = filters.$and.concat(rawValues.map((rawValue) => ({
         key,
-        rawValue,
-        trace: key,
+        relationKey,
+        query: {
+          rawValue,
+          trace: rawKey,
+        },
+        options,
       })));
     });
   }
@@ -118,8 +164,11 @@ function processStructuredQueryObjectFilters(
           if (handler.validFilters.self.includes(camelCasedKey)) {
             res.push({
               key: camelCasedKey,
-              rawValue: value,
-              trace: `${trace}[${idx} - ${key}]`,
+              query: {
+                rawValue: value,
+                trace: `${trace}[${idx} - ${key}]`,
+              },
+              options: handler.config.validFilters[camelCasedKey],
             });
           }
           else {
@@ -130,21 +179,21 @@ function processStructuredQueryObjectFilters(
         }
         else {
           const keys = key.split('.');
-          const includeKey = keys[0];
+          const relationKey = keys[0];
           const subKey = keys
             .slice(1)
             .map((k) => _.camelCase(k.toLowerCase()))
             .join('.');
 
           if (
-            !Object.keys(handler.validFilters.includes).includes(includeKey)
+            !Object.keys(handler.validFilters.relations).includes(relationKey)
           ) {
             handler.errors.push(
               `Unknown filter in "${trace}" at index ${idx}`,
             );
           }
           else if (
-            !handler.validFilters.includes[includeKey].includes(subKey)
+            !handler.validFilters.relations[relationKey].includes(subKey)
           ) {
             handler.errors.push(
               `Unknown filter "${key.split('.').slice(1).join('.')}" ` +
@@ -152,11 +201,15 @@ function processStructuredQueryObjectFilters(
             );
           }
           else {
+            const { validRelationFilters } = handler.config;
             res.push({
-              includeKey,
+              relationKey,
               key: subKey,
-              rawValue: value,
-              trace: `${trace}[${idx} - ${key}]`,
+              query: {
+                rawValue: value,
+                trace: `${trace}[${idx} - ${key}]`,
+              },
+              options: validRelationFilters[relationKey][subKey],
             });
           }
         }
@@ -164,14 +217,14 @@ function processStructuredQueryObjectFilters(
     }
   });
 
-  return { [operator]: res };
+  return !res ? null : { [operator]: res };
 }
 
 
 function processStructuredQueryObject(handler) {
-  const { trace, queryObject } = handler;
-  const inputFilters = queryObject.filters || [];
-  let baseOperator = '$and';
+  const { trace, requestObject } = handler;
+  const inputFilters = requestObject.filters || [];
+  const baseOperator = '$and';
   let filters = null;
 
   // Verify that filters is an array
@@ -179,16 +232,6 @@ function processStructuredQueryObject(handler) {
     handler.errors.push(`Invalid format of "${trace}filters"`);
   }
   else {
-    // Change to $or base operator
-    if (
-      inputFilters.length === 1
-      && Array.isArray(inputFilters[0])
-      && inputFilters[0].length > 1
-      && inputFilters[0][0] === '$or'
-    ) {
-      baseOperator = '$or';
-    }
-
     filters = processStructuredQueryObjectFilters(
       handler,
       inputFilters,
@@ -201,78 +244,429 @@ function processStructuredQueryObject(handler) {
 }
 
 
-function processTextClause(handler, filter) {
-  const { rawValue, clauseKey } = filter;
+function processUuidClause(handler, filter) {
+  const {
+    query,
+    options,
+    key,
+    relationKey,
+  } = filter;
+  let { rawValue } = query;
+
+  const attribute = relationKey
+    ? `${relationKey}.${options.attribute || key}`
+    : `[[MODEL-TABLE]].${options.attribute || key}`;
+  const scakeCasedAttribute = relationKey
+    ? `${_.snakeCase(relationKey)}.${_.snakeCase(options.attribute || key)}`
+    : `"[[MODEL-TABLE]]"."${_.snakeCase(options.attribute || key)}"`;
+
+  rawValue = isString(rawValue) ? rawValue.trim() : rawValue;
+
+  // Field is not null and has a value
+  if (!rawValue.length) {
+    return [
+      {
+        whereType: 'whereNotNull',
+        options: [
+          attribute,
+        ],
+      },
+      {
+        whereType: 'whereRaw',
+        options: [
+          `LENGTH(${scakeCasedAttribute}) > 0`,
+        ],
+      },
+    ];
+  }
+
+  // Field is null or does not have a value
+  if (rawValue === '!') {
+    return [{
+      $or: [
+        {
+          whereType: 'whereNull',
+          options: [
+            attribute,
+          ],
+        },
+        {
+          whereType: 'whereRaw',
+          options: [
+            `LENGTH(${scakeCasedAttribute}) = 0`,
+          ],
+        },
+      ],
+    }];
+  }
+
+  // In list of values
+  // Not in list of values
+  if (rawValue.startsWith('$in:') || rawValue.startsWith('$nin:')) {
+    let values = rawValue;
+    let err = null;
+    let valid;
+
+    if (Array.isArray(values)) {
+      valid = values.map((v) => isString(v)).every((v) => v);
+      if (!valid) {
+        err = 1;
+      }
+    }
+    else if (isString(values)) {
+      values = rawValue.substr(rawValue.startsWith('$in:') ? 4 : 5);
+      if (!values || !values.startsWith('"') || !values.endsWith('"')) {
+        err = 1;
+      }
+      else {
+        try {
+          values = JSON.parse(`[${values}]`);
+        }
+        catch (e) {
+          err = 1;
+        }
+      }
+    }
+    else {
+      err = 1;
+    }
+
+    if (!err) {
+      valid = values.length && values.every((v) => v.length);
+      if (!valid) {
+        err = 2;
+      }
+    }
+
+    if (!err) {
+      valid = values.length && values.every((v) => uuidValidate(v, 4));
+      if (!valid) {
+        err = 2;
+      }
+    }
+
+    if (err === 1) {
+      handler.errors.push(
+        `Invalid value of '${filter.query.trace}'. ` +
+        'Not able to parse a list of values.'
+      );
+      return [];
+    }
+    else if (err === 2) {
+      handler.errors.push(
+        `Invalid value of '${filter.query.trace}'. ` +
+        'It contains invalid values.'
+      );
+      return [];
+    }
+
+    const whereType = rawValue.startsWith('$in:')
+      ? 'whereIn'
+      : 'whereNotIn';
+    return [{
+      whereType,
+      options: [
+        attribute,
+        values,
+      ],
+    }];
+  }
+
+  // Only allow string values for the next cases
+  if (!isString(rawValue)) {
+    handler.errors.push(
+      `Invalid value of '${filter.query.trace}'. ` +
+      'Only string of uuid4 format supported.',
+    );
+    return [];
+  }
+
+  // Not equal
+  if (rawValue.startsWith('!')) {
+    const value = rawValue.substr(1).trim();
+
+    if (!uuidValidate(value, 4)) {
+      handler.errors.push(
+        `Invalid value of '${filter.query.trace}'. ` +
+        'Only string of uuid4 format supported.',
+      );
+      return [];
+    }
+
+    return [{
+      whereType: 'where',
+      options: [
+        attribute,
+        '!=',
+        value,
+      ],
+    }];
+  }
+
+  if (!uuidValidate(rawValue, 4)) {
+    handler.errors.push(
+      `Invalid value of '${filter.query.trace}'. ` +
+      'Only string of uuid4 format supported.',
+    );
+    return [];
+  }
+
+  // Exact match
+  return [{
+    whereType: 'where',
+    options: [
+      attribute,
+      '=',
+      rawValue,
+    ],
+  }];
+}
+
+
+function processStringClause(handler, filter) {
+  const {
+    query,
+    options,
+    key,
+    relationKey,
+  } = filter;
+  let { rawValue } = query;
+
+  const attribute = relationKey
+    ? `${relationKey}.${options.attribute || key}`
+    : `[[MODEL-TABLE]].${options.attribute || key}`;
+  const scakeCasedAttribute = relationKey
+    ? `${_.snakeCase(relationKey)}.${_.snakeCase(options.attribute || key)}`
+    : `"[[MODEL-TABLE]]"."${_.snakeCase(options.attribute || key)}"`;
+
+  rawValue = isString(rawValue) ? rawValue.trim() : rawValue;
+
+  // Field is not null and has a value
+  if (!rawValue.length) {
+    return [
+      {
+        whereType: 'whereNotNull',
+        options: [
+          attribute,
+        ],
+      },
+      {
+        whereType: 'whereRaw',
+        options: [
+          `LENGTH(${scakeCasedAttribute}) > 0`,
+        ],
+      },
+    ];
+  }
+
+  // Field is null or does not have a value
+  if (rawValue === '!') {
+    return [{
+      $or: [
+        {
+          whereType: 'whereNull',
+          options: [
+            attribute,
+          ],
+        },
+        {
+          whereType: 'whereRaw',
+          options: [
+            `LENGTH(${scakeCasedAttribute}) = 0`,
+          ],
+        },
+      ],
+    }];
+  }
+
+  // In list of values
+  // Not in list of values
+  if (rawValue.startsWith('$in:') || rawValue.startsWith('$nin:')) {
+    let values = rawValue;
+    let err = null;
+    let valid;
+
+    if (Array.isArray(values)) {
+      valid = values.map((v) => isString(v)).every((v) => v);
+      if (!valid) {
+        err = 1;
+      }
+    }
+    else if (isString(values)) {
+      values = rawValue.substr(rawValue.startsWith('$in:') ? 4 : 5);
+      if (!values || !values.startsWith('"') || !values.endsWith('"')) {
+        err = 1;
+      }
+      else {
+        try {
+          values = JSON.parse(`[${values}]`);
+        }
+        catch (e) {
+          err = 1;
+        }
+      }
+    }
+    else {
+      err = 1;
+    }
+
+    if (!err) {
+      valid = values.length && values.every((v) => v.length);
+      if (!valid) {
+        err = 2;
+      }
+    }
+
+    if (err === 1) {
+      handler.errors.push(
+        `Invalid value of '${filter.query.trace}'. ` +
+        'Not able to parse a list of values.'
+      );
+      return [];
+    }
+    else if (err === 2) {
+      handler.errors.push(
+        `Invalid value of '${filter.query.trace}'. ` +
+        'It contains invalid values.'
+      );
+      return [];
+    }
+
+    const whereType = rawValue.startsWith('$in:')
+      ? 'whereIn'
+      : 'whereNotIn';
+    return [{
+      whereType,
+      options: [
+        attribute,
+        values,
+      ],
+    }];
+  }
+
+  // Only allow string values for the next cases
+  if (!isString(rawValue)) {
+    handler.errors.push(
+      `Invalid value of '${filter.query.trace}'. Only string supported.`,
+    );
+    return [];
+  }
+
+  let value = rawValue.substr(1).trim();
+  if (['~', '^', '$', '!'].includes(rawValue.substr(0, 1))) {
+    value = rawValue.substr(1).trim();
+    if (!value.length) {
+      handler.errors.push(
+        `Invalid value of '${filter.query.trace}'. ` +
+        'Extected a value after the operator.'
+      );
+      return [];
+    }
+  }
 
   // Contains
   if (rawValue.startsWith('~')) {
-    return {
-      [clauseKey]: {
-        [Op.iLike]: `%${rawValue.substr(1)}%`,
-      },
-    };
+    return [{
+      whereType: 'where',
+      options: [
+        attribute,
+        'ilike',
+        `%${value}%`,
+      ],
+    }];
   }
 
   // Starts with
   if (rawValue.startsWith('^')) {
-    return {
-      [clauseKey]: {
-        [Op.iLike]: `%${rawValue.substr(1)}`,
-      },
-    };
+    return [{
+      whereType: 'where',
+      options: [
+        attribute,
+        'ilike',
+        `${value}%`,
+      ],
+    }];
   }
 
   // Ends with
   if (rawValue.startsWith('$')) {
-    return {
-      [clauseKey]: {
-        [Op.iLike]: `${rawValue.substr(1)}%`,
-      },
-    };
+    return [{
+      whereType: 'where',
+      options: [
+        attribute,
+        'ilike',
+        `%${value}`,
+      ],
+    }];
+  }
+
+  // Not equal
+  if (rawValue.startsWith('!')) {
+    return [{
+      whereType: 'where',
+      options: [
+        attribute,
+        'not ilike',
+        `%${value}`,
+      ],
+    }];
   }
 
   // Exact match
-  return {
-    [clauseKey]: {
-      [Op.iLike]: rawValue,
-    },
-  };
+  return [{
+    whereType: 'where',
+    options: [
+      attribute,
+      '=',
+      `${value}`,
+    ],
+  }];
 }
 
 
 function createClause(handler, filter) {
-  if (!filter.includeKey) {
-    filter.type = handler.model.attributes[filter.key].type;
-    filter.clauseKey = filter.key;
+  if (!filter.relationKey) {
+    const schemaProperties = handler.model.jsonSchema.properties;
+    filter.type = schemaProperties[filter.key].type;
+    filter.schema = schemaProperties[filter.key];
   }
   else {
-    const associationName =
-      handler.config.include[filter.includeKey].association;
-    const { target } = handler.model.associations[associationName];
-    filter.type = target.attributes[filter.key].type;
-    filter.clauseKey = `$${associationName}.${filter.key}$`;
+    const relations = handler.model.getRelations();
+    const relation = relations[filter.relationKey];
+    const schemaProperties = relation.relatedModelClass.jsonSchema.properties;
+    filter.type = schemaProperties[filter.key].type;
+    filter.schema = schemaProperties[filter.key];
 
     // Include association
-    const { sequelizeOptions } = handler;
-    if (!sequelizeOptions.include) {
-      sequelizeOptions.include = [];
+    const { queryOptions } = handler;
+    if (!queryOptions.relations) {
+      queryOptions.relations = [];
     }
 
-    const found = !!sequelizeOptions.include
-      .map((i) => i.association)
-      .filter((n) => n === associationName)
+    const found = !!queryOptions.relations
+      .map((i) => i.relationKey)
+      .filter((n) => n === filter.relationKey)
       .length;
 
     if (!found) {
-      sequelizeOptions.include.push({
-        association: associationName,
-        attributes: [],
+      queryOptions.relations.push({
+        relationKey: filter.relationKey,
       });
     }
   }
 
-  if (filter.type instanceof TEXT) {
-    return processTextClause(handler, filter);
+  // Uuid clause
+  if (
+    filter.type === 'string'
+    && filter.schema
+    && filter.schema.format === 'uuid'
+  ) {
+    return processUuidClause(handler, filter);
+  }
+
+  // Plain string clause with no format
+  if (filter.type === 'string' && (!filter.schema || !filter.schema.format)) {
+    return processStringClause(handler, filter);
   }
 
   throw new Error('NOT IMPLEMENTED YET');
@@ -280,15 +674,15 @@ function createClause(handler, filter) {
 
 
 function createWhereOptions(handler, filters) {
-  const operator = filters.$and ? Op.and : Op.or;
-  const clauses = [];
+  const operator = filters.$and ? '$and' : '$or';
+  let clauses = [];
 
   (filters.$and || filters.$or).forEach((filter) => {
     if (filter.$and || filter.$or) {
-      // TODO(Roar): recursive call to createWehereOptions()
+      clauses = clauses.concat(createWhereOptions(handler, filter));
     }
     else {
-      clauses.push(createClause(handler, filter));
+      clauses = clauses.concat(createClause(handler, filter));
     }
   });
 
@@ -299,7 +693,7 @@ function createWhereOptions(handler, filters) {
 
 export default function (handler) {
   let filters = {};
-  if (handler.usExpressJSQueryObject) {
+  if (handler.usExpressJSRequestObject) {
     filters = processExpressJSQueryObject(handler);
   }
   else {
@@ -308,13 +702,12 @@ export default function (handler) {
 
   if (filters) {
     const where = createWhereOptions(handler, filters);
-    handler.sequelizeOptions = {
-      ...handler.sequelizeOptions,
+    handler.queryOptions = {
+      ...handler.queryOptions,
       where: {
-        ...handler.sequelizeOptions.where,
+        ...handler.queryOptions.where,
         ...where,
       },
     };
-    console.log('end');
   }
 }

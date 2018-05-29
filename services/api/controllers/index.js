@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import morgan from 'morgan';
 import _ from 'lodash';
-import expressParams from 'express-params';
+import uuidValidate from 'uuid-validate';
 
 import * as Models from '@turistforeningen/ntb-shared-models';
 
@@ -12,47 +12,36 @@ import asyncHandler from '../lib/express-async-handler';
 const router = new Router();
 
 
-function createRegExpParameter(name, re) {
-  return (req, res, next, val) => {
-    const captures = re.exec(String(val));
-    if (captures) {
-      req.params[name] = captures;
-      next();
-    }
-    else {
-      next('route');
-    }
-  };
-}
-
-
 function createModelRouter(model) {
   const modelRouter = new Router();
-  expressParams.extend(modelRouter);
-
-  const uuidReStr = (
-    '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}' +
-    '-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-  );
-
-  // Set frequently used param validators
-  // const uuidRe = new RegExp(uuidReStr, 'i');
-  // modelRouter.param('uuid', createRegExpParameter('uuid', uuidRe));
 
   // Find specific intance
-  modelRouter.get(
-    `/:uuid(${uuidReStr})`,
-    asyncHandler(async (req, res, next) => {
-      const id = req.params.uuid[0];
-      const data = await processRequest(model, req.query, id);
+  modelRouter.get('/:id', asyncHandler(async (req, res, next) => {
+    if (Array.isArray(model.idColumn)) {
+      throw new Error('Multi column identifiers are not supported here');
+    }
 
-      if (data === null) {
-        return res.status(404).json({ error: 'Not found' });
-      }
+    const { id } = req.params;
+    const formatOptions = model.jsonSchema.properties[model.idColumn];
 
-      return res.json(data);
-    })
-  );
+    // Validate uuid
+    if (
+      formatOptions.type === 'string'
+      && formatOptions.format === 'uuid'
+      && id
+      && !uuidValidate(id, 4)
+    ) {
+      return next();
+    }
+
+    const data = await processRequest(model, req.query, id);
+
+    if (data === null) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    return res.json(data);
+  }));
 
   // Find areas
   modelRouter.get('/', asyncHandler(async (req, res, next) => {
