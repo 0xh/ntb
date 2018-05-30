@@ -55,10 +55,13 @@ workflows:
       - build-image:
           filters:
             branches:
-              only: master
+              only: deploy-dev
       - deploy-to-k8s:
           requires:
             - build-image
           filters:
             branches:
-              only: master
+              only:
+                - deploy-dev
+                - deploy-beta
+                - deploy-prod
