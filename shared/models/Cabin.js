@@ -129,13 +129,6 @@ export default class Cabin extends BaseModel {
       coordinates: { type: 'object' },
       map: { type: 'string', maxLength: 300 },
       mapAlt: { type: 'array', items: [{ type: 'string', maxLength: 400 }] },
-      c2aCreatedAt: {
-        type: 'string',
-        readOnly: true,
-        availableForReferrers: [
-          'Area.children',
-        ],
-      },
       license: { type: 'string', maxLength: 300 },
       provider: { type: 'string', maxLength: 300, readOnly: true },
       status: { ...DocumentStatusSchema },
@@ -143,6 +136,37 @@ export default class Cabin extends BaseModel {
       createdAt: { format: 'date', readOnly: true },
     },
   };
+
+
+  $parseDatabaseJson(databaseJson) {
+    const json = super.$parseDatabaseJson(databaseJson);
+
+    // Create contact object
+    json.contact = {
+      name: databaseJson.contactName,
+      email: databaseJson.email,
+      phone: databaseJson.phone,
+      mobile: databaseJson.mobile,
+      fax: databaseJson.fax,
+      address1: databaseJson.address1,
+      address2: databaseJson.address2,
+      postalCode: databaseJson.postalCode,
+      postalName: databaseJson.postalName,
+    };
+
+    // Remove from databaseJson
+    delete json.contactName;
+    delete json.email;
+    delete json.phone;
+    delete json.mobile;
+    delete json.fax;
+    delete json.address1;
+    delete json.address2;
+    delete json.postalCode;
+    delete json.postalName;
+
+    return json;
+  }
 
 
   static APIEntryModel = true;
@@ -176,17 +200,22 @@ export default class Cabin extends BaseModel {
         },
       },
       defaultOrder: [['name', 'ASC']],
-      defaultFields: [
+      fullFields: [
         'uri',
         'id',
         'name',
+        'nameAlt',
         'description',
+        'contact',
         'map',
         'url',
         'license',
         'provider',
         'status',
         'updatedAt',
+      ],
+      defaultFields: [
+        '*full',
       ],
       defaultRelations: [
         'ownerGroup',
@@ -226,7 +255,18 @@ export default class Cabin extends BaseModel {
   static getAPIFieldsToAttributes(referrer, fields) {
     const extra = {
       // Related extra field from Accessability
-      cabinAccessabilityDescription: 'cabinAccessabilityDescription',
+      cabinAccessabilityDescription: ['cabinAccessabilityDescription'],
+      contact: [
+        'contactName',
+        'email',
+        'phone',
+        'mobile',
+        'fax',
+        'address1',
+        'address2',
+        'postalCode',
+        'postalName',
+      ],
     };
 
     const attributes = super.getAPIFieldsToAttributes(referrer, fields, extra);

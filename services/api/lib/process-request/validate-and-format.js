@@ -428,9 +428,23 @@ function setFields(handler) {
   }
 
   // Set default fields
-  handler.fields = config.defaultFields;
   handler.relationFields = validRelationKeys
     .filter((k) => (config.defaultRelations || []).includes(k));
+  handler.fields = [];
+
+  config.defaultFields.forEach((f) => {
+    if (f === '*full') {
+      handler.fields = handler.fields.concat(config.fullFields);
+    }
+    else if (f.startsWith('-')) {
+      handler.fields = handler.fields.filter((r) => r !== f.substr(1));
+    }
+    else {
+      handler.fields.push(f);
+    }
+  });
+  handler.fields = Array.from(new Set(handler.fields));
+
 
   const queryFields = getKeyValue(requestObject, 'fields');
   if (queryFields && queryFields[0].value) {
@@ -471,28 +485,48 @@ function setFields(handler) {
     }
     else {
       let valid = true;
-      const fields = [];
-      const relationFields = [];
-      values.forEach((fieldExpression) => {
-        const f = _.camelCase(fieldExpression.toLowerCase().trim());
-        if (
-          !validFieldKeys.includes(f)
-          && !validRelationKeys.includes(f)
-        ) {
-          handler.errors.push(
-            `Invalid ${trace}${qFields.originalKey} value ` +
-            `'${qFields.errorReportingValue}'` +
-            `${values.length > 1 ? ` on '${fieldExpression}'. ` : '. '}` +
-            'This is not a valid field.'
-          );
-          valid = false;
-        }
-
-        if (validRelationKeys.includes(f)) {
-          relationFields.push(f);
+      let fields = [];
+      let relationFields = [];
+      values.forEach((fieldExpression, idx) => {
+        if (idx === 0 && fieldExpression.toLowerCase() === '*full') {
+          ({ fields, relationFields } = handler);
         }
         else {
-          fields.push(f);
+          let remove = false;
+          let f = fieldExpression.toLowerCase().trim();
+          if (f.startsWith('-')) {
+            remove = true;
+            f = f.substr(1);
+          }
+          f = _.camelCase(f);
+
+          if (
+            !validFieldKeys.includes(f)
+            && !validRelationKeys.includes(f)
+          ) {
+            handler.errors.push(
+              `Invalid ${trace}${qFields.originalKey} value ` +
+              `'${qFields.errorReportingValue}'` +
+              `${values.length > 1 ? ` on '${fieldExpression}'. ` : '. '}` +
+              'This is not a valid field.'
+            );
+            valid = false;
+          }
+
+          if (validRelationKeys.includes(f)) {
+            if (remove) {
+              relationFields = relationFields.filter((r) => r !== f);
+            }
+            else {
+              relationFields.push(f);
+            }
+          }
+          else if (remove) {
+            fields = fields.filter((r) => r !== f);
+          }
+          else {
+            fields.push(f);
+          }
         }
       });
 

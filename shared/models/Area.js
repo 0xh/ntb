@@ -142,7 +142,7 @@ export default class Area extends BaseModel {
   static getAPIFieldsToAttributes(referrer, fields) {
     const extra = {
       // Related extra field from Cabin
-      areaRelatedAt: 'areaRelatedAt',
+      areaRelatedAt: ['areaRelatedAt'],
     };
 
     const attributes = super.getAPIFieldsToAttributes(referrer, fields, extra);

@@ -684,16 +684,6 @@ async function executeSingleOrMultiRelation(
     });
   }
 
-  // Set limit
-  if (queryOptions.limit) {
-    query = query.limit(queryOptions.limit);
-  }
-
-  // Set offset
-  if (queryOptions.offset) {
-    query = query.offset(queryOptions.offset);
-  }
-
   const rows = await query;
 
   rows.forEach((row) => {

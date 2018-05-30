@@ -91,7 +91,7 @@ export default class Facility extends BaseModel {
   static getAPIFieldsToAttributes(referrer, fields) {
     const extra = {
       // Related extra field from Cabin
-      cabinFacilityDescription: 'cabinFacilityDescription',
+      cabinFacilityDescription: ['cabinFacilityDescription'],
     };
 
     const attributes = super.getAPIFieldsToAttributes(referrer, fields, extra);

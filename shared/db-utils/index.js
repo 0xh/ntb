@@ -43,7 +43,7 @@ export const knexConfig = {
     max: settings.DB_POOL_MAX,
     min: settings.DB_POOL_MIN,
   },
-  // debug: true,
+  debug: true,
 
   // Use lodash to set correct identifier case.
   // We use lodash and not the ObjectionJS internal one in order to be sure

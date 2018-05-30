@@ -40,11 +40,11 @@ export default class BaseModel extends Model {
       if (field === 'uri') {
         return null;
       }
-      if (attrs.includes(field)) {
-        return [field];
-      }
       if (extra[field]) {
         return extra[field];
+      }
+      if (attrs.includes(field)) {
+        return [field];
       }
       return null;
     }).filter((field) => field !== null));
