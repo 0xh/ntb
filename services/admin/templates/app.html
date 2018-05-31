@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="no">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="robots" content="noindex, nofollow">
+    <title>DNT - Sherpa Developer</title>
+    <meta name="description" content="Sherpa admin client">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript">
+      var sherpa = {};
+      sherpa.version = "{{ VERSION }}";
+
+      {% if OAuthTokens %}
+        sherpa.OAuthTokens = {{ OAuthTokens | safe }};
+      {% endif %}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <div id="redoc-root"></div>
+
+    <script src="https://cdn.ravenjs.com/3.17.0/raven.min.js"></script>
+  </body>
+</html>
