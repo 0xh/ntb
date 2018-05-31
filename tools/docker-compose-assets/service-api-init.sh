@@ -1,4 +1,5 @@
 #!/bin/sh
+echo "*API*"
 echo "Init script: Making sure lerna is bootstrapped"
 lerna bootstrap
 

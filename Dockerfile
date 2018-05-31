@@ -14,9 +14,10 @@ RUN yarn global add lerna
 RUN mkdir -p /build
 WORKDIR /build
 
+COPY services/api/. services/api/
+COPY services/admin/server/. services/admin/server/
 COPY cronjobs/. cronjobs/
 COPY migrate/. migrate/
-COPY services/. services/
 COPY shared/. shared/
 COPY .babelrc lerna.json package.json yarn.lock ./
 
@@ -25,8 +26,9 @@ RUN lerna bootstrap
 
 RUN ./node_modules/.bin/babel cronjobs --out-dir cronjobs \
     && ./node_modules/.bin/babel migrate --out-dir migrate \
-    && ./node_modules/.bin/babel services --out-dir services \
-    && ./node_modules/.bin/babel shared --out-dir shared
+    && ./node_modules/.bin/babel shared --out-dir shared \
+    && ./node_modules/.bin/babel services/api --out-dir services/api \
+    && ./node_modules/.bin/babel services/admin/server --out-dir services/admin/server
 
 # Change the ownership of the application code and switch to the unprivileged
 # user.

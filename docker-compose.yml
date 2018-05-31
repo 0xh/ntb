@@ -43,3 +43,65 @@ services:
     extra_hosts:
       - "api.dnt.local:${DOCKER_IP}"
       - "postgres.ntb.local:${DOCKER_IP}"
+
+  admin-server:
+    build: .
+    network_mode: 'bridge'
+    ports:
+      - '8080'
+      - '9228:9229'
+    volumes:
+      - .:/build
+    working_dir: /build
+    links:
+      - postgres
+      - admin-redis
+      - admin-client
+    depends_on:
+      - postgres
+      - admin-redis
+    logging:
+      options:
+        max-size: "500k"
+    environment:
+      - NODE_ENV=development
+      - NPM_CONFIG_LOGLEVEL=info
+      - NPM_CONFIG_PROGRESS=false
+      - NPM_CONFIG_SPIN=false
+      - REDIS_HOSTNAME=admin-redis
+      - VIRTUAL_HOST=admin.ntb.local
+      - VIRTUAL_PORT=8080
+      - VIRTUAL_PATH=/
+    command: /build/tools/docker-compose-assets/service-admin-server-init.sh
+    extra_hosts:
+      - "api.dnt.local:${DOCKER_IP}"
+      - "postgres.ntb.local:${DOCKER_IP}"
+
+  admin-client:
+    build: .
+    network_mode: 'bridge'
+    ports:
+      - '3000'
+    volumes:
+      - .:/build
+    working_dir: /build
+    depends_on:
+      - postgres
+    logging:
+      options:
+        max-size: "500k"
+    environment:
+      - NODE_ENV=development
+      - NPM_CONFIG_LOGLEVEL=info
+      - NPM_CONFIG_PROGRESS=false
+      - NPM_CONFIG_SPIN=false
+      - VIRTUAL_HOST=admin-assets.ntb.local
+      - VIRTUAL_PORT=3000
+    command: /build/tools/docker-compose-assets/service-admin-client-init.sh
+
+  admin-redis:
+    image: redis:4
+    network_mode: 'bridge'
+    logging:
+      options:
+        max-size: "10k"
