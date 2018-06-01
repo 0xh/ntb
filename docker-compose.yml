@@ -50,8 +50,8 @@ services:
     ports:
       - '8080'
       - '9228:9229'
-    volumes:
-      - .:/build
+    # volumes:
+    #   - .:/build
     working_dir: /build
     links:
       - postgres
@@ -64,15 +64,23 @@ services:
       options:
         max-size: "500k"
     environment:
-      - NODE_ENV=development
-      - NPM_CONFIG_LOGLEVEL=info
-      - NPM_CONFIG_PROGRESS=false
-      - NPM_CONFIG_SPIN=false
-      - REDIS_HOSTNAME=admin-redis
+      # - NODE_ENV=development
+      - NODE_ENV=production
+      - LEGACY_MONGO_DB_URI=1
+      - LEGACY_MONGO_DB_NAME=1
+      - DB_HOST=localhost
+      - DB_PORT=5400
+      - DB_USER=ntb
+      - DB_PASSWORD=ntb
+      - DB_NAME=ntb
+      - SERVICES_ADMIN_REDIS_HOSTNAME=admin-redis
+      - SERVICES_ADMIN_REDIS_PORT=6379
+
+      # Configuration for docker-proxy
       - VIRTUAL_HOST=admin.ntb.local
       - VIRTUAL_PORT=8080
-      - VIRTUAL_PATH=/
-    command: /build/tools/docker-compose-assets/service-admin-server-init.sh
+    # command: /build/tools/docker-compose-assets/service-admin-server-init.sh
+    command: node services/admin/server/index.js
     extra_hosts:
       - "api.dnt.local:${DOCKER_IP}"
       - "postgres.ntb.local:${DOCKER_IP}"

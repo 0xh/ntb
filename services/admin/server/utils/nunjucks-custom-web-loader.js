@@ -7,16 +7,13 @@ export default class NunjuckCustomWebLoader extends Loader {
   constructor() {
     super();
     this.async = true;
-  }
-
-  init(baseURL) {
-    this.baseURL = baseURL || '.';
+    this.baseURL = 'templates';
   }
 
   getSource(name, cb) {
     let result;
     try {
-      const p = loadFromWebpackDevServer(`${this.baseURL}/${name}`)
+      loadFromWebpackDevServer(`${this.baseURL}/${name}`)
         .then((src) => {
           result = {
             src,

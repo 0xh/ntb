@@ -1,11 +1,13 @@
 import fetch from 'isomorphic-fetch';
 
+import settings from '@turistforeningen/ntb-shared-settings';
+
 import redis from '../lib/redis';
-import settings from '../lib/settings';
 
 
 const CREDENTIALS = Buffer.from(
-  `${settings.OAUTH_CLIENT_ID}:${settings.OAUTH_CLIENT_SECRET}`
+  `${settings.SERVICES_ADMIN_OAUTH_CLIENT_ID}:` +
+  `${settings.SERVICES_ADMIN_OAUTH_CLIENT_SECRE}`
 ).toString('base64');
 
 
@@ -17,7 +19,7 @@ const errorResolve = (name) => (err) => {
 
 
 const tokenRequest = (body) => (
-  fetch(`${settings.OAUTH_DOMAIN}/o/token/`, {
+  fetch(`${settings.SERVICES_ADMIN_OAUTH_DOMAIN}/o/token/`, {
     method: 'POST',
     headers: {
       Authorization: `Basic ${CREDENTIALS}`,
@@ -98,7 +100,10 @@ const clientAPIRequest = (path, options = {}, retrying = false) => {
           }, options.headers),
         });
 
-        fetch(`${settings.API_DOMAIN}/${path}`, fetchOptions)
+        fetch(
+          `${settings.SERVICES_ADMIN_SHERPA_API_DOMAIN}/${path}`,
+          fetchOptions
+        )
           .then((result) => {
             if (result.status === 401 && !retrying) {
               getClientTokensFromSherpa()

@@ -124,6 +124,20 @@ export default class Cabin extends BaseModel {
           postalName: { type: 'string', maxLength: 100 },
         },
       },
+      htgt: {
+        type: 'object',
+        properties: {
+          general: { type: 'string', maxLength: 1000 },
+          winter: { type: 'string', format: 'email', maxLength: 1000 },
+          summer: { type: 'string', maxLength: 1000 },
+          publicTransport: { type: 'string', maxLength: 1000 },
+          publicTransportAvailable: { type: 'boolean' },
+          carAllYear: { type: 'boolean' },
+          boatTransportAvailable: { type: 'boolean' },
+          carSummer: { type: 'boolean' },
+          bicycle: { type: 'boolean' },
+        },
+      },
       url: { type: 'string', maxLength: 100 },
       yearOfConstruction: { type: 'string', maxLength: 100 },
       coordinates: { type: 'object' },
@@ -164,6 +178,38 @@ export default class Cabin extends BaseModel {
     delete json.address2;
     delete json.postalCode;
     delete json.postalName;
+
+    // Create htgt object
+    json.htgt = {
+      general: databaseJson.htgtGeneral,
+      winter: databaseJson.htgtWinter,
+      summer: databaseJson.htgtSummer,
+      publicTransport: databaseJson.htgtPublicTransport,
+      publicTransportAvailable: databaseJson.htgtPublicTransportAvailable,
+      carAllYear: databaseJson.htgtCarAllYear,
+      boatTransportAvailable: databaseJson.htgtBoatTransportAvailable,
+      carSummer: databaseJson.htgtCarSummer,
+      bicycle: databaseJson.htgtBicycle,
+    };
+
+    // Remove from databaseJson
+    delete json.general;
+    delete json.winter;
+    delete json.summer;
+    delete json.publicTransport;
+    delete json.publicTransportAvailable;
+    delete json.carAllYear;
+    delete json.boatTransportAvailable;
+    delete json.carSummer;
+    delete json.bicycle;
+
+    // Remove empty cabinFacilityDescription
+    if (
+      !json.cabinFacilityDescription
+      || json.cabinFacilityDescription.trim() === ''
+    ) {
+      json.cabinFacilityDescription = null;
+    }
 
     return json;
   }
@@ -266,6 +312,17 @@ export default class Cabin extends BaseModel {
         'address2',
         'postalCode',
         'postalName',
+      ],
+      htgt: [
+        'htgtGeneral',
+        'htgtWinter',
+        'htgtSummer',
+        'htgtPublicTransport',
+        'htgtPublicTransportAvailable',
+        'htgtCarAllYear',
+        'htgtBoatTransportAvailable',
+        'htgtCarSummer',
+        'htgtBicycle',
       ],
     };
 

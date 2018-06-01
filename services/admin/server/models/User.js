@@ -1,4 +1,5 @@
-import settings from '../lib/settings';
+import settings from '@turistforeningen/ntb-shared-settings';
+
 import sherpa from '../lib/sherpa';
 import removeObjectKeys from '../utils/removeObjectKeys';
 
@@ -81,7 +82,9 @@ export default () => {
       }
 
       const promise = new Promise((resolve, reject) => {
-        self.sherpaRequest(`${settings.API_DOMAIN}/api/users/me/`)
+        self.sherpaRequest(
+          `${settings.SERVICES_ADMIN_SHERPA_API_DOMAIN}/api/users/me/`
+        )
           .then((data) => {
             if (!data) {
               self.destroy();

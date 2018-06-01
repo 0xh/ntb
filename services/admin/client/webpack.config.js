@@ -1,26 +1,32 @@
 // eslint-disable-next-line
-const path = require('path')
+const path = require('path');
+const fs = require('fs');
 
+/* eslint-disable */
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const BundleAnalyzer = require('webpack-bundle-analyzer');
 const { getIfUtils, removeEmpty } = require('webpack-config-utils');
+/* eslint-enable */
 
 const aliases = require('./webpack.aliases');
 
 
-const hostname = process.env.VIRTUAL_HOST || 'admin-assets.ntb.local';
-const port = process.env.VIRTUAL_PORT || '3000';
+const hostname = (
+  process.env.SERVICES_ADMIN_DEV_WEBPACK_HOSTNAME
+  || 'admin-assets.ntb.local'
+);
+const port = (
+  process.env.SERVICES_ADMIN_DEV_WEBPACK_PORT
+  || '3000'
+);
 const publicPathDev = `http://${hostname}/`;
-const publicPathProd = '/developer-assets/';
-const basePath = path.resolve(__dirname, '..');
-const baseOuputPath = path.resolve(basePath, 'build');
+const publicPathProd = '/assets/';
+const baseOuputPath = path.resolve(__dirname, '..', 'assets');
 
 
-const cssApp = new ExtractTextPlugin(path.resolve(
-  __dirname, 'css', 'developer.[hash].css'
-));
+const cssApp = new ExtractTextPlugin(path.join('css', 'a.[hash].css'));
 
 
 const createLessRule = (extractor, fileRegexps, issuerRegexs) => ({
@@ -70,8 +76,8 @@ module.exports = (env) => {
       pathinfo: ifDevelopment(true),
       path: baseOuputPath,
       filename: ifProduction(
-        path.join('developer-assets', 'js', '[name].[hash].js'),
-        path.join('developer-assets', 'js', '[name].js')
+        path.join('js', '[name].[hash].js'),
+        path.join('js', '[name].js')
       ),
       publicPath: ifProduction(publicPathProd, publicPathDev),
     },
@@ -82,7 +88,7 @@ module.exports = (env) => {
     module: {
       rules: [
         // Run eslint before transpiling the js(x)-files
-        {
+        ifDevelopment({
           test: /\.jsx?$/,
           exclude: /node_modules/,
           enforce: 'pre',
@@ -92,13 +98,30 @@ module.exports = (env) => {
               options: { configFile: path.resolve(__dirname, '.eslintrc.js') },
             },
           ],
-        },
+        }, {}),
 
         // JS / React .jsx
         {
           test: /\.jsx?$/,
-          loaders: 'babel-loader',
           exclude: /(\/node_modules\/|test\.js|\.spec\.js$)/,
+          use: {
+            loader: 'babel-loader',
+            options: {
+              babelrc: false,
+              presets: [
+                ['env', { modules: false }],
+                'stage-0',
+                'react',
+              ],
+              plugins: [
+                'react-hot-loader/babel',
+                'syntax-dynamic-import',
+                'transform-decorators-legacy',
+                ['import', { libraryName: 'antd', style: true }],
+                'universal-import',
+              ],
+            },
+          },
         },
 
         // less / CSS RULES
@@ -159,7 +182,7 @@ module.exports = (env) => {
             loader: 'file-loader',
             query: {
               name: path.join(
-                'developer-assets', 'img', '[name].[hash].[ext]'
+                'assets', 'img', '[name].[hash].[ext]'
               ),
             },
           },
@@ -173,7 +196,7 @@ module.exports = (env) => {
             loader: 'file-loader',
             query: {
               name: path.join(
-                'developer-assets', 'fonts', '[name].[hash].[ext]'
+                'assets', 'fonts', '[name].[hash].[ext]'
               ),
             },
           },
@@ -197,10 +220,12 @@ module.exports = (env) => {
       // App server HTML template
       new HtmlWebpackPlugin({
         filename: ifDevelopment(
-          'templates/app.html',
-          path.resolve(baseOuputPath, 'templates', 'app.html')
+          path.join('templates', 'to-be-compiled-by-webpack', 'app.html'),
+          path.resolve(__dirname, '..', 'templates', 'app.html'),
         ),
-        template: path.resolve(basePath, 'templates', 'app.html'),
+        template: path.resolve(
+          __dirname, '..', 'templates', 'to-be-compiled-by-webpack', 'app.html'
+        ),
         chunks: ['app'],
       }),
 

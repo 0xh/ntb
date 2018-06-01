@@ -1,7 +1,9 @@
 import Redis from 'ioredis';
 
+import settings from '@turistforeningen/ntb-shared-settings';
+
 
 export default new Redis(
-  process.env.REDIS_PORT || 6379,
-  process.env.REDIS_HOSTNAME || 'redis'
+  settings.SERVICES_ADMIN_REDIS_PORT || 6379,
+  settings.SERVICES_ADMIN_REDIS_HOSTNAME || 'redis'
 );

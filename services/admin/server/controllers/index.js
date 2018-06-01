@@ -3,6 +3,7 @@ import morgan from 'morgan';
 
 import authController from './auth';
 import apiController from './api';
+import environment from '../lib/environment';
 
 
 const router = new Router();
@@ -32,7 +33,10 @@ router.get('*', (req, res, next) => {
     });
   }
 
-  res.render('app.html', context);
+  const tpl = environment.production
+    ? 'app.html'
+    : 'to-be-compiled-by-webpack/app.html';
+  res.render(tpl, context);
 });
 
 

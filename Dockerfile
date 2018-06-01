@@ -1,10 +1,7 @@
-FROM node:10.2.1-alpine
+FROM node:10.3.0-alpine
 
 # Add our user and group first to make sure their IDs get assigned consistently
 RUN addgroup -S app && adduser -S -g app app
-
-# Add make, gcc, g++ and python as it's needed for node-gyp (nodehun).
-RUN apk add --no-cache make gcc g++ python
 
 # install lerna globally
 RUN yarn global add lerna
@@ -14,25 +11,35 @@ RUN yarn global add lerna
 RUN mkdir -p /build
 WORKDIR /build
 
+# Copy all files that will be compiled using babel
 COPY services/api/. services/api/
-COPY services/admin/server/. services/admin/server/
+COPY services/admin/. services/admin/
 COPY cronjobs/. cronjobs/
 COPY migrate/. migrate/
 COPY shared/. shared/
 COPY .babelrc lerna.json package.json yarn.lock ./
 
-
+# Install module dependencies
 RUN lerna bootstrap
 
+# Compile using babel
 RUN ./node_modules/.bin/babel cronjobs --out-dir cronjobs \
     && ./node_modules/.bin/babel migrate --out-dir migrate \
     && ./node_modules/.bin/babel shared --out-dir shared \
     && ./node_modules/.bin/babel services/api --out-dir services/api \
     && ./node_modules/.bin/babel services/admin/server --out-dir services/admin/server
 
+# Compile admin-client using webpack
+RUN ./node_modules/.bin/eslint -c services/admin/client/.eslintrc.js services/admin/client/js/
+RUN /build/node_modules/.bin/webpack -p --env.production --progress --config /build/services/admin/client/webpack.config.js
+
+# Remove unused application files
+RUN rm -rf services/admin/client
+
+# Remove yarn cache
+RUN rm -rf /usr/local/share/.cache/yarn
+
 # Change the ownership of the application code and switch to the unprivileged
 # user.
 RUN chown -R app:app /build
 USER app
-
-CMD node services/api/index.js

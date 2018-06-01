@@ -11,6 +11,7 @@
     "test:watch": "mocha -w -b -c -t 10000 --check-leaks -R progress -r server/test/*.js server/test/**/*.js"
   },
   "dependencies": {
+    "@turistforeningen/ntb-shared-settings": "*",
     "body-parser": "^1.18.3",
     "camelcase-keys": "^4.2.0",
     "connect-redis": "^3.3.3",

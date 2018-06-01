@@ -47,6 +47,21 @@ export default class Facility extends BaseModel {
   };
 
 
+  $parseDatabaseJson(databaseJson) {
+    const json = super.$parseDatabaseJson(databaseJson);
+
+    // Remove empty cabinFacilityDescription
+    if (
+      !json.cabinFacilityDescription
+      || json.cabinFacilityDescription.trim() === ''
+    ) {
+      json.cabinFacilityDescription = null;
+    }
+
+    return json;
+  }
+
+
   static APIEntryModel = true;
 
   static getAPIConfig() {

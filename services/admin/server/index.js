@@ -1,24 +1,29 @@
-import bodyParser from 'body-parser';
+import path from 'path';
 
+import bodyParser from 'body-parser';
 import express from 'express';
 import { Environment, FileSystemLoader } from 'nunjucks';
 import Raven from 'raven';
+
+import settings from '@turistforeningen/ntb-shared-settings';
 
 import NunjuckCustomWebLoader from './utils/nunjucks-custom-web-loader';
 import environment from './lib/environment';
 import version from './version';
 import controllers from './controllers';
-import settings from './lib/settings';
+
+
+const useRaven = environment.production && settings.SERVICES_ADMIN_SENTRY_DSN;
 
 
 // Initialize Raven
-if (environment.production) {
-  Raven.config(settings.SENTRY_DSN).install();
+if (useRaven) {
+  Raven.config(settings.SERVICES_ADMIN_SENTRY_DSN).install();
 }
 
 // Initiate express app and set Raven request handler
 const app = express();
-if (environment.production) {
+if (useRaven) {
   app.use(Raven.requestHandler());
 }
 
@@ -31,8 +36,8 @@ app.use(bodyParser.json());
 // Serve assests
 // Assets are built through Webpack and will be loaded using webpack dev server
 // when in development mode
-app.use('/assets', express.static('/ratatoskr/build/assets'));
-
+const assetsFolder = path.resolve(__dirname, '..', 'assets');
+app.use('/assets', express.static(assetsFolder));
 
 // Configure nunjucks template engine
 const nunjucksOptions = {
@@ -40,9 +45,10 @@ const nunjucksOptions = {
   noCache: environment.ifProduction(false, true),
 };
 
+const templatesFolder = path.resolve(__dirname, '..', 'templates');
 const nunjucksEnvironment = new Environment(
   environment.ifProduction(
-    new FileSystemLoader('/ratatoskr/build/templates', nunjucksOptions),
+    new FileSystemLoader(templatesFolder, nunjucksOptions),
     new NunjuckCustomWebLoader(
       'templates',
       nunjucksOptions
@@ -55,8 +61,8 @@ nunjucksEnvironment.express(app);
 
 // Set global template variables
 nunjucksEnvironment
-  .addGlobal('GA_CODE', settings.GA_CODE)
-  .addGlobal('GTM_CODE', settings.GTM_CODE)
+  .addGlobal('GA_CODE', settings.SERVICES_ADMIN_GA_CODE)
+  .addGlobal('GTM_CODE', settings.SERVICES_ADMIN_GTM_CODE)
   .addGlobal('IS_PRODUCTION', environment.ifProduction(true, false))
   .addGlobal('IS_DEVELOPMENT', environment.ifDevelopment(true, false));
 
@@ -65,10 +71,10 @@ version.promise.then((tag) => {
 }).catch(() => {});
 
 // Set the base router
-app.use(process.env.VIRTUAL_PATH, controllers);
+app.use('/', controllers);
 
 // Add Raven error handler
-if (environment.production) {
+if (useRaven) {
   app.use(Raven.errorHandler());
 }
 
@@ -85,7 +91,7 @@ app.use((err, req, res, next) => {
 
 // Start the express app
 if (!module.parent) {
-  const port = process.env.VIRTUAL_PORT || 8080;
+  const port = settings.SERVICES_ADMIN_PORT || 8080;
 
   app.listen(port);
   console.log(`Server listening on port ${port}`);

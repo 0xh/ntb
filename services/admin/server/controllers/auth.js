@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import querystring from 'querystring';
 
-import settings from '../lib/settings';
+import settings from '@turistforeningen/ntb-shared-settings';
+
 import sherpa from '../lib/sherpa';
 
 
@@ -19,8 +20,8 @@ router.get('/forward', (req, res, next) => {
   console.log(settings);
 
   return res.redirect(
-    `${settings.OAUTH_DOMAIN}/o/authorize/?client_id=` +
-    `${settings.OAUTH_CLIENT_ID}&response_type=code` +
+    `${settings.SERVICES_ADMIN_OAUTH_DOMAIN}/o/authorize/?client_id=` +
+    `${settings.SERVICES_ADMIN_OAUTH_CLIENT_ID}&response_type=code` +
     `&redirect_uri=${redirectUri}`
   );
 });

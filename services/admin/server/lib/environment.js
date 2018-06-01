@@ -1,7 +1,9 @@
+import settings from '@turistforeningen/ntb-shared-settings';
+
 const environment = {
-  production: process.env.NODE_ENV === 'production',
-  development: process.env.NODE_ENV === 'development',
-  test: process.env.NODE_ENV === 'test',
+  production: settings.NODE_ENV === 'production',
+  development: settings.NODE_ENV === 'development',
+  test: settings.NODE_ENV === 'test',
 };
 
 
