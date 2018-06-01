@@ -50,8 +50,8 @@ services:
     ports:
       - '8080'
       - '9228:9229'
-    # volumes:
-    #   - .:/build
+    volumes:
+      - .:/build
     working_dir: /build
     links:
       - postgres
@@ -64,23 +64,12 @@ services:
       options:
         max-size: "500k"
     environment:
-      # - NODE_ENV=development
-      - NODE_ENV=production
-      - LEGACY_MONGO_DB_URI=1
-      - LEGACY_MONGO_DB_NAME=1
-      - DB_HOST=localhost
-      - DB_PORT=5400
-      - DB_USER=ntb
-      - DB_PASSWORD=ntb
-      - DB_NAME=ntb
-      - SERVICES_ADMIN_REDIS_HOSTNAME=admin-redis
-      - SERVICES_ADMIN_REDIS_PORT=6379
+      - NODE_ENV=development
 
       # Configuration for docker-proxy
       - VIRTUAL_HOST=admin.ntb.local
       - VIRTUAL_PORT=8080
-    # command: /build/tools/docker-compose-assets/service-admin-server-init.sh
-    command: node services/admin/server/index.js
+    command: /build/tools/docker-compose-assets/service-admin-server-init.sh
     extra_hosts:
       - "api.dnt.local:${DOCKER_IP}"
       - "postgres.ntb.local:${DOCKER_IP}"
@@ -93,16 +82,13 @@ services:
     volumes:
       - .:/build
     working_dir: /build
-    depends_on:
-      - postgres
     logging:
       options:
         max-size: "500k"
     environment:
       - NODE_ENV=development
-      - NPM_CONFIG_LOGLEVEL=info
-      - NPM_CONFIG_PROGRESS=false
-      - NPM_CONFIG_SPIN=false
+
+      # Configuration for docker-proxy
       - VIRTUAL_HOST=admin-assets.ntb.local
       - VIRTUAL_PORT=3000
     command: /build/tools/docker-compose-assets/service-admin-client-init.sh
@@ -113,3 +99,50 @@ services:
     logging:
       options:
         max-size: "10k"
+
+  docs-server:
+    build: .
+    network_mode: 'bridge'
+    ports:
+      - '8080'
+      - '9227:9229'
+    volumes:
+      - .:/build
+    working_dir: /build
+    links:
+      - postgres
+      - docs-client
+    depends_on:
+      - postgres
+    logging:
+      options:
+        max-size: "500k"
+    environment:
+      - NODE_ENV=development
+
+      # Configuration for docker-proxy
+      - VIRTUAL_HOST=docs.ntb.local
+      - VIRTUAL_PORT=8080
+    command: /build/tools/docker-compose-assets/service-docs-server-init.sh
+    extra_hosts:
+      - "api.dnt.local:${DOCKER_IP}"
+      - "postgres.ntb.local:${DOCKER_IP}"
+
+  docs-client:
+    build: .
+    network_mode: 'bridge'
+    ports:
+      - '3000'
+    volumes:
+      - .:/build
+    working_dir: /build
+    logging:
+      options:
+        max-size: "500k"
+    environment:
+      - NODE_ENV=development
+
+      # Configuration for docker-proxy
+      - VIRTUAL_HOST=docs-assets.ntb.local
+      - VIRTUAL_PORT=3000
+    command: /build/tools/docker-compose-assets/service-docs-client-init.sh

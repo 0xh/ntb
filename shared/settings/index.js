@@ -50,6 +50,12 @@ const variables = [
   { name: 'SERVICES_ADMIN_SHERPA_API_DOMAIN', default: null },
   { name: 'SERVICES_ADMIN_REDIS_HOSTNAME', default: 'redis' },
   { name: 'SERVICES_ADMIN_REDIS_PORT', default: 6379 },
+
+  // services/docs
+  { name: 'SERVICES_DOCS_PORT', default: 8080 },
+  { name: 'SERVICES_DOCS_SENTRY_DSN', default: null },
+  { name: 'SERVICES_DOCS_GA_CODE', default: null },
+  { name: 'SERVICES_DOCS_GTM_CODE', default: null },
 ];
 
 
