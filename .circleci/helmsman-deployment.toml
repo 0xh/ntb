@@ -39,7 +39,7 @@ dnt = "gs://dnt-helm-repo"
 [apps]
     [apps.ntb]
     name = "ntb" # should be unique across all apps
-    description = "Latest NTB app version test in the beta namespace"
+    description = "NTB app in namespace: beta"
     namespace = "beta" # maps to the namespace as defined in environmetns above
     enabled = false # change to false if you want to delete this app release [empty/undefined = false]
     chart = "dnt/ntb" # don't change the chart name if you want to use a new chart, create a new release in the apps section instead
