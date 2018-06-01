@@ -53,4 +53,3 @@ dnt = "gs://dnt-helm-repo"
     "DB.USER"="$PG_DB_USER"
     "DB.PASSWORD"="$PG_DB_PASSWORD"
     "DB.NAME"="$PG_DB_NAME"
-    "Image.Tag"="608c515fe"  #Bump image tag when redeploy to beta namespace

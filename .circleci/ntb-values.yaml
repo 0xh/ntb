@@ -10,7 +10,7 @@ ContainerName: ntb
 
 Image:
   Name: "eu.gcr.io/dnt-docker-registry-public/ntb"
-  Tag: "latest"
+  Tag: "608c515fe" # Bump this value when publish to deploy-beta
   ImagePullPolicy: "Always"
 
 ContainerPort: 3000
