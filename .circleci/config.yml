@@ -58,10 +58,8 @@ workflows:
             branches:
               only: deploy-dev
       - deploy-to-k8s:
-          context: dnt-k8s-dev-beta
+          context: dnt-k8s-prod
           filters:
             branches:
               only:
-                - deploy-dev
-                - deploy-beta
                 - deploy-prod

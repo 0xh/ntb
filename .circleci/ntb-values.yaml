@@ -10,7 +10,7 @@ ContainerName: ntb
 
 Image:
   Name: "eu.gcr.io/dnt-docker-registry-public/ntb"
-  Tag: "608c515fe" # Bump this value when publish to deploy-beta
+  Tag: "608c515fe" # Bump this value when publish to deploy-prod
   ImagePullPolicy: "Always"
 
 ContainerPort: 3000
@@ -43,5 +43,5 @@ Service:
   Protocol: TCP
 
 Ingress:
-  Host: new-ntb-dev.nasjonalturbase.no
+  Host: new-ntb-prod.nasjonalturbase.no
   ServicePort: 3000
