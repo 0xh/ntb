@@ -53,10 +53,12 @@ workflows:
   build-and-publish:
     jobs:
       - build-image:
+          context: dnt-k8s-dev-beta
           filters:
             branches:
               only: deploy-dev
       - deploy-to-k8s:
+          context: dnt-k8s-dev-beta
           filters:
             branches:
               only:
