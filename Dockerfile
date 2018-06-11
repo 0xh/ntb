@@ -32,11 +32,11 @@ RUN ./node_modules/.bin/babel cronjobs --out-dir cronjobs \
     && ./node_modules/.bin/babel services/docs/server --out-dir services/docs/server
 
 # Compile admin-client using webpack
-RUN ./node_modules/.bin/eslint -c services/admin/client/.eslintrc.js services/admin/client/js/
+# RUN ./node_modules/.bin/eslint -c services/admin/client/.eslintrc.js services/admin/client/js/
 RUN /build/node_modules/.bin/webpack -p --env.production --progress --config /build/services/admin/client/webpack.config.js
 
 # Compile docs-client using webpack
-RUN ./node_modules/.bin/eslint -c services/docs/client/.eslintrc.js services/docs/client/js/
+# RUN ./node_modules/.bin/eslint -c services/docs/client/.eslintrc.js services/docs/client/js/
 RUN /build/node_modules/.bin/webpack -p --env.production --progress --config /build/services/docs/client/webpack.config.js
 
 # Remove unused application files
