@@ -4,6 +4,7 @@ import {
   isNumber,
   isObject,
 } from '@turistforeningen/ntb-shared-utils';
+import { BaseModel } from '@turistforeningen/ntb-shared-models';
 
 import validateAndProcessFilters from './validate-and-process-filters';
 
@@ -69,14 +70,11 @@ function getKeyValue(requestObject, key) {
 function setValidKeys(handler) {
   let validKeys = ['fields'];
   const validDotKeys = [];
-  const { config, association, model } = handler;
+  const { config, relation, model } = handler;
   const relations = model.getRelations();
-  const associationType = association
-    ? association.associationType
-    : null;
 
-  // Enable pagination if not association, or a multiple-association
-  if (!association || !['BelongsTo'].includes(associationType)) {
+  // Enable pagination if not relation, or a multiple-relation
+  if (!relation || !(relation instanceof BaseModel.BelongsToOneRelation)) {
     // Pagination keys
     if (config.paginate) {
       validKeys.push('limit');
@@ -489,6 +487,10 @@ function setFields(handler) {
       let relationFields = [];
       values.forEach((fieldExpression, idx) => {
         if (idx === 0 && fieldExpression.toLowerCase() === '*full') {
+          fields = config.fullFields;
+          ({ relationFields } = handler);
+        }
+        else if (idx === 0 && fieldExpression.toLowerCase() === '*default') {
           ({ fields, relationFields } = handler);
         }
         else {

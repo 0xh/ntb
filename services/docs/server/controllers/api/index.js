@@ -3,6 +3,7 @@ import responseTime from 'response-time';
 
 import version from '../../version';
 
+import modelsController from './models';
 import versionController from './version';
 
 
@@ -28,6 +29,7 @@ router.use((req, res, next) => {
 
 
 // Add routes
+router.use('/models', modelsController);
 router.use('/version', versionController);
 
 

@@ -14,11 +14,10 @@ const container = document.getElementById('root');
 const reducerRegistry = new ReducerRegistry(coreReducers);
 
 
-const render = (Component, persistor, store, history) => {
+const render = (Component, store, history) => {
   ReactDOM.render(
     <AppContainer warnings={false}>
       <Component
-        persistor={persistor}
         store={store}
         history={history} />
     </AppContainer>,
@@ -28,8 +27,8 @@ const render = (Component, persistor, store, history) => {
 
 
 const bootstrap = () => {
-  const { persistor, store, history } = configureStore(reducerRegistry);
-  render(Root, persistor, store, history);
+  const { store, history } = configureStore(reducerRegistry);
+  render(Root, store, history);
 
   // Configure hot module replacement
   if (process.env.NODE_ENV !== 'production') {
@@ -40,7 +39,7 @@ const bootstrap = () => {
         () => {
           // eslint-disable-next-line global-require
           const NewRoot = require('./components/Root.jsx').default;
-          render(NewRoot, persistor, store, history);
+          render(NewRoot, store, history);
         }
       );
 

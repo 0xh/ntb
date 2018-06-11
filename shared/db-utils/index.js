@@ -1,10 +1,9 @@
 import _ from 'lodash';
 
-import * as settings from '@turistforeningen/ntb-shared-settings';
+import settings from '@turistforeningen/ntb-shared-settings';
 import {
   startDuration,
   endDuration,
-  printDone,
   createLogger,
 } from '@turistforeningen/ntb-shared-utils';
 

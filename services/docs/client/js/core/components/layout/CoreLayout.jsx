@@ -1,27 +1,16 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import { Layout, Row, Col } from 'antd';
-
-
-const { Header } = Layout;
+import { Layout } from 'antd';
 
 
 const CoreLayout = ({ children }) => (
   <Layout>
-    <Header style={{ marginBottom: '20px' }}>
-      <Row className="page">
-        <Col span={18}>
-          Header
-        </Col>
-        <Col span={6}>
-          Logg inn
-        </Col>
-      </Row>
-    </Header>
     <Layout
       className="page"
       style={{ position: 'relative' }}>
+      <h1>NTB API Documentation</h1>
+      <hr />
       { children }
     </Layout>
   </Layout>

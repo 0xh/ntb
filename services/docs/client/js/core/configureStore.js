@@ -1,7 +1,6 @@
 import { createStore, applyMiddleware, compose } from 'redux';
 import { routerMiddleware } from 'react-router-redux';
 import createHistory from 'history/createBrowserHistory';
-import { persistStore } from 'redux-persist';
 import thunk from 'redux-thunk';
 
 import configureReducers from './configureReducers';
@@ -23,7 +22,6 @@ const createStoreWithMiddleware = compose(
 const configureStore = (reducerRegistry) => {
   const rootReducer = configureReducers(reducerRegistry.getReducers());
   const store = createStoreWithMiddleware(rootReducer);
-  const persistor = persistStore(store);
   store.reducerRegistry = reducerRegistry;
 
   // Reconfigure the store's reducer when the reducer registry is changed - we
@@ -32,10 +30,9 @@ const configureStore = (reducerRegistry) => {
   reducerRegistry.setChangeListener((reducers) => {
     const newRootReducer = configureReducers(reducers);
     store.replaceReducer(newRootReducer);
-    persistor.persist();
   });
 
-  return { persistor, store, history };
+  return { store, history };
 };
 
 

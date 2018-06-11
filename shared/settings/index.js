@@ -73,4 +73,10 @@ variables.forEach((variable) => {
   settings[variable.name] = value;
 });
 
+
+// Env helpers
+settings.ENV_IS_DEVELOPMENT = settings.NODE_ENV === 'development';
+settings.ENV_IS_PRODUCTION = settings.NODE_ENV === 'production';
+settings.ENV_IS_TEST = settings.NODE_ENV === 'test';
+
 export default settings;

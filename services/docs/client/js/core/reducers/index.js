@@ -1,8 +1,10 @@
-import user from './user';
+import models from './models';
+import version from './version';
 
 
 const coreReducers = {
-  'core/user': user,
+  'core/models': models,
+  'core/version': version,
 };
 
 

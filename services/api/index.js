@@ -1,15 +1,15 @@
 import bodyParser from 'body-parser';
 import express from 'express';
 
-import { ENV_IS_DEVELOPMENT } from '@turistforeningen/ntb-shared-settings';
+import settings from '@turistforeningen/ntb-shared-settings';
 import { createLogger } from '@turistforeningen/ntb-shared-utils';
 
 import APIError from './lib/api-error';
 import controllers from './controllers';
 
 
+const { ENV_IS_DEVELOPMENT } = settings;
 const logger = createLogger();
-
 
 // Initiate express app
 const app = express();
