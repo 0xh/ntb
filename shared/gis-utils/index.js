@@ -1,6 +1,7 @@
 import geoJSONRewind from 'geojson-rewind';
 import mapboxPolyline from '@mapbox/polyline';
 import GJV from 'geojson-validation';
+import { stringify } from 'wellknown';
 
 import { knex } from '@turistforeningen/ntb-shared-db-utils';
 
@@ -10,9 +11,10 @@ const st = knex.postgis;
 
 export function geomFromGeoJSON(geojson) {
   let res;
+  let wkt = stringify(geojson);
 
   try {
-    res = st.geomFromGeoJSON(geojson);
+    res = st.geomFromText(wkt);
   }
   catch (err) {
     if (
@@ -28,7 +30,9 @@ export function geomFromGeoJSON(geojson) {
         'Polygons and MultiPolygons should follow the right-hand rule'
       );
       if (message === rightHandErr) {
-        res = st.geomFromGeoJSON(geoJSONRewind(geojson));
+        const newGeojson = geoJSONRewind(geojson);
+        wkt = stringify(newGeojson);
+        res = st.geomFromText(wkt);
       }
 
       // GeoJSON contains an invalid 'properties'-key
@@ -37,12 +41,12 @@ export function geomFromGeoJSON(geojson) {
       );
       if (message === invalidPropertiesKey) {
         delete geojson.properties;
-        res = st.geomFromGeoJSON(geojson);
+        const newGeojson = geoJSONRewind(geojson);
+        wkt = stringify(newGeojson);
+        res = st.geomFromText(wkt);
       }
     }
     else {
-      geojson;
-      debugger;
       throw err;
     }
   }
