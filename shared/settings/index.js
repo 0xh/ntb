@@ -71,6 +71,11 @@ variables.forEach((variable) => {
     throw new Error(`The environment variable ${variable.name} is required`);
   }
   settings[variable.name] = value;
+
+  // Format as number
+  if (variable.format && variable.format === 'number') {
+    settings[variable.name] = +settings[variable.name];
+  }
 });
 
 
