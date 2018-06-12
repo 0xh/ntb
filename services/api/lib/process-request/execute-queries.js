@@ -631,14 +631,14 @@ async function executeSingleOrMultiRelation(
   if (queryOptions.attributes) {
     const attrs = queryOptions.attributes
       .map((a) => `${model.tableName}.${a}`);
-    query = query.select(...attrs);
+    query = query.distinct(...attrs);
   }
 
   // Select owner identifiers
   const ownerAttributes = ownerIdColumns.map((p, idx) => (
     `${ownerTableName}.${p} AS outerId${idx}`
   ));
-  query = query.select(...ownerAttributes);
+  query = query.distinct(...ownerAttributes).select();
 
   // Join related table
   query = query.innerJoin(
@@ -923,7 +923,13 @@ async function executeMainQueryPart(model, queryOptions, count = false) {
   if (queryOptions.attributes && !count) {
     const attrs = queryOptions.attributes
       .map((a) => `${model.tableName}.${a}`);
-    query = query.select(...attrs);
+
+    if (queryOptions.relations) {
+      query = query.distinct(...attrs).select();
+    }
+    else {
+      query = query.select(...attrs);
+    }
   }
 
   // Joins
