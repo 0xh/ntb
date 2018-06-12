@@ -1,6 +1,5 @@
-import _ from 'lodash';
-
 import BaseModel from './BaseModel';
+import DocumentStatusSchema from './schemas/document-status';
 
 
 export default class Area extends BaseModel {
@@ -15,14 +14,6 @@ export default class Area extends BaseModel {
 
 
   static relationMappings = {
-    documentStatus: {
-      relation: BaseModel.BelongsToOneRelation,
-      modelClass: 'DocumentStatus',
-      join: {
-        from: 'areas.status',
-        to: 'documentStatuses.name',
-      },
-    },
     children: {
       relation: BaseModel.ManyToManyRelation,
       modelClass: 'Area',
@@ -49,6 +40,66 @@ export default class Area extends BaseModel {
         to: 'areas.id',
       },
     },
+    counties: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'County',
+      join: {
+        from: 'areas.id',
+        through: {
+          modelClass: 'AreaToCounty',
+          from: 'areasToCounties.areaId',
+          to: 'areasToCounties.countyId',
+        },
+        to: 'counties.id',
+      },
+    },
+    municipalities: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Municipality',
+      join: {
+        from: 'areas.id',
+        through: {
+          modelClass: 'AreaToMunicipality',
+          from: 'areasToMunicipalities.areaId',
+          to: 'areasToMunicipalities.municipalityId',
+        },
+        to: 'municipalities.id',
+      },
+    },
+    cabins: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Cabin',
+      join: {
+        from: 'areas.id',
+        through: {
+          modelClass: 'CabinToArea',
+          from: 'cabinsToAreas.areaId',
+          to: 'cabinsToAreas.cabinId',
+        },
+        to: 'cabins.id',
+      },
+    },
+    pois: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Poi',
+      join: {
+        from: 'areas.id',
+        through: {
+          modelClass: 'PoiToArea',
+          from: 'poisToAreas.areaId',
+          to: 'poisToAreas.poiId',
+        },
+        to: 'pois.id',
+      },
+    },
+    pictures: {
+      relation: BaseModel.HasManyRelation,
+      modelClass: 'Picture',
+      join: {
+        from: 'areas.id',
+        to: 'pictures.areaId',
+      },
+    },
   };
 
   static jsonSchema = {
@@ -65,19 +116,12 @@ export default class Area extends BaseModel {
       idLegacyNtb: { type: 'string', readOnly: true },
       name: { type: 'string', minLength: 2, maxLength: 100 },
       description: { type: 'string', maxLength: 100000 },
-      a2aCreatedAt: {
-        format: 'date',
-        readOnly: true,
-        availableForReferrers: [
-          'Area.children',
-        ],
-      },
-      geometry: { $ref: 'GeojsonPolygon' },
+      geometry: { type: 'object' },
       map: { type: 'string', maxLength: 300 },
       url: { type: 'string', maxLength: 300 },
       license: { type: 'string', maxLength: 300 },
       provider: { type: 'string', maxLength: 300, readOnly: true },
-      status: { $ref: 'DocumentStatus' },
+      status: { ...DocumentStatusSchema },
       updatedAt: { format: 'date', readOnly: true },
       createdAt: { format: 'date', readOnly: true },
     },
@@ -102,7 +146,14 @@ export default class Area extends BaseModel {
         'createdAt',
       ],
       defaultOrder: [['name', 'ASC']],
-      defaultFields: [
+      validFilters: {
+        id: {},
+        idLegacyNtb: {},
+        name: {},
+        provider: {},
+        status: {},
+      },
+      fullFields: [
         'uri',
         'id',
         'name',
@@ -114,10 +165,10 @@ export default class Area extends BaseModel {
         'status',
         'updatedAt',
       ],
-      defaultRelations: [
-        'parents',
-        'children',
+      defaultFields: [
+        '*full',
       ],
+      defaultRelations: [],
     };
 
     // Default configuration when included from another model
@@ -140,10 +191,7 @@ export default class Area extends BaseModel {
 
 
   static getAPIFieldsToAttributes(referrer, fields) {
-    const extra = {
-      // Related extra field from Cabin
-      areaRelatedAt: ['areaRelatedAt'],
-    };
+    const extra = {};
 
     const attributes = super.getAPIFieldsToAttributes(referrer, fields, extra);
 

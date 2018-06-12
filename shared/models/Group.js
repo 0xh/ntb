@@ -1,4 +1,5 @@
 import BaseModel from './BaseModel';
+import DocumentStatusSchema from './schemas/document-status';
 
 
 export default class Group extends BaseModel {
@@ -14,14 +15,7 @@ export default class Group extends BaseModel {
 
   static relationMappings = {
     // TODO(Roar):
-    // municipality
-    // poi
-    // pois
     // lists
-    // links
-    // // cabins - owner
-    // cabins - maintainer
-    // cabins - contact
 
     ownsCabins: {
       relation: BaseModel.HasManyRelation,
@@ -45,6 +39,35 @@ export default class Group extends BaseModel {
       join: {
         from: 'groups.id',
         to: 'cabins.maintainerGroupId',
+      },
+    },
+    municipality: {
+      relation: BaseModel.BelongsToOneRelation,
+      modelClass: 'Municipality',
+      join: {
+        from: 'groups.municipality_id',
+        to: 'municipalities.id',
+      },
+    },
+    pois: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Poi',
+      join: {
+        from: 'groups.id',
+        through: {
+          modelClass: 'PoiToGroup',
+          from: 'poisToGroups.groupId',
+          to: 'poisToGroups.poiId',
+        },
+        to: 'pois.id',
+      },
+    },
+    links: {
+      relation: BaseModel.HasManyRelation,
+      modelClass: 'GroupLink',
+      join: {
+        from: 'groups.id',
+        to: 'groupLinks.groupId',
       },
     },
   };
@@ -77,7 +100,7 @@ export default class Group extends BaseModel {
       postalName: { type: 'string' },
       license: { type: 'string', maxLength: 300 },
       provider: { type: 'string', maxLength: 300, readOnly: true },
-      status: { $ref: 'DocumentStatus' },
+      status: { ...DocumentStatusSchema },
       updatedAt: { format: 'date', readOnly: true },
       createdAt: { format: 'date', readOnly: true },
     },
@@ -102,7 +125,7 @@ export default class Group extends BaseModel {
         'updatedAt',
         'createdAt',
       ],
-      defaultFields: [
+      fullFields: [
         'uri',
         'id',
         'type',
@@ -125,7 +148,12 @@ export default class Group extends BaseModel {
         'status',
         'updatedAt',
       ],
-      defaultRelations: [],
+      defaultFields: [
+        '*full',
+      ],
+      defaultRelations: [
+        'links',
+      ],
       validFilters: {
         id: {},
         groupType: {},
@@ -147,6 +175,7 @@ export default class Group extends BaseModel {
         'id',
         'name',
       ],
+      defaultRelations: [],
     };
 
     return config;

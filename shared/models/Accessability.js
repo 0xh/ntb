@@ -13,9 +13,6 @@ export default class Accessability extends BaseModel {
 
 
   static relationMappings = {
-    // TODO(roar):
-    // pois
-
     cabins: {
       relation: BaseModel.ManyToManyRelation,
       modelClass: 'Cabin',
@@ -28,6 +25,20 @@ export default class Accessability extends BaseModel {
           to: 'cabinAccessabilities.cabinId',
         },
         to: 'cabins.id',
+      },
+    },
+    pois: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Poi',
+      join: {
+        from: 'accessabilities.name',
+        through: {
+          modelClass: 'PoiAccessability',
+          extra: { poiAccessabilityDescription: 'description' },
+          from: 'poiAccessabilities.accessabilityName',
+          to: 'poiAccessabilities.poiId',
+        },
+        to: 'pois.id',
       },
     },
   };
@@ -56,12 +67,16 @@ export default class Accessability extends BaseModel {
     config['*list'] = {
       paginate: false,
       fullTextSearch: false,
-      ordering: false,
+      ordering: true,
       defaultOrder: [['name', 'ASC']],
       validOrderFields: ['name'],
       validFilters: {
         name: {},
       },
+      fullFields: [
+        'name',
+        'description',
+      ],
       defaultFields: [
         'name',
         'description',

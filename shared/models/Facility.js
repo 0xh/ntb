@@ -13,9 +13,6 @@ export default class Facility extends BaseModel {
 
 
   static relationMappings = {
-    // TODO(roar):
-    // pois
-
     cabins: {
       relation: BaseModel.ManyToManyRelation,
       modelClass: 'Cabin',
@@ -74,9 +71,15 @@ export default class Facility extends BaseModel {
       ordering: false,
       defaultOrder: [['name', 'ASC']],
       validOrderFields: ['name'],
-      defaultFields: [
+      validFilters: {
+        name: {},
+      },
+      fullFields: [
         'name',
         'description',
+      ],
+      defaultFields: [
+        '*full',
       ],
       defaultRelations: [],
     };

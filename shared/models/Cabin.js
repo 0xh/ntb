@@ -14,6 +14,25 @@ export default class Cabin extends BaseModel {
 
 
   static relationMappings = {
+    // Todo
+    // links
+
+    openingHours: {
+      relation: BaseModel.HasManyRelation,
+      modelClass: 'CabinOpeningHours',
+      join: {
+        from: 'cabins.id',
+        to: 'cabinOpeningHours.cabinId',
+      },
+    },
+    links: {
+      relation: BaseModel.HasManyRelation,
+      modelClass: 'CabinLink',
+      join: {
+        from: 'cabins.id',
+        to: 'cabinLinks.cabinId',
+      },
+    },
     areas: {
       relation: BaseModel.ManyToManyRelation,
       modelClass: 'Area',
@@ -79,6 +98,14 @@ export default class Cabin extends BaseModel {
         to: 'groups.id',
       },
     },
+    pictures: {
+      relation: BaseModel.HasManyRelation,
+      modelClass: 'Picture',
+      join: {
+        from: 'cabins.id',
+        to: 'pictures.cabinId',
+      },
+    },
   };
 
 
@@ -110,6 +137,7 @@ export default class Cabin extends BaseModel {
         ],
       },
       description: { type: 'string', maxLength: 100000 },
+      serviceLevel: { type: 'string' },
       contact: {
         type: 'object',
         properties: {
@@ -234,11 +262,13 @@ export default class Cabin extends BaseModel {
         'updatedAt',
         'createdAt',
       ],
+      defaultOrder: [['name', 'ASC']],
       validFilters: {
         id: {},
         idLegacyNtb: {},
         dntCabin: {},
         dntDiscount: {},
+        serviceLevel: {},
         name: {},
         provider: {},
         status: {},
@@ -246,13 +276,13 @@ export default class Cabin extends BaseModel {
           geojsonType: 'point',
         },
       },
-      defaultOrder: [['name', 'ASC']],
       fullFields: [
         'uri',
         'id',
         'name',
         'nameAlt',
         'description',
+        'serviceLevel',
         'contact',
         'map',
         'url',
@@ -265,6 +295,8 @@ export default class Cabin extends BaseModel {
         '*full',
       ],
       defaultRelations: [
+        'openingHours',
+        'links',
         'ownerGroup',
         'contactGroup',
         'maintainerGroup',
@@ -295,6 +327,27 @@ export default class Cabin extends BaseModel {
       ],
     };
 
+    // Configuration when included through Facility.cabins
+    config['Facility.cabins'] = {
+      ...config.default,
+      defaultFields: [
+        ...config.default.defaultFields,
+        'cabinFacilityDescription',
+      ],
+    };
+
+    // Configuration when included through
+    // DabinServiceLevel.cabinsThroughOpeningHours
+    config['CabinServiceLevel.cabinsThroughOpeningHours'] = {
+      ...config.default,
+      defaultFields: [
+        ...config.default.defaultFields,
+        'openAllYear',
+        'openFrom',
+        'openTo',
+      ],
+    };
+
     return config;
   }
 
@@ -303,6 +356,15 @@ export default class Cabin extends BaseModel {
     const extra = {
       // Related extra field from Accessability
       cabinAccessabilityDescription: ['cabinAccessabilityDescription'],
+
+      // Related extra field from Facility
+      cabinFacilityDescription: ['cabinFacilityDescription'],
+
+      // Related extra fields from DabinServiceLevel.cabinsThroughOpeningHours
+      openAllYear: ['openAllYear'],
+      openFrom: ['openFrom'],
+      openTo: ['openTo'],
+
       contact: [
         'contactName',
         'email',
