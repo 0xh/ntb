@@ -303,7 +303,7 @@ function createMultiThroughMainQuery(handler, identifiersByProp) {
 
 
 function createPaginatedMultiThroughCountQuery(handler, identifiersByProp) {
-  const { relation } = handler;
+  const { relation, model } = handler;
 
   // Create query
   let query = createMultiThroughSubQuery(handler, false);
@@ -314,7 +314,12 @@ function createPaginatedMultiThroughCountQuery(handler, identifiersByProp) {
     .map((p, idx) => `${p} AS outerId${idx}`);
 
   query = query
-    .select(...selectProps, knex.raw('COUNT(*) AS count'))
+    .select(
+      ...selectProps,
+      knex.raw(
+        `COUNT(DISTINCT "inner"."${model.idColumn}") AS count`
+      )
+    )
     .groupBy(groupByProps);
 
   // Filter on outer identifiers
@@ -433,7 +438,12 @@ function createPaginatedMultiCountQuery(handler, identifiersByProp) {
     .map((p, idx) => `${p} AS outerId${idx}`);
 
   query = query
-    .select(...selectProps, knex.raw('COUNT(*) AS count'))
+    .select(
+      ...selectProps,
+      knex.raw(
+        `COUNT(DISTINCT "inner"."${model.idColumn}") AS count`
+      )
+    )
     .groupBy(groupByProps);
 
   // Filter on outer identifiers
@@ -916,7 +926,9 @@ async function executeMainQueryPart(model, queryOptions, count = false) {
 
   // Attributes to select if it's a count query
   if (count) {
-    query = query.count({ count: '*' });
+    query = query.countDistinct({
+      count: `${model.tableName}.${model.idColumn}`,
+    });
   }
 
   // Attributes to select if it's not a count query
