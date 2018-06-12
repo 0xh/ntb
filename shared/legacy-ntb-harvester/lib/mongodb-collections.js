@@ -3,7 +3,7 @@ import path from 'path';
 
 import { MongoClient } from 'mongodb';
 
-import * as settings from '@turistforeningen/ntb-shared-settings';
+import settings from '@turistforeningen/ntb-shared-settings';
 import {
   createLogger,
   startDuration,
