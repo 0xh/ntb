@@ -14,12 +14,6 @@ export default class Trip extends BaseModel {
 
 
   static relationMappings = {
-    // Todo
-    // sub_activity_types
-    // links
-    // groups
-    // pois
-
     subActivityTypes: {
       relation: BaseModel.ManyToManyRelation,
       modelClass: 'ActivityType',
@@ -32,6 +26,40 @@ export default class Trip extends BaseModel {
           to: 'tripsToActivityTypes.activityTypeName',
         },
         to: 'activityTypes.name',
+      },
+    },
+    groups: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Group',
+      join: {
+        from: 'trips.id',
+        through: {
+          modelClass: 'TripToGroup',
+          from: 'tripsToGroups.tripId',
+          to: 'tripsToGroups.groupId',
+        },
+        to: 'groups.id',
+      },
+    },
+    pois: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Poi',
+      join: {
+        from: 'trips.id',
+        through: {
+          modelClass: 'TripToPoi',
+          from: 'tripsToPois.tripId',
+          to: 'tripsToPois.poiId',
+        },
+        to: 'pois.id',
+      },
+    },
+    links: {
+      relation: BaseModel.HasManyRelation,
+      modelClass: 'TripLink',
+      join: {
+        from: 'trips.id',
+        to: 'tripLinks.tripId',
       },
     },
     pictures: {
