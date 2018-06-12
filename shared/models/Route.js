@@ -14,28 +14,79 @@ export default class Route extends BaseModel {
 
 
   static relationMappings = {
-    // TODO(Roar)
-    // activity_type
-    // links
-    // waymark_types
-    // counties
-    // Municipalities
-    // groups
-    // pois
-
-    // areas: {
-    //   relation: BaseModel.ManyToManyRelation,
-    //   modelClass: 'Area',
-    //   join: {
-    //     from: 'cabins.id',
-    //     through: {
-    //       modelClass: 'CabinToArea',
-    //       from: 'cabinsToAreas.cabinId',
-    //       to: 'cabinsToAreas.areaId',
-    //     },
-    //     to: 'areas.id',
-    //   },
-    // },
+    activityTypes: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'ActivityType',
+      join: {
+        from: 'routes.id',
+        through: {
+          modelClass: 'RouteToActivityType',
+          from: 'routesToActivityTypes.routeId',
+          to: 'routesToActivityTypes.activityTypeName',
+        },
+        to: 'activityTypes.name',
+      },
+    },
+    routeWaymarkTypes: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'RouteWaymarkType',
+      join: {
+        from: 'routes.id',
+        through: {
+          modelClass: 'RouteToRouteWaymarkType',
+          from: 'routesToRouteWaymarkTypes.routeId',
+          to: 'routesToRouteWaymarkTypes.routeWaymarkTypeName',
+        },
+        to: 'routeWaymarkTypes.name',
+      },
+    },
+    counties: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'County',
+      join: {
+        from: 'routes.id',
+        through: {
+          modelClass: 'RouteToCounty',
+          from: 'routesToCounties.routeId',
+          to: 'routesToCounties.countyId',
+        },
+        to: 'counties.id',
+      },
+    },
+    groups: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Group',
+      join: {
+        from: 'routes.id',
+        through: {
+          modelClass: 'RouteToGroup',
+          from: 'routesToGroups.routeId',
+          to: 'routesToGroups.groupId',
+        },
+        to: 'groups.id',
+      },
+    },
+    pois: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Poi',
+      join: {
+        from: 'routes.id',
+        through: {
+          modelClass: 'RouteToPoi',
+          from: 'routesToPois.routeId',
+          to: 'routesToPois.poiId',
+        },
+        to: 'pois.id',
+      },
+    },
+    links: {
+      relation: BaseModel.HasManyRelation,
+      modelClass: 'RouteLink',
+      join: {
+        from: 'routes.id',
+        to: 'routeLinks.routeId',
+      },
+    },
     pictures: {
       relation: BaseModel.HasManyRelation,
       modelClass: 'Picture',
@@ -217,6 +268,7 @@ export default class Route extends BaseModel {
         'ownerGroup',
         'contactGroup',
         'maintainerGroup',
+        'activityTypes',
       ],
     };
 

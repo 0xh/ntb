@@ -20,19 +20,20 @@ export default class Trip extends BaseModel {
     // groups
     // pois
 
-    // areas: {
-    //   relation: BaseModel.ManyToManyRelation,
-    //   modelClass: 'Area',
-    //   join: {
-    //     from: 'cabins.id',
-    //     through: {
-    //       modelClass: 'CabinToArea',
-    //       from: 'cabinsToAreas.cabinId',
-    //       to: 'cabinsToAreas.areaId',
-    //     },
-    //     to: 'areas.id',
-    //   },
-    // },
+    subActivityTypes: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'ActivityType',
+      join: {
+        from: 'trips.id',
+        through: {
+          modelClass: 'TripToActivityType',
+          extra: { primaryActivityType: 'primary' },
+          from: 'tripsToActivityTypes.tripId',
+          to: 'tripsToActivityTypes.activityTypeName',
+        },
+        to: 'activityTypes.name',
+      },
+    },
     pictures: {
       relation: BaseModel.HasManyRelation,
       modelClass: 'Picture',

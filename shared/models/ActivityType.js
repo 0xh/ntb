@@ -126,7 +126,6 @@ export default class ActivityType extends BaseModel {
       ...config['*list'],
       defaultFields: [
         'name',
-        'primary',
       ],
       defaultRelations: [],
     };
@@ -136,7 +135,10 @@ export default class ActivityType extends BaseModel {
 
 
   static getAPIFieldsToAttributes(referrer, fields) {
-    const extra = {};
+    const extra = {
+      // Related extra field from Trip.subActivityTypes
+      primaryActivityType: ['primaryActivityType'],
+    };
 
     const attributes = super.getAPIFieldsToAttributes(referrer, fields, extra);
 
