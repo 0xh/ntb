@@ -49,7 +49,7 @@ services:
     network_mode: 'bridge'
     ports:
       - '8080'
-      - '9228:9229'
+      - '9228:9228'
     volumes:
       - .:/build
     working_dir: /build
@@ -105,7 +105,7 @@ services:
     network_mode: 'bridge'
     ports:
       - '8080'
-      - '9227:9229'
+      - '9227:9227'
     volumes:
       - .:/build
     working_dir: /build
