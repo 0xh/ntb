@@ -70,6 +70,32 @@ export default class Group extends BaseModel {
         to: 'groupLinks.groupId',
       },
     },
+    trips: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Trip',
+      join: {
+        from: 'groups.id',
+        through: {
+          modelClass: 'TripToGroup',
+          from: 'tripsToGroups.groupId',
+          to: 'tripsToGroups.tripId',
+        },
+        to: 'trips.id',
+      },
+    },
+    routes: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Route',
+      join: {
+        from: 'groups.id',
+        through: {
+          modelClass: 'RouteToGroup',
+          from: 'routesToGroups.groupId',
+          to: 'routesToGroups.routeId',
+        },
+        to: 'routes.id',
+      },
+    },
   };
 
 
