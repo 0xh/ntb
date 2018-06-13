@@ -86,7 +86,8 @@ function processExpressJSQueryObject(handler) {
       });
     });
     const validKeys = [].concat(
-      handler.validFilters.self,
+      handler.validFilters.self
+        .map((k) => _.snakeCase(k)),
       validRelationFilterKeys
     );
     const filterKeys = validKeys.filter((k) => queryKeys.includes(k));
@@ -618,7 +619,7 @@ function processStringClause(handler, filter) {
     options: [
       attribute,
       '=',
-      `${value}`,
+      `${rawValue.trim()}`,
     ],
   }];
 }
