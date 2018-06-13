@@ -181,7 +181,7 @@ function processStructuredQueryObjectFilters(
         }
         else {
           const keys = key.split('.');
-          const relationKey = keys[0];
+          const relationKey = _.camelCase(keys[0].toLowerCase());
           const subKey = keys
             .slice(1)
             .map((k) => _.camelCase(k.toLowerCase()))
