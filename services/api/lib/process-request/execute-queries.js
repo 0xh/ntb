@@ -199,6 +199,16 @@ function createPaginatedMultiThroughMainQuery(handler, identifiersByProp) {
     subQuery = subQuery.select(...attrs);
   }
 
+  // Add relations joins (for filters and eager loading)
+  if (queryOptions.relations) {
+    subQuery = addJoins(subQuery, model, 'inner', queryOptions);
+  }
+
+  // Filters
+  if (queryOptions.where) {
+    subQuery = setFilters(subQuery, 'inner', queryOptions.where);
+  }
+
   // Set ordering
   if (queryOptions.order && queryOptions.order.length) {
     queryOptions.order.forEach((order) => {
@@ -281,6 +291,16 @@ function createMultiThroughMainQuery(handler, identifiersByProp) {
     .map((p, idx) => `${relation.joinTable}.${p} AS outerId${idx}`);
   query = query.select(...ownerAttributes);
 
+  // Add relations joins (for filters and eager loading)
+  if (queryOptions.relations) {
+    query = addJoins(query, model, 'inner', queryOptions);
+  }
+
+  // Filters
+  if (queryOptions.where) {
+    query = setFilters(query, 'inner', queryOptions.where);
+  }
+
   // Set ordering
   if (queryOptions.order && queryOptions.order.length) {
     queryOptions.order.forEach((order) => {
@@ -321,7 +341,7 @@ function createMultiThroughMainQuery(handler, identifiersByProp) {
 
 
 function createPaginatedMultiThroughCountQuery(handler, identifiersByProp) {
-  const { relation, model } = handler;
+  const { relation, model, queryOptions } = handler;
 
   // Create query
   let query = createMultiThroughSubQuery(handler, false);
@@ -339,6 +359,16 @@ function createPaginatedMultiThroughCountQuery(handler, identifiersByProp) {
       )
     )
     .groupBy(groupByProps);
+
+  // Add relations joins (for filters and eager loading)
+  if (queryOptions.relations) {
+    query = addJoins(query, model, 'inner', queryOptions);
+  }
+
+  // Filters
+  if (queryOptions.where) {
+    query = setFilters(query, 'inner', queryOptions.where);
+  }
 
   // Filter on outer identifiers
   Object.keys(identifiersByProp).forEach((ownerProp) => {
@@ -376,6 +406,16 @@ function createPaginatedMultiMainQuery(handler, identifiersByProp) {
           : `"inner".${a}`
       ));
     subQuery = subQuery.select(...attrs);
+  }
+
+  // Add relations joins (for filters and eager loading)
+  if (queryOptions.relations) {
+    subQuery = addJoins(subQuery, model, 'inner', queryOptions);
+  }
+
+  // Filters
+  if (queryOptions.where) {
+    subQuery = setFilters(subQuery, 'inner', queryOptions.where);
   }
 
   // Filter on ids from outer table
@@ -434,7 +474,7 @@ function createPaginatedMultiMainQuery(handler, identifiersByProp) {
 
 
 function createPaginatedMultiCountQuery(handler, identifiersByProp) {
-  const { relation, model } = handler;
+  const { relation, model, queryOptions } = handler;
 
   // Create query
   let query = knex(`${model.tableName} as "inner"`);
@@ -468,6 +508,16 @@ function createPaginatedMultiCountQuery(handler, identifiersByProp) {
       )
     )
     .groupBy(groupByProps);
+
+  // Add relations joins (for filters and eager loading)
+  if (queryOptions.relations) {
+    query = addJoins(query, model, 'inner', queryOptions);
+  }
+
+  // Filters
+  if (queryOptions.where) {
+    query = setFilters(query, 'inner', queryOptions.where);
+  }
 
   // Filter on outer identifiers
   Object.keys(identifiersByProp).forEach((ownerProp) => {
