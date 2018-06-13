@@ -102,6 +102,12 @@ export default class Area extends BaseModel {
     },
   };
 
+
+  static geometryAttributes = [
+    'geometry',
+  ];
+
+
   static jsonSchema = {
     type: 'object',
     required: [

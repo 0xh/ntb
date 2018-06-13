@@ -98,6 +98,14 @@ export default class Route extends BaseModel {
   };
 
 
+  static geometryAttributes = [
+    'pointA',
+    'pointB',
+    'pathAb',
+    'pathBa',
+  ];
+
+
   static jsonSchema = {
     type: 'object',
     required: [

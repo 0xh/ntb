@@ -109,6 +109,11 @@ export default class Cabin extends BaseModel {
   };
 
 
+  static geometryAttributes = [
+    'coordinates',
+  ];
+
+
   static jsonSchema = {
     type: 'object',
     required: [

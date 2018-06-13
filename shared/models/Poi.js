@@ -106,6 +106,11 @@ export default class Poi extends BaseModel {
   };
 
 
+  static geometryAttributes = [
+    'coordinates',
+  ];
+
+
   static jsonSchema = {
     type: 'object',
     required: [

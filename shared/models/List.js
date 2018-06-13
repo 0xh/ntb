@@ -20,4 +20,9 @@ export default class List extends BaseModel {
     // county
     // municipality
   };
+
+
+  static geometryAttributes = [
+    'coordinates',
+  ];
 }

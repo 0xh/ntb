@@ -59,6 +59,12 @@ export default class Picture extends BaseModel {
     },
   };
 
+
+  static geometryAttributes = [
+    'coordinates',
+  ];
+
+
   static jsonSchema = {
     type: 'object',
     required: [
