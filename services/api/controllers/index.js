@@ -67,7 +67,6 @@ router.get('/robots.txt', (req, res, next) => {
 Object.values(Models).forEach((model) => {
   if (model.APIEntryModel) {
     const name = _.snakeCase(model.name);
-    console.log('******', name);  // eslint-disable-line
     router.use(`/${name}`, createModelRouter(model));
   }
 });
