@@ -63,6 +63,12 @@ knexPostgis(knex);
 
 knex.on('query', (data) => {
   logger.debug('Query start');
+
+  if (settings.ENV_IS_DEVELOPMENT) {
+    logger.debug(data.sql);
+    logger.debug(data.bindings);
+  }
+
   startDuration(data.__knexQueryUid);
 });
 
