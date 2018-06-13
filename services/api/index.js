@@ -29,8 +29,14 @@ app.use((err, req, res, next) => {
   const data = { error: 'Oops, an unknown error occured! We\'re on it!' };
   let code = 500;
 
+  // If it's a syntax error parsing json
+  if (err instanceof SyntaxError) {
+    code = 400;
+    data.error = 'Unable to parse your request. Malformed application/json?';
+  }
+
   // If it's an APIError
-  if (err instanceof APIError) {
+  else if (err instanceof APIError) {
     code = 400;
     data.error = err.message;
 
