@@ -1,8 +1,15 @@
 import _ from 'lodash';
 
-import { isObject, isString } from '@turistforeningen/ntb-shared-utils';
+import {
+  isObject,
+  isString,
+  createLogger,
+} from '@turistforeningen/ntb-shared-utils';
 import { knex } from '@turistforeningen/ntb-shared-db-utils';
 import { BaseModel } from '@turistforeningen/ntb-shared-models';
+
+
+const logger = createLogger();
 
 
 function addJoins(queryInstance, model, modelAlias, queryOptions) {
@@ -861,6 +868,7 @@ async function executeRelationQueries(handler, outerInstances) {
         && relation instanceof BaseModel.ManyToManyRelation
         && !(relation instanceof BaseModel.HasOneThroughRelation)
       ) {
+        logger.debug('Executing paginated multi through relation');
         relationInstances = await executePaginatedMultiThroughRelation(
           relationHandler, key, outerInstances,
         );
@@ -871,12 +879,14 @@ async function executeRelationQueries(handler, outerInstances) {
         && relation instanceof BaseModel.ManyToManyRelation
         && !(relation instanceof BaseModel.HasOneThroughRelation)
       ) {
+        logger.debug('Executing multi through relation');
         relationInstances = await executeMultiThroughRelation(
           relationHandler, key, outerInstances,
         );
       }
       // Single instance relation
       else if (relation instanceof BaseModel.BelongsToOneRelation) {
+        logger.debug('Executing single relation');
         relationInstances = await executeSingleOrMultiRelation(
           relationHandler, key, outerInstances, true
         );
@@ -887,6 +897,7 @@ async function executeRelationQueries(handler, outerInstances) {
         && relation instanceof BaseModel.HasManyRelation
         && !(relation instanceof BaseModel.HasOneRelation)
       ) {
+        logger.debug('Executing multi relation');
         relationInstances = await executeSingleOrMultiRelation(
           relationHandler, key, outerInstances, false
         );
@@ -897,33 +908,14 @@ async function executeRelationQueries(handler, outerInstances) {
         && relation instanceof BaseModel.HasManyRelation
         && !(relation instanceof BaseModel.HasOneRelation)
       ) {
+        logger.debug('Executing paginated multi relation');
         relationInstances = await executePaginatedMultiRelation(
           relationHandler, key, outerInstances, false
         );
       }
-      // else if (isSingleAssociation) {
-      //   includeInstances = await executeSingleAssociation(
-      //     handler, include, key, outerInstances
-      //   );
-      // }
-      // else if (association.through) {
-      //   includeInstances = await executeMultiThroughAssociation(
-      //     handler, include, key, outerInstances
-      //   );
-      // }
-      // else if (include.config.paginate && association.isMultiAssociation) {
-      //   includeInstances = await executePaginatedMultiAssociation(
-      //     handler, include, key, outerInstances
-      //   );
-      // }
-      // else if (association.isMultiAssociation) {
-      //   includeInstances = await executeMultiAssociation(
-      //     handler, include, key, outerInstances
-      //   );
-      // }
       else {
         throw new Error(
-          'Not yet implemented this kind of include association'
+          'Not yet implemented this kind of relation'
         );
       }
 
