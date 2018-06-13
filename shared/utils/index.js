@@ -6,6 +6,7 @@ import _ from 'lodash';
 
 import settings from '@turistforeningen/ntb-shared-settings';
 
+
 /**
  * Create a winston logger
  */
