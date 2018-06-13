@@ -4,6 +4,7 @@ import uuid4 from 'uuid/v4';
 import winston from 'winston';
 import _ from 'lodash';
 
+import settings from '@turistforeningen/ntb-shared-settings';
 
 /**
  * Create a winston logger
@@ -13,23 +14,13 @@ export function createLogger() {
     level: 'info',
     format: winston.format.json(),
     transports: [
-      //
-      // - Write to all logs with level `info` and below to `combined.log`
-      // - Write all logs error (and below) to `error.log`.
-      //
-      // new winston.transports.File({
-      //   filename: 'error.log',
-      //   level: 'error',
-      // }),
-      // new winston.transports.File({
-      //   filename: 'combined.log',
-      // }),
-
       new winston.transports.Console({
         format: winston.format.simple(),
         colorize: true,
         timestamp: true,
-        level: 'debug',
+        level: settings.ENV_IS_DEVELOPMENT
+          ? 'debug'
+          : 'info',
       }),
     ],
   });

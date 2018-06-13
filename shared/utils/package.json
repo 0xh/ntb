@@ -3,6 +3,7 @@
   "name": "@turistforeningen/ntb-shared-utils",
   "version": "0.0.0",
   "dependencies": {
+    "@turistforeningen/ntb-shared-settings": "*",
     "lodash": "^4.17.5",
     "performance-now": "^2.1.0",
     "uuid": "^3.2.1",
