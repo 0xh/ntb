@@ -164,7 +164,7 @@ function createMultiThroughSubQuery(handler, joinOnOuter = true) {
 
 
 function createPaginatedMultiThroughMainQuery(handler, identifiersByProp) {
-  const { queryOptions, relation } = handler;
+  const { queryOptions, relation, model } = handler;
 
   // Create sub query
   let subQuery = createMultiThroughSubQuery(handler, true);
@@ -178,8 +178,14 @@ function createPaginatedMultiThroughMainQuery(handler, identifiersByProp) {
     });
     const attrs = queryOptions.attributes
       .map((a) => {
+        // Extras
         if (Object.keys(extras).includes(a)) {
           return `${relation.joinTable}.${extras[a]} AS ${a}`;
+        }
+
+        // GeoJSON
+        if ((model.geometryAttributes || []).includes(a)) {
+          return knex.postgis.asGeoJSON(`inner.${a}`).as(a);
         }
         return `inner.${a}`;
       });
@@ -236,7 +242,7 @@ function createPaginatedMultiThroughMainQuery(handler, identifiersByProp) {
 
 
 function createMultiThroughMainQuery(handler, identifiersByProp) {
-  const { queryOptions, relation } = handler;
+  const { queryOptions, relation, model } = handler;
 
   // Create query
   let query = createMultiThroughSubQuery(handler, false);
@@ -252,6 +258,11 @@ function createMultiThroughMainQuery(handler, identifiersByProp) {
       .map((a) => {
         if (Object.keys(extras).includes(a)) {
           return `${relation.joinTable}.${extras[a]} AS ${a}`;
+        }
+
+        // GeoJSON
+        if ((model.geometryAttributes || []).includes(a)) {
+          return knex.postgis.asGeoJSON(`inner.${a}`).as(a);
         }
         return `inner.${a}`;
       });
@@ -351,7 +362,12 @@ function createPaginatedMultiMainQuery(handler, identifiersByProp) {
   // Attributes to select
   if (queryOptions.attributes) {
     const attrs = queryOptions.attributes
-      .map((a) => `"inner".${a}`);
+      .map((a) => (
+        // GeoJSON
+        (model.geometryAttributes || []).includes(a)
+          ? knex.postgis.asGeoJSON(`inner.${a}`).as(a)
+          : `"inner".${a}`
+      ));
     subQuery = subQuery.select(...attrs);
   }
 
@@ -934,7 +950,11 @@ async function executeMainQueryPart(model, queryOptions, count = false) {
   // Attributes to select if it's not a count query
   if (queryOptions.attributes && !count) {
     const attrs = queryOptions.attributes
-      .map((a) => `${model.tableName}.${a}`);
+      .map((a) => (
+        (model.geometryAttributes || []).includes(a)
+          ? knex.postgis.asGeoJSON(`${model.tableName}.${a}`).as(a)
+          : `${model.tableName}.${a}`
+      ));
 
     if (queryOptions.relations) {
       query = query.distinct(...attrs).select();
