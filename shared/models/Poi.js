@@ -103,6 +103,19 @@ export default class Poi extends BaseModel {
         to: 'municipalities.id',
       },
     },
+    routes: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Route',
+      join: {
+        from: 'pois.id',
+        through: {
+          modelClass: 'RouteToPoi',
+          from: 'routesToPois.poiId',
+          to: 'routesToPois.routeId',
+        },
+        to: 'routes.id',
+      },
+    },
   };
 
 
