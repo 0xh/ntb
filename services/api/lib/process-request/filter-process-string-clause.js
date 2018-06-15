@@ -1,39 +1,59 @@
-import _ from 'lodash';
-
 import { isString } from 'util';
 
 
-function whereNotNull(attribute, snakeCasedAttribute) {
+function whereNotNull(handler, filter) {
+  const { options } = filter;
+  const { filterTypes } = options;
+
+  if (filterTypes && !filterTypes.includes('notnull')) {
+    handler.errors.push(
+      `Invalid value of '${filter.query.trace}'. not-null-filter is not ` +
+      'supported on this field.',
+    );
+    return [];
+  }
+
   return [
     {
       whereType: 'whereNotNull',
       options: [
-        attribute,
+        filter.attribute,
       ],
     },
     {
       whereType: 'whereRaw',
       options: [
-        `LENGTH(${snakeCasedAttribute}) > 0`,
+        `LENGTH(${filter.snakeCasedAttribute}) > 0`,
       ],
     },
   ];
 }
 
 
-function whereNull(attribute, snakeCasedAttribute) {
+function whereNull(handler, filter) {
+  const { options } = filter;
+  const { filterTypes } = options;
+
+  if (filterTypes && !filterTypes.includes('notnull')) {
+    handler.errors.push(
+      `Invalid value of '${filter.query.trace}'. null-filter is not ` +
+      'supported on this field.',
+    );
+    return [];
+  }
+
   return [{
     $or: [
       {
         whereType: 'whereNull',
         options: [
-          attribute,
+          filter.attribute,
         ],
       },
       {
         whereType: 'whereRaw',
         options: [
-          `LENGTH(${snakeCasedAttribute}) = 0`,
+          `LENGTH(${filter.snakeCasedAttribute}) = 0`,
         ],
       },
     ],
@@ -42,6 +62,20 @@ function whereNull(attribute, snakeCasedAttribute) {
 
 
 function listOfValues(handler, filter, rawValue) {
+  const { options } = filter;
+  const { filterTypes } = options;
+
+  const prefix = rawValue.startsWith('$in:')
+    ? '$in'
+    : '$nin';
+  if (filterTypes && !filterTypes.includes(prefix)) {
+    handler.errors.push(
+      `Invalid value of '${filter.query.trace}'. ${prefix}-filter is not ` +
+      'supported on this field.',
+    );
+    return [];
+  }
+
   let values = rawValue;
   let err = null;
   let valid;
@@ -53,7 +87,7 @@ function listOfValues(handler, filter, rawValue) {
     }
   }
   else if (isString(values)) {
-    values = rawValue.substr(rawValue.startsWith('$in:') ? 4 : 5);
+    values = rawValue.substr(prefix === '$in' ? 4 : 5);
     if (!values || !values.startsWith('"') || !values.endsWith('"')) {
       err = 1;
     }
@@ -92,7 +126,7 @@ function listOfValues(handler, filter, rawValue) {
     return [];
   }
 
-  const whereType = rawValue.startsWith('$in:')
+  const whereType = prefix === '$in'
     ? 'whereIn'
     : 'whereNotIn';
   return [{
@@ -106,19 +140,20 @@ function listOfValues(handler, filter, rawValue) {
 
 
 export default function (handler, filter) {
-  const { query } = filter;
+  const { query, options } = filter;
   let { rawValue } = query;
+  const { filterTypes } = options;
 
   rawValue = isString(rawValue) ? rawValue.trim() : rawValue;
 
   // Field is not null and has a value without length
-  if (!rawValue.length) {
-    return whereNotNull(filter.attribute, filter.snakeCasedAttribute);
+  if (rawValue !== null && !rawValue.length) {
+    return whereNotNull(handler, filter);
   }
 
   // Field is null or does not have a value
   if (rawValue === '!') {
-    return whereNull(filter.attribute, filter.snakeCasedAttribute);
+    return whereNull(handler, filter);
   }
 
   // In list of values
@@ -136,7 +171,16 @@ export default function (handler, filter) {
   }
 
   let value = rawValue.substr(1).trim();
-  if (['~', '^', '$', '!'].includes(rawValue.substr(0, 1))) {
+  const prefix = rawValue.substr(0, 1);
+  if (['~', '^', '$', '!'].includes(prefix)) {
+    if (filterTypes && !filterTypes.includes(prefix)) {
+      handler.errors.push(
+        `Invalid value of '${filter.query.trace}'. ${prefix}-filter is not ` +
+        'supported on this field.',
+      );
+      return [];
+    }
+
     value = rawValue.substr(1).trim();
     if (!value.length) {
       handler.errors.push(
@@ -148,7 +192,7 @@ export default function (handler, filter) {
   }
 
   // Contains
-  if (rawValue.startsWith('~')) {
+  if (prefix === '~') {
     return [{
       whereType: 'where',
       options: [
@@ -160,7 +204,7 @@ export default function (handler, filter) {
   }
 
   // Starts with
-  if (rawValue.startsWith('^')) {
+  if (prefix === '^') {
     return [{
       whereType: 'where',
       options: [
@@ -172,7 +216,7 @@ export default function (handler, filter) {
   }
 
   // Ends with
-  if (rawValue.startsWith('$')) {
+  if (prefix === '$') {
     return [{
       whereType: 'where',
       options: [
@@ -184,7 +228,7 @@ export default function (handler, filter) {
   }
 
   // Not equal
-  if (rawValue.startsWith('!')) {
+  if (prefix === '!') {
     return [{
       whereType: 'where',
       options: [
