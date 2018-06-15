@@ -39,6 +39,7 @@ function processExpressJSQueryObjectDeepFilter(
     }
     else if (
       !handler.validFilters.self.includes(key)
+      && subKey
       && !handler.validFilters.relations[key].includes(subKey)
     ) {
       handler.errors.push(
@@ -56,9 +57,19 @@ function processExpressJSQueryObjectDeepFilter(
         ? handler.config.validRelationFilters[key][subKey]
         : handler.config.validFilters[key];
 
+      let filterKey = subKey || key;
+      let relationKey = subKey ? key : null;
+      if (
+        !handler.validFilters.self.includes(key)
+        && Object.keys(handler.validFilters.relations).includes(key)
+      ) {
+        filterKey = '';
+        relationKey = key;
+      }
+
       filters.$and = filters.$and.concat(rawValues.map((rawValue) => ({
-        key: subKey || key,
-        relationKey: subKey ? key : null,
+        key: filterKey,
+        relationKey,
         query: {
           rawValue,
           trace: `${handler.trace}df.${rawKey}`,
