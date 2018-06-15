@@ -270,13 +270,13 @@ export default class Cabin extends BaseModel {
       defaultOrder: [['name', 'ASC']],
       validFilters: {
         id: {},
-        idLegacyNtb: {},
+        idLegacyNtb: { filterTypes: ['=', 'null', 'notnull', '$in', '$nin'] },
         dntCabin: {},
         dntDiscount: {},
-        serviceLevel: {},
+        serviceLevel: { filterTypes: ['=', 'null', 'notnull', '$in', '$nin'] },
         name: {},
-        provider: {},
-        status: {},
+        provider: { filterTypes: ['=', '$in', '$nin'] },
+        status: { filterTypes: ['=', '$in', '$nin'] },
         coordinates: {
           geojsonType: 'point',
         },

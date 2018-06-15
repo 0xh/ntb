@@ -57,7 +57,7 @@ export default class PoiType extends BaseModel {
       defaultOrder: [['name', 'ASC']],
       validOrderFields: ['name'],
       validFilters: {
-        name: {},
+        name: { filterTypes: ['=', '$in', '$nin'] },
       },
       fullFields: [
         'name',

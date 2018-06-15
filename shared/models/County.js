@@ -60,7 +60,7 @@ export default class County extends BaseModel {
         id: {},
         code: {},
         name: {},
-        status: {},
+        status: { filterTypes: ['=', '$in', '$nin'] },
       },
       fullFields: [
         'uri',

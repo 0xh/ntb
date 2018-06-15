@@ -191,14 +191,15 @@ export default class Poi extends BaseModel {
       defaultOrder: [['name', 'ASC']],
       validFilters: {
         id: {},
-        idLegacyNtb: {},
-        idSsr: {},
-        type: {},
+        idLegacyNtb: { filterTypes: ['=', 'null', 'notnull', '$in', '$nin'] },
+        idSsr: { filterTypes: ['=', 'null', 'notnull', '$in', '$nin'] },
+        type: { filterTypes: ['=', 'null', 'notnull', '$in', '$nin'] },
         name: {},
         coordinates: {
           geojsonType: 'point',
         },
-        status: {},
+        provider: { filterTypes: ['=', '$in', '$nin'] },
+        status: { filterTypes: ['=', '$in', '$nin'] },
       },
       fullFields: [
         'uri',

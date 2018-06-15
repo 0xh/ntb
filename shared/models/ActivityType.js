@@ -102,7 +102,7 @@ export default class ActivityType extends BaseModel {
         'primary',
       ],
       validFilters: {
-        name: {},
+        name: { filterTypes: ['=', '$in', '$nin'] },
         primary: {},
       },
       fullFields: [

@@ -46,7 +46,7 @@ export default class CabinOpeningHours extends BaseModel {
         allYear: {},
         from: {},
         to: {},
-        serviceLevel: {},
+        serviceLevel: { filterTypes: ['=', '$in', '$nin'] },
       },
       fullFields: [
         'allYear',

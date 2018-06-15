@@ -230,12 +230,16 @@ export default class Route extends BaseModel {
       defaultOrder: [['name', 'ASC']],
       validFilters: {
         id: {},
-        idLegacyNtbAb: {},
-        idLegacyNtbBa: {},
+        idLegacyNtbAb: {
+          filterTypes: ['=', 'null', 'notnull', '$in', '$nin'],
+        },
+        idLegacyNtbBa: {
+          filterTypes: ['=', 'null', 'notnull', '$in', '$nin'],
+        },
         isWinter: {},
         name: {},
-        source: {},
-        grading: {},
+        source: { filterTypes: ['=', 'null', 'notnull', '$in', '$nin'] },
+        grading: { filterTypes: ['=', 'null', 'notnull', '$in', '$nin'] },
         suitableForChildren: {},
         distance: {},
         pointA: {
@@ -244,8 +248,8 @@ export default class Route extends BaseModel {
         pointB: {
           geojsonType: 'point',
         },
-        provider: {},
-        status: {},
+        provider: { filterTypes: ['=', '$in', '$nin'] },
+        status: { filterTypes: ['=', '$in', '$nin'] },
       },
       fullFields: [
         'uri',

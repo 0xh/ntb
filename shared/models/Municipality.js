@@ -60,7 +60,7 @@ export default class Municipality extends BaseModel {
         id: {},
         code: {},
         name: {},
-        status: {},
+        status: { filterTypes: ['=', '$in', '$nin'] },
       },
       fullFields: [
         'uri',

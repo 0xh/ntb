@@ -141,8 +141,8 @@ export default class Picture extends BaseModel {
         id: {},
         idLegacyNtb: {},
         name: {},
-        provider: {},
-        status: {},
+        provider: { filterTypes: ['=', '$in', '$nin'] },
+        status: { filterTypes: ['=', '$in', '$nin'] },
       },
       fullFields: [
         'uri',

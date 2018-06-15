@@ -66,7 +66,9 @@ export default class GroupType extends BaseModel {
 
       defaultOrder: [['name', 'ASC']],
       validOrderFields: ['name'],
-      validFilters: {},
+      validFilters: {
+        name: { filterTypes: ['=', '$in', '$nin'] },
+      },
       fullFields: [
         'uri',
         'name',
