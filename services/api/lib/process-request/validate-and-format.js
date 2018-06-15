@@ -591,7 +591,7 @@ function validateRelationKeys(handler) {
         .trim());
     }
 
-    if (Object.keys(model.relationMapping || {}).includes(key)) {
+    if (Object.keys(model.relationMappings || {}).includes(key)) {
       const rawRelationKeys = rawKey.split('.');
       const rawRelationKey = rawRelationKeys[0].trim();
       let rawSubKey;
