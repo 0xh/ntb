@@ -59,7 +59,7 @@ export default class Grading extends BaseModel {
       defaultOrder: [['name', 'ASC']],
       validOrderFields: ['name'],
       validFilters: {
-        name: { filterTypes: ['=', '$in', '$nin'] }
+        name: { filterTypes: ['=', '$in', '$nin'] },
       },
       fullFields: [
         'name',
