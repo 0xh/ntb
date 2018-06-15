@@ -1,8 +1,9 @@
 import _ from 'lodash';
 
-import { isString } from 'util';
 import processStringClause from './filter-process-string-clause';
 import processUuidClause from './filter-process-uuid-clause';
+import processRelationExistanceClause
+  from './filter-process-relation-existance-clause';
 
 
 function processExpressJSQueryObjectDeepFilter(
@@ -80,6 +81,10 @@ function processExpressJSQueryObject(handler) {
   else {
     const validRelationFilterKeys = [];
     Object.keys(handler.validFilters.relations).forEach((relationKey) => {
+      validRelationFilterKeys.push(
+        `${_.snakeCase(relationKey)}`
+      );
+
       handler.validFilters.relations[relationKey].forEach((key) => {
         validRelationFilterKeys.push(
           `${_.snakeCase(relationKey)}.${_.snakeCase(key)}`
@@ -246,185 +251,6 @@ function processStructuredQueryObject(handler) {
 }
 
 
-// function processUuidClause(handler, filter) {
-//   const {
-//     query,
-//     options,
-//     key,
-//     relationKey,
-//   } = filter;
-//   let { rawValue } = query;
-
-//   const attribute = relationKey
-//     ? `${relationKey}.${options.attribute || key}`
-//     : `[[MODEL-TABLE]].${options.attribute || key}`;
-//   const snakeCasedAttribute = relationKey
-//     ? `${_.snakeCase(relationKey)}.${_.snakeCase(options.attribute || key)}`
-//     : `"[[MODEL-TABLE]]"."${_.snakeCase(options.attribute || key)}"`;
-
-//   rawValue = isString(rawValue) ? rawValue.trim() : rawValue;
-
-//   // Field is not null and has a value
-//   if (!rawValue.length) {
-//     return [
-//       {
-//         whereType: 'whereNotNull',
-//         options: [
-//           attribute,
-//         ],
-//       },
-//       {
-//         whereType: 'whereRaw',
-//         options: [
-//           `LENGTH(${snakeCasedAttribute}) > 0`,
-//         ],
-//       },
-//     ];
-//   }
-
-//   // Field is null or does not have a value
-//   if (rawValue === '!') {
-//     return [{
-//       $or: [
-//         {
-//           whereType: 'whereNull',
-//           options: [
-//             attribute,
-//           ],
-//         },
-//         {
-//           whereType: 'whereRaw',
-//           options: [
-//             `LENGTH(${snakeCasedAttribute}) = 0`,
-//           ],
-//         },
-//       ],
-//     }];
-//   }
-
-//   // In list of values
-//   // Not in list of values
-//   if (rawValue.startsWith('$in:') || rawValue.startsWith('$nin:')) {
-//     let values = rawValue;
-//     let err = null;
-//     let valid;
-
-//     if (Array.isArray(values)) {
-//       valid = values.map((v) => isString(v)).every((v) => v);
-//       if (!valid) {
-//         err = 1;
-//       }
-//     }
-//     else if (isString(values)) {
-//       values = rawValue.substr(rawValue.startsWith('$in:') ? 4 : 5);
-//       if (!values || !values.startsWith('"') || !values.endsWith('"')) {
-//         err = 1;
-//       }
-//       else {
-//         try {
-//           values = JSON.parse(`[${values}]`);
-//         }
-//         catch (e) {
-//           err = 1;
-//         }
-//       }
-//     }
-//     else {
-//       err = 1;
-//     }
-
-//     if (!err) {
-//       valid = values.length && values.every((v) => v.length);
-//       if (!valid) {
-//         err = 2;
-//       }
-//     }
-
-//     if (!err) {
-//       valid = values.length && values.every((v) => uuidValidate(v, 4));
-//       if (!valid) {
-//         err = 2;
-//       }
-//     }
-
-//     if (err === 1) {
-//       handler.errors.push(
-//         `Invalid value of '${filter.query.trace}'. ` +
-//         'Not able to parse a list of values.'
-//       );
-//       return [];
-//     }
-//     else if (err === 2) {
-//       handler.errors.push(
-//         `Invalid value of '${filter.query.trace}'. ` +
-//         'It contains invalid values.'
-//       );
-//       return [];
-//     }
-
-//     const whereType = rawValue.startsWith('$in:')
-//       ? 'whereIn'
-//       : 'whereNotIn';
-//     return [{
-//       whereType,
-//       options: [
-//         attribute,
-//         values,
-//       ],
-//     }];
-//   }
-
-//   // Only allow string values for the next cases
-//   if (!isString(rawValue)) {
-//     handler.errors.push(
-//       `Invalid value of '${filter.query.trace}'. ` +
-//       'Only string of uuid4 format supported.',
-//     );
-//     return [];
-//   }
-
-//   // Not equal
-//   if (rawValue.startsWith('!')) {
-//     const value = rawValue.substr(1).trim();
-
-//     if (!uuidValidate(value, 4)) {
-//       handler.errors.push(
-//         `Invalid value of '${filter.query.trace}'. ` +
-//         'Only string of uuid4 format supported.',
-//       );
-//       return [];
-//     }
-
-//     return [{
-//       whereType: 'where',
-//       options: [
-//         attribute,
-//         '!=',
-//         value,
-//       ],
-//     }];
-//   }
-
-//   if (!uuidValidate(rawValue, 4)) {
-//     handler.errors.push(
-//       `Invalid value of '${filter.query.trace}'. ` +
-//       'Only string of uuid4 format supported.',
-//     );
-//     return [];
-//   }
-
-//   // Exact match
-//   return [{
-//     whereType: 'where',
-//     options: [
-//       attribute,
-//       '=',
-//       rawValue,
-//     ],
-//   }];
-// }
-
-
 function createClause(handler, filter) {
   if (!filter.relationKey) {
     const schemaProperties = handler.model.jsonSchema.properties;
@@ -434,11 +260,25 @@ function createClause(handler, filter) {
   else {
     const relations = handler.model.getRelations();
     const relation = relations[filter.relationKey];
-    const schemaProperties = relation.relatedModelClass.jsonSchema.properties;
-    filter.type = schemaProperties[filter.key].type;
-    filter.schema = schemaProperties[filter.key];
 
-    // Include association
+    // If it's a filter on a relations attribute
+    if (filter.key) {
+      const schemaProps = relation.relatedModelClass.jsonSchema.properties;
+      filter.type = schemaProps[filter.key].type;
+      filter.schema = schemaProps[filter.key];
+    }
+    // If it's a filter on whether the relation exists
+    else {
+      if (Array.isArray(relation.relatedModelClass.idColumn)) {
+        throw new Error('Multi primarykey tables not supported here');
+      }
+
+      filter.key = relation.relatedModelClass.idColumn;
+      filter.relationExistance = true;
+      filter.options = {};
+    }
+
+    // Include relations
     const { queryOptions } = handler;
     if (!queryOptions.relations) {
       queryOptions.relations = [];
@@ -452,17 +292,24 @@ function createClause(handler, filter) {
     if (!found) {
       queryOptions.relations.push({
         relationKey: filter.relationKey,
+        joinType: 'leftJoin',
       });
     }
   }
 
   const { relationKey, options, key } = filter;
+
   filter.attribute = relationKey
     ? `${relationKey}.${options.attribute || key}`
     : `[[MODEL-TABLE]].${options.attribute || key}`;
   filter.snakeCasedAttribute = relationKey
     ? `${_.snakeCase(relationKey)}.${_.snakeCase(options.attribute || key)}`
     : `"[[MODEL-TABLE]]"."${_.snakeCase(options.attribute || key)}"`;
+
+  // Relation existance
+  if (filter.relationExistance) {
+    return processRelationExistanceClause(handler, filter);
+  }
 
   // Uuid clause
   if (

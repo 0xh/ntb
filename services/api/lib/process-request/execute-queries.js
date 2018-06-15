@@ -16,12 +16,12 @@ function addJoins(queryInstance, model, modelAlias, queryOptions) {
   let query = queryInstance;
   const relations = model.getRelations();
   queryOptions.relations.forEach((relationOptions) => {
-    const { relationKey } = relationOptions;
+    const { relationKey, joinType } = relationOptions;
     const relation = relations[relationKey];
 
     // Join the through table if set
     if (relation.joinTable) {
-      query = query.leftJoin(
+      query = query[joinType](
         `${relation.joinTable}`,
         function joinFn() {
           const join = this;
@@ -37,7 +37,7 @@ function addJoins(queryInstance, model, modelAlias, queryOptions) {
       );
     }
 
-    query = query.leftJoin(
+    query = query[joinType](
       `${relation.relatedModelClass.tableName} as ${relationKey}`,
       function joinFn() {
         const join = this;

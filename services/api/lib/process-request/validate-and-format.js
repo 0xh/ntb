@@ -105,9 +105,9 @@ function setValidKeys(handler) {
 
     // Valid relation filters
     Object.keys(relations || {}).forEach((key) => {
-      const relation = relations[key];
+      const rel = relations[key];
       const referrer = getNextReferrerId(handler, key);
-      const relatedModel = relation.relatedModelClass;
+      const relatedModel = rel.relatedModelClass;
       const relationAPIConfig = getAPIConfig(relatedModel, referrer);
       const validIncludeFilters = Object.keys(
         relationAPIConfig.validFilters || {}
@@ -173,13 +173,22 @@ function validateKeys(handler) {
 
     if (handler.validDotKeys.includes(key)) {
       const dotCount = (rawKey.match(/\./g) || []).length;
-      if (dotCount < 1 && !isObject(handler.requestObject[key])) {
+      const { model } = handler;
+      const validRelationKeys = Object.keys(model.relationMappings || {});
+
+      if (
+        dotCount === 0
+        && !isObject(handler.requestObject[key])
+        && !validRelationKeys.includes(key)
+      ) {
         handler.errors.push(
           `Invalid query parameter format: ${handler.trace}${rawKey}`
         );
       }
 
-      delete handler.requestObject.e;
+      if (dotCount > 0 || !validRelationKeys.includes(key)) {
+        delete handler.requestObject.e;
+      }
     }
   });
 }
@@ -708,7 +717,7 @@ function getRelationQueryObject(handler, key) {
 
   if (values && values.length) {
     // If its a formatted object
-    if (values.length === 1 && values[0].originalKey === snakedKey) {
+    if (values.length === 1 && !handler.usExpressJSRequestObject) {
       if (values[0].value) {
         extendQueryObject = values[0].value;
       }
