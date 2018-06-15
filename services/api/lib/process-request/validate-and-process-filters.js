@@ -456,6 +456,14 @@ function createClause(handler, filter) {
     }
   }
 
+  const { relationKey, options, key } = filter;
+  filter.attribute = relationKey
+    ? `${relationKey}.${options.attribute || key}`
+    : `[[MODEL-TABLE]].${options.attribute || key}`;
+  filter.snakeCasedAttribute = relationKey
+    ? `${_.snakeCase(relationKey)}.${_.snakeCase(options.attribute || key)}`
+    : `"[[MODEL-TABLE]]"."${_.snakeCase(options.attribute || key)}"`;
+
   // Uuid clause
   if (
     filter.type === 'string'

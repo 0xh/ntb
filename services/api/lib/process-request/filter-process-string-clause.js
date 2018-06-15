@@ -41,7 +41,7 @@ function whereNull(attribute, snakeCasedAttribute) {
 }
 
 
-function listOfValues(handler, filter, attribute, rawValue) {
+function listOfValues(handler, filter, rawValue) {
   let values = rawValue;
   let err = null;
   let valid;
@@ -98,7 +98,7 @@ function listOfValues(handler, filter, attribute, rawValue) {
   return [{
     whereType,
     options: [
-      attribute,
+      filter.attribute,
       values,
     ],
   }];
@@ -106,37 +106,25 @@ function listOfValues(handler, filter, attribute, rawValue) {
 
 
 export default function (handler, filter) {
-  const {
-    query,
-    options,
-    key,
-    relationKey,
-  } = filter;
+  const { query } = filter;
   let { rawValue } = query;
-
-  const attribute = relationKey
-    ? `${relationKey}.${options.attribute || key}`
-    : `[[MODEL-TABLE]].${options.attribute || key}`;
-  const snakeCasedAttribute = relationKey
-    ? `${_.snakeCase(relationKey)}.${_.snakeCase(options.attribute || key)}`
-    : `"[[MODEL-TABLE]]"."${_.snakeCase(options.attribute || key)}"`;
 
   rawValue = isString(rawValue) ? rawValue.trim() : rawValue;
 
   // Field is not null and has a value without length
   if (!rawValue.length) {
-    return whereNotNull(attribute, snakeCasedAttribute);
+    return whereNotNull(filter.attribute, filter.snakeCasedAttribute);
   }
 
   // Field is null or does not have a value
   if (rawValue === '!') {
-    return whereNull(attribute, snakeCasedAttribute);
+    return whereNull(filter.attribute, filter.snakeCasedAttribute);
   }
 
   // In list of values
   // Not in list of values
   if (rawValue.startsWith('$in:') || rawValue.startsWith('$nin:')) {
-    return listOfValues(handler, filter, attribute, rawValue);
+    return listOfValues(handler, filter, rawValue);
   }
 
   // Only allow string values for the next cases
@@ -164,7 +152,7 @@ export default function (handler, filter) {
     return [{
       whereType: 'where',
       options: [
-        attribute,
+        filter.attribute,
         'ilike',
         `%${value}%`,
       ],
@@ -176,7 +164,7 @@ export default function (handler, filter) {
     return [{
       whereType: 'where',
       options: [
-        attribute,
+        filter.attribute,
         'ilike',
         `${value}%`,
       ],
@@ -188,7 +176,7 @@ export default function (handler, filter) {
     return [{
       whereType: 'where',
       options: [
-        attribute,
+        filter.attribute,
         'ilike',
         `%${value}`,
       ],
@@ -200,7 +188,7 @@ export default function (handler, filter) {
     return [{
       whereType: 'where',
       options: [
-        attribute,
+        filter.attribute,
         'not ilike',
         `%${value}`,
       ],
@@ -211,7 +199,7 @@ export default function (handler, filter) {
   return [{
     whereType: 'where',
     options: [
-      attribute,
+      filter.attribute,
       '=',
       `${rawValue.trim()}`,
     ],
