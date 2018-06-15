@@ -198,6 +198,7 @@ export default class Poi extends BaseModel {
         coordinates: {
           geojsonType: 'point',
         },
+        status: {},
       },
       fullFields: [
         'uri',
