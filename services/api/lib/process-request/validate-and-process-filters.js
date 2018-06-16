@@ -1,10 +1,9 @@
 import _ from 'lodash';
 
-import processStringClause from './filter-process-string-clause';
-import processUuidClause from './filter-process-uuid-clause';
-import processBooleanClause from './filter-process-boolean-clause';
-import processRelationExistanceClause
-  from './filter-process-relation-existance-clause';
+import processStringClause from './filter-string';
+import processUuidClause from './filter-uuid';
+import processBooleanClause from './filter-boolean';
+import processRelationExistanceClause from './filter-relation-existance';
 
 
 function processExpressJSQueryObjectDeepFilter(
