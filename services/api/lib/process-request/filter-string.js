@@ -65,7 +65,7 @@ function listOfValues(handler, filter, rawValue) {
   const { options } = filter;
   const { filterTypes } = options;
 
-  const prefix = rawValue.startsWith('$in:')
+  const prefix = rawValue.toLowerCase().startsWith('$in:')
     ? '$in'
     : '$nin';
   if (filterTypes && !filterTypes.includes(prefix)) {
@@ -167,7 +167,10 @@ export default function (handler, filter) {
 
   // In list of values
   // Not in list of values
-  if (rawValue.startsWith('$in:') || rawValue.startsWith('$nin:')) {
+  if (
+    rawValue.toLowerCase().startsWith('$in:')
+    || rawValue.toLowerCase().startsWith('$nin:')
+  ) {
     return listOfValues(handler, filter, rawValue);
   }
 
