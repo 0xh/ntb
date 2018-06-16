@@ -14,9 +14,6 @@ export default class Cabin extends BaseModel {
 
 
   static relationMappings = {
-    // Todo
-    // links
-
     openingHours: {
       relation: BaseModel.HasManyRelation,
       modelClass: 'CabinOpeningHours',
