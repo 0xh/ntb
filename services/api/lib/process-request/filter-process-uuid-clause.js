@@ -164,14 +164,23 @@ export default function (handler, filter) {
   let { rawValue } = query;
   const { filterTypes } = options;
 
-  rawValue = isString(rawValue) ? rawValue.trim() : rawValue;
+  // Only allow string values
+  if (!isString(rawValue)) {
+    handler.errors.push(
+      `Invalid value of '${filter.query.trace}'. ` +
+      'Only string of uuid4 format supported.',
+    );
+    return [];
+  }
 
-  // Field is not null and has a value
+  rawValue = rawValue.trim();
+
+  // Field has a value with no length (NOT NULL)
   if (!rawValue.length) {
     return whereNotNull(handler, filter);
   }
 
-  // Field is null or does not have a value
+  // Field is a ! (NULL)
   if (rawValue === '!') {
     return whereNull(handler, filter);
   }
@@ -180,15 +189,6 @@ export default function (handler, filter) {
   // Not in list of values
   if (rawValue.startsWith('$in:') || rawValue.startsWith('$nin:')) {
     return listOfValues(handler, filter, rawValue);
-  }
-
-  // Only allow string values for the next cases
-  if (!isString(rawValue)) {
-    handler.errors.push(
-      `Invalid value of '${filter.query.trace}'. ` +
-      'Only string of uuid4 format supported.',
-    );
-    return [];
   }
 
   // Not equal
