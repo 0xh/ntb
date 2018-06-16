@@ -1,4 +1,4 @@
-// import ajvKeywords from 'ajv-keywords';
+import moment from 'moment';
 
 import { Model, AjvValidator } from '@turistforeningen/ntb-shared-db-utils';
 
@@ -62,6 +62,19 @@ export default class BaseModel extends Model {
     });
 
     return validator;
+  }
+
+  $parseDatabaseJson(databaseJson) {
+    const json = super.$parseDatabaseJson(databaseJson);
+
+    // Format dates to ISO 8601
+    Object.keys(json).forEach((key) => {
+      if (json[key] instanceof Date) {
+        json[key] = moment(json[key]).toISOString(String);
+      }
+    });
+
+    return json;
   }
 
   $beforeInsert() {
