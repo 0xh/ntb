@@ -3,6 +3,7 @@ import _ from 'lodash';
 import processStringClause from './filter-string';
 import processUuidClause from './filter-uuid';
 import processBooleanClause from './filter-boolean';
+import processDatetimeClause from './filter-datetime';
 import processRelationExistanceClause from './filter-relation-existance';
 
 
@@ -329,6 +330,15 @@ function createClause(handler, filter) {
     && filter.schema.format === 'uuid'
   ) {
     return processUuidClause(handler, filter);
+  }
+
+  // Datetime clause
+  if (
+    filter.type === 'string'
+    && filter.schema
+    && filter.schema.format === 'date'
+  ) {
+    return processDatetimeClause(handler, filter);
   }
 
   // Boolean clause
