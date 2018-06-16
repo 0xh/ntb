@@ -28,7 +28,7 @@ jobs:
           name: build ntb docker image and push to gcloud and push image to GCR
           command: |
             gcloud auth configure-docker --quiet
-            TAG=${CIRCLE_SHA1:0:9}
+            TAG=ntb-${CIRCLE_SHA1:0:9}
             docker build -t ntb .
             docker tag ntb eu.gcr.io/dnt-docker-registry-public/ntb:latest
             docker tag ntb eu.gcr.io/dnt-docker-registry-public/ntb:$TAG
@@ -43,7 +43,7 @@ jobs:
       - run:
           name: run helmsman
           command: |
-            export IMAGE_TAG=${CIRCLE_SHA1:0:9}
+            export IMAGE_TAG=ntb-${CIRCLE_SHA1:0:9}
             helmsman -debug -apply -f .circleci/helmsman-deployment.toml
 
 workflows:
