@@ -2,6 +2,7 @@ import _ from 'lodash';
 
 import processStringClause from './filter-process-string-clause';
 import processUuidClause from './filter-process-uuid-clause';
+import processBooleanClause from './filter-process-boolean-clause';
 import processRelationExistanceClause
   from './filter-process-relation-existance-clause';
 
@@ -329,6 +330,11 @@ function createClause(handler, filter) {
     && filter.schema.format === 'uuid'
   ) {
     return processUuidClause(handler, filter);
+  }
+
+  // Boolean clause
+  if (filter.type === 'boolean') {
+    return processBooleanClause(handler, filter);
   }
 
   // Plain string clause with no format
