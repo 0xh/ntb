@@ -250,6 +250,8 @@ export default class Route extends BaseModel {
         },
         provider: { filterTypes: ['=', '$in', '$nin'] },
         status: { filterTypes: ['=', '$in', '$nin'] },
+        updatedAt: {},
+        createdAt: {},
       },
       fullFields: [
         'uri',

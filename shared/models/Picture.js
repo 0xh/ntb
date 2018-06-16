@@ -143,6 +143,8 @@ export default class Picture extends BaseModel {
         name: {},
         provider: { filterTypes: ['=', '$in', '$nin'] },
         status: { filterTypes: ['=', '$in', '$nin'] },
+        updatedAt: {},
+        createdAt: {},
       },
       fullFields: [
         'uri',

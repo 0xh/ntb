@@ -158,6 +158,8 @@ export default class Area extends BaseModel {
         name: {},
         provider: { filterTypes: ['=', '$in', '$nin'] },
         status: { filterTypes: ['=', '$in', '$nin'] },
+        updatedAt: {},
+        createdAt: {},
       },
       fullFields: [
         'uri',

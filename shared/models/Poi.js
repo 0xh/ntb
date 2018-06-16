@@ -200,6 +200,8 @@ export default class Poi extends BaseModel {
         },
         provider: { filterTypes: ['=', '$in', '$nin'] },
         status: { filterTypes: ['=', '$in', '$nin'] },
+        updatedAt: {},
+        createdAt: {},
       },
       fullFields: [
         'uri',

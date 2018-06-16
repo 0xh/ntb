@@ -187,6 +187,8 @@ export default class Group extends BaseModel {
         name: {},
         provider: { filterTypes: ['=', '$in', '$nin'] },
         status: { filterTypes: ['=', '$in', '$nin'] },
+        updatedAt: {},
+        createdAt: {},
       },
     };
 

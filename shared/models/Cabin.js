@@ -277,6 +277,8 @@ export default class Cabin extends BaseModel {
         coordinates: {
           geojsonType: 'point',
         },
+        updatedAt: {},
+        createdAt: {},
       },
       fullFields: [
         'uri',

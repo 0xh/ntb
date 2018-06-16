@@ -209,6 +209,8 @@ export default class Trip extends BaseModel {
         distance: {},
         direction: { filterTypes: ['=', 'null', 'notnull'] },
         status: { filterTypes: ['=', '$in', '$nin'] },
+        updatedAt: {},
+        createdAt: {},
       },
       fullFields: [
         'uri',
