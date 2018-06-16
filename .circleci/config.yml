@@ -54,7 +54,8 @@ workflows:
           context: dnt-k8s-dev-beta
           filters:
             branches:
-              only: deploy-dev
+              only:
+                - master
       - deploy-to-dev:
           requires:
             - build-image
@@ -62,4 +63,4 @@ workflows:
           filters:
             branches:
               only:
-                - deploy-dev
+                - master
