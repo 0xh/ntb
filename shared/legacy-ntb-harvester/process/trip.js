@@ -21,7 +21,7 @@ async function createTempTables(handler, sync = false) {
   logger.info('Creating temporary tables');
   const durationId = startDuration();
 
-  const baseTableName = `0_${handler.timeStamp}_harlegntb${handler.timeStamp}_harlegntb`;
+  const baseTableName = `0_${handler.timeStamp}_harlegntb`;
 
   // pois
   let tableName = `${baseTableName}_trips`;

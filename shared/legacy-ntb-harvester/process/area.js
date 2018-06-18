@@ -12,7 +12,6 @@ import * as legacy from '../legacy-structure/';
 const logger = createLogger();
 const DATASOURCE_NAME = 'legacy-ntb';
 
-
 /**
  *
  * Create temporary tables that will hold the processed data harvested from
@@ -22,7 +21,7 @@ async function createTempTables(handler, first = false) {
   logger.info('Creating temporary tables');
   const durationId = startDuration();
 
-  const baseTableName = `0_${handler.timeStamp}_harlegntb${handler.timeStamp}_harlegntb`;
+  const baseTableName = `0_${handler.timeStamp}_harlegntb`;
 
   let tableName = `${baseTableName}_areas`;
   if (first) {
