@@ -11,6 +11,13 @@ import wfsDownload from '@turistforeningen/ntb-shared-wfs-utils/download';
 const logger = createLogger();
 
 
+// app:AnnenRute / 10
+// app:Fotrute / 11
+// app:RuteInfoPunkt / not needed
+// app:Skiløype / 12
+// app:Sykkelrute / 13
+
+
 const SRS_NAME = 'EPSG:25833';
 const FOLDER = path.resolve(__dirname, 'data');
 const TYPES = [
