@@ -1,7 +1,13 @@
-FROM node:10.3.0-alpine
+FROM node:10.4.1-alpine
 
 # Add our user and group first to make sure their IDs get assigned consistently
 RUN addgroup -S app && adduser -S -g app app
+
+# Point towards 'edge' version of alpine packages
+RUN sed -i -e 's/v[[:digit:]]\.[[:digit:]]/edge/g' /etc/apk/repositories
+
+# Install gdal
+RUN apk add --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing gdal
 
 # install lerna globally
 RUN yarn global add lerna
@@ -45,6 +51,10 @@ RUN rm -rf services/docs/client
 
 # Remove yarn cache
 RUN rm -rf /usr/local/share/.cache/yarn
+
+
+# Clean up apk cache
+RUN rm -rf /var/cache/apk/*
 
 # Change the ownership of the application code and switch to the unprivileged
 # user.
