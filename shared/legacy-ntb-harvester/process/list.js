@@ -21,7 +21,7 @@ async function createTempTables(handler, first = false) {
   logger.info('Creating temporary tables');
   const durationId = startDuration();
 
-  const baseTableName = `0_temp_legacy_ntb_harvest_${handler.timeStamp}`;
+  const baseTableName = `0_${handler.timeStamp}_harlegntb${handler.timeStamp}_harlegntb`;
 
   // lists
   let tableName = `${baseTableName}_list`;
