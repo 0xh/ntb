@@ -66,14 +66,14 @@ knex.on('query', (data) => {
 
   if (settings.ENV_IS_DEVELOPMENT) {
     logger.debug(
-      data.sql.length > 500
-        ? `${data.sql.substr(0, 500)}... [TRUNCATED]`
+      data.sql.length > 1500
+        ? `${data.sql.substr(0, 1500)}... [TRUNCATED]`
         : data.sql
     );
-    if (data.bindings.length && data.bindings.length <= 20) {
+    if (data.bindings && data.bindings.length && data.bindings.length <= 20) {
       logger.debug(data.bindings);
     }
-    else if (data.bindings.length) {
+    else if (data.bindings && data.bindings.length) {
       logger.debug('[Too many sql bindings to log]');
     }
   }
