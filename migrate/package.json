@@ -13,6 +13,7 @@
     "@turistforeningen/ntb-shared-db-utils": "*",
     "@turistforeningen/ntb-shared-models": "*",
     "@turistforeningen/ntb-shared-utils": "*",
+    "knex-migrate": "^1.5.5",
     "lodash": "^4.17.10"
   }
 }

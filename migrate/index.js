@@ -1,5 +1,7 @@
 import path from 'path';
 
+import knexMigrate from 'knex-migrate';
+
 import { knex } from '@turistforeningen/ntb-shared-db-utils';
 import { createLogger } from '@turistforeningen/ntb-shared-utils';
 
@@ -16,6 +18,11 @@ const migrateConfig = {
 };
 
 
+const config = {
+  migrations: path.resolve(__dirname, 'migrations'),
+};
+
+
 async function make() {
   const name = process.argv[3].trim();
 
@@ -28,33 +35,12 @@ async function make() {
 }
 
 
-async function latest() {
-  await knex.migrate.latest(migrateConfig).spread((batchNo, log) => {
-    if (log.length === 0) {
-      logger.info('No migrations to run - you\'re up to date!');
-    }
-    else {
-      logger.info(`Batch ${batchNo} run: ${log.length} migrations \n`);
-      log.forEach((l) => logger.info(l));
-    }
-  });
+function log({ action, migration }) {
+  logger.info(`Doing ${action} on ${migration}`);
 }
 
 
-async function rollback() {
-  await knex.migrate.rollback(migrateConfig).spread((batchNo, log) => {
-    if (log.length === 0) {
-      logger.info('No migrations to run - you\'re up to date!');
-    }
-    else {
-      logger.info(`Batch ${batchNo} rolled back: ${log.length} migrations \n`);
-      log.forEach((l) => logger.info(l));
-    }
-  });
-}
-
-
-export default function migrate(cmd) {
+export default function migrate(cmd, migrationId) {
   let executedCmd;
 
 
@@ -64,11 +50,30 @@ export default function migrate(cmd) {
     case 'make':
       executedCmd = make();
       break;
-    case 'latest':
-      executedCmd = latest();
+    case 'up':
+      if (migrationId) {
+        executedCmd = knexMigrate('up', { ...config, to: migrationId }, log);
+      }
+      else {
+        executedCmd = knexMigrate('up', { ...config }, log);
+      }
+      break;
+    case 'down':
+      if (migrationId) {
+        executedCmd = knexMigrate('down', { ...config, to: migrationId }, log);
+      }
+      else {
+        executedCmd = knexMigrate('down', { ...config, to: 0 }, log);
+      }
+      break;
+    case 'next':
+      executedCmd = knexMigrate('up', { ...config, step: 1 }, log);
+      break;
+    case 'previous':
+      executedCmd = knexMigrate('down', { ...config, step: 1 }, log);
       break;
     case 'rollback':
-      executedCmd = rollback();
+      executedCmd = knexMigrate('rollback', { ...config, to: 0 }, log);
       break;
 
     default:
@@ -99,5 +104,8 @@ export default function migrate(cmd) {
 
 if (!module.parent) {
   const cmd = process.argv[2].trim();
-  migrate(cmd);
+  const migrationId = process.argv.length > 3
+    ? process.argv[3].trim()
+    : null;
+  migrate(cmd, migrationId);
 }
