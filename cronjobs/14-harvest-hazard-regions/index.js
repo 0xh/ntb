@@ -160,13 +160,13 @@ async function processType({ type, url }) {
 }
 
 
-async function process() {
+async function processHazardRegions() {
   const promises = HAZARD_TYPES.map((h) => processType(h));
   await Promise.all(promises);
 }
 
 
-process()
+processHazardRegions()
   .then((res) => {
     logger.info('Completed harvesting hazard regions');
     process.exit(0);
