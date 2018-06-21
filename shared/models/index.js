@@ -54,6 +54,7 @@ export { default as RouteToRouteWaymarkType } from './RouteToRouteWaymarkType';
 export { default as RouteWaymarkType } from './RouteWaymarkType';
 export { default as SearchConfig } from './SearchConfig';
 export { default as SearchDocument } from './SearchDocument';
+export { default as SystemSettings } from './SystemSettings';
 export { default as Trip } from './Trip';
 export { default as TripDirection } from './TripDirection';
 export { default as TripLink } from './TripLink';
