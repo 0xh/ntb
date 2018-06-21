@@ -7,13 +7,24 @@ export default class Route extends BaseModel {
   static idColumn = 'id';
   static virtualAttributes = ['uri'];
 
-
   get uri() {
     return `route/${this.id}`;
   }
 
-
   static relationMappings = {
+    routeSegments: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'RouteSegment',
+      join: {
+        from: 'routes.id',
+        through: {
+          modelClass: 'RouteToRouteSegment',
+          from: 'routesToRouteSegments.routeSegmentId',
+          to: 'routesToRouteSegments.routeId',
+        },
+        to: 'routeSegments.id',
+      },
+    },
     activityTypes: {
       relation: BaseModel.ManyToManyRelation,
       modelClass: 'ActivityType',
@@ -98,12 +109,7 @@ export default class Route extends BaseModel {
   };
 
 
-  static geometryAttributes = [
-    'pointA',
-    'pointB',
-    'pathAb',
-    'pathBa',
-  ];
+  static geometryAttributes = [];
 
 
   static jsonSchema = {
@@ -124,7 +130,7 @@ export default class Route extends BaseModel {
       idLegacyNtbAb: { type: 'string', readOnly: true, noApiReturn: true },
       idLegacyNtbBa: { type: 'string', readOnly: true, noApiReturn: true },
       code: { type: 'string' },
-      isWinter: { type: 'boolean', default: false },
+      type: { type: 'string' },
       name: { type: 'string', minLength: 2, maxLength: 100 },
       description: { type: 'string', maxLength: 100000 },
       descriptionAb: { type: 'string', maxLength: 100000 },
@@ -135,6 +141,7 @@ export default class Route extends BaseModel {
       grading: { type: 'string', maxLength: 100 },
       suitableForChildren: { type: 'boolean', default: false },
       distance: { type: 'number' },
+      calculatedDistance: { type: 'number' },
       waymarkWinter: {
         type: 'object',
         properties: {
@@ -152,12 +159,6 @@ export default class Route extends BaseModel {
           days: { type: 'number' },
         },
       },
-      pointA: { type: 'object' },
-      pointB: { type: 'object' },
-      pathAb: { type: 'object' },
-      pathBa: { type: 'object' },
-      pathAbPolyline: { type: 'string' },
-      pathBaPolyline: { type: 'string' },
       season: {
         type: 'array',
         items: [
@@ -267,6 +268,7 @@ export default class Route extends BaseModel {
         'grading',
         'suitableForChildren',
         'distance',
+        'calculatedDistance',
         'duration',
         'waymarkWinter',
         'season',
