@@ -4,8 +4,7 @@
   "version": "0.0.0",
   "dependencies": {
     "@turistforeningen/ntb-shared-utils": "*",
-    "@turistforeningen/ntb-shared-db-utils": "*",
     "@turistforeningen/ntb-shared-wfs-utils": "*",
-    "moment": "^2.20.1"
+    "@turistforeningen/ntb-shared-models": "*"
   }
 }

@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "name": "@turistforeningen/ntb-cronjobs-13",
+  "version": "0.0.0",
+  "dependencies": {
+    "@turistforeningen/ntb-shared-utils": "*",
+    "@turistforeningen/ntb-shared-process-route-segments": "*"
+  }
+}
