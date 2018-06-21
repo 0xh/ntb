@@ -1,5 +1,4 @@
 import BaseModel from './BaseModel';
-import DocumentStatusSchema from './schemas/document-status';
 
 
 export default class RouteSegment extends BaseModel {
