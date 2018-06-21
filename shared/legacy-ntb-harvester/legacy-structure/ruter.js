@@ -189,7 +189,7 @@ async function mapping(obj, handler) {
   res.route = {
     id: uuid4(),
     idLegacyNtb: obj._id,
-    isWinter: obj.rute.type !== 'Sommer',
+    type: obj.rute.type === 'Sommer' ? 'foot' : 'ski',
     code: obj.rute.kode,
 
     name: obj.navn || 'mangler navn',
@@ -204,7 +204,7 @@ async function mapping(obj, handler) {
 
     grading: mapGrading(obj),
     suitableForChildren: false, // Updated in setSuitableForChildren()
-    distance: obj.distanse,
+    distance: +(obj.distanse || 0),
     direction: mapDirection(obj),
 
     waymarkWinterAllYear: obj.rute.kvisting.helårs || false,

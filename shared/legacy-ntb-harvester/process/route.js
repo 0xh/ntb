@@ -31,7 +31,7 @@ async function createTempTables(handler, sync = false) {
         .primary();
       table.text('idLegacyNtb');
       table.text('code');
-      table.boolean('isWinter');
+      table.text('type');
       table.text('name');
       table.text('nameLowerCase');
       table.text('description');
@@ -471,7 +471,7 @@ async function mergeRoute(handler) {
     '  id_legacy_ntb_ab,',
     '  id_legacy_ntb_ba,',
     '  code,',
-    '  is_winter,',
+    '  "type",',
     '  name,',
     '  name_lower_case,',
     '  description_ab,',
@@ -505,7 +505,7 @@ async function mergeRoute(handler) {
     '  a.id_legacy_ntb,',
     '  b.id_legacy_ntb,',
     '  a.code,',
-    '  a.is_winter,',
+    '  a.type,',
     '  a.name,',
     '  a.name_lower_case,',
     '  a.description,',
@@ -545,7 +545,7 @@ async function mergeRoute(handler) {
     'ON CONFLICT (id_legacy_ntb_ab) DO UPDATE',
     'SET',
     '   "code" = EXCLUDED."code",',
-    '   "is_winter" = EXCLUDED."is_winter",',
+    '   "type" = EXCLUDED."type",',
     '   "name" = EXCLUDED.name,',
     '   "name_lower_case" = EXCLUDED.name_lower_case,',
     '   "description_ab" = EXCLUDED.description_ab,',
