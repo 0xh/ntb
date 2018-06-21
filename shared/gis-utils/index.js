@@ -14,7 +14,7 @@ export function geomFromGeoJSON(geojson) {
   let wkt = stringify(geojson);
 
   try {
-    res = st.geomFromText(wkt);
+    res = st.geomFromText(wkt, 4326);
   }
   catch (err) {
     if (
@@ -32,7 +32,7 @@ export function geomFromGeoJSON(geojson) {
       if (message === rightHandErr) {
         const newGeojson = geoJSONRewind(geojson);
         wkt = stringify(newGeojson);
-        res = st.geomFromText(wkt);
+        res = st.geomFromText(wkt, 4326);
       }
 
       // GeoJSON contains an invalid 'properties'-key
@@ -43,7 +43,7 @@ export function geomFromGeoJSON(geojson) {
         delete geojson.properties;
         const newGeojson = geoJSONRewind(geojson);
         wkt = stringify(newGeojson);
-        res = st.geomFromText(wkt);
+        res = st.geomFromText(wkt, 4326);
       }
     }
     else {
