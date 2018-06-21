@@ -38,19 +38,19 @@ dnt = "gs://dnt-helm-repo"
 [apps]
     [apps.ntb]
     name = "ntb" # should be unique across all apps
-    description = "Latest NTB app version test in the dev namespace"
-    namespace = "dev" # maps to the namespace as defined in environmetns above
+    description = "Latest NTB app version test in the beta namespace"
+    namespace = "beta" # maps to the namespace as defined in environmetns above
     enabled = true # change to false if you want to delete this app release [empty/undefined = false]
     chart = "dnt/ntb" # don't change the chart name if you want to use a new chart, create a new release in the apps section instead
     version = "0.3.4"
-    valuesFile = ".circleci/ntb-values.yaml" # leaving it empty uses the default chart values
+    valuesFile = ".circleci/ntb-beta-values.yaml" # leaving it empty uses the default chart values
     purge = false # will only be considered when there is a delete operation
     test = false # run helm tests whenever this release is installed
     [apps.ntb.set]
-    "environment.LEGACY_MONGO_DB_URI"= "$LEGACY_MONGO_DB_URI"
-    "environment.LEGACY_MONGO_DB_NAME"= "$LEGACY_MONGO_DB_NAME"
-    "environment.DB_USER"="$DEV_DB_USER"
-    "environment.DB_PASSWORD"="$DEV_DB_PASSWORD"
-    "environment.DB_NAME"="$DEV_DB_NAME"
-    "environment.INSTANCE_CONNECTION_NAME"="$DEV_INSTANCE_CONNECTION_NAME"
+    "environment.LEGACY_MONGO_DB_URI"= "$BETA_LEGACY_MONGO_DB_URI"
+    "environment.LEGACY_MONGO_DB_NAME"= "$BETA_LEGACY_MONGO_DB_NAME"
+    "environment.DB_USER"="$BETA_DB_USER"
+    "environment.DB_PASSWORD"="$BETA_DB_PASSWORD"
+    "environment.DB_NAME"="$BETA_DB_NAME"
+    "environment.INSTANCE_CONNECTION_NAME"="$BETA_INSTANCE_CONNECTION_NAME"
     "image.tag"= "$IMAGE_TAG"

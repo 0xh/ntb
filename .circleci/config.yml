@@ -44,7 +44,18 @@ jobs:
           name: run helmsman
           command: |
             export IMAGE_TAG=ntb-${CIRCLE_SHA1:0:9}
-            helmsman -debug -apply -f .circleci/helmsman-deployment.toml
+            helmsman -debug -apply -f .circleci/helmsman-dev-deployment.toml
+
+  deploy-to-beta:
+    docker:
+      - image: praqma/helmsman:v1.2.0-rc2-helm-v2.8.1
+    steps:
+      - checkout
+      - run:
+          name: run helmsman
+          command: |
+            export IMAGE_TAG=ntb-${CIRCLE_SHA1:0:9}
+            helmsman -debug -apply -f .circleci/helmsman-beta-deployment.toml
 
 workflows:
   version: 2
@@ -64,3 +75,11 @@ workflows:
             branches:
               only:
                 - master
+      - deploy-to-beta:
+          requires:
+            - build-image
+          context: dnt-k8s-dev-beta
+          filters:
+            branches:
+              only:
+                - deploy-beta
