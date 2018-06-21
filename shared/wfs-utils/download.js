@@ -16,15 +16,16 @@ const PG_STRING = (
 );
 
 
-export default async function (wfs) {
+export default async function (wfs, targetTableName = null) {
   logger.info(`Starting wfs-download for ${wfs}`);
 
-  const timeStamp = moment().format('YYYYMMDDHHmmssSSS');
-  const tableName = `0_${timeStamp}_wfs`;
+  let tableName = targetTableName;
+  if (!tableName) {
+    const timeStamp = moment().format('YYYYMMDDHHmmssSSS');
+    tableName = `0_${timeStamp}_wfs`;
+  }
 
   const status = spawnSync('ogr2ogr', [
-    '-lco',
-    'OVERWRITE=YES',
     '-f',
     'PostgreSQL',
     `"${PG_STRING}"`,
