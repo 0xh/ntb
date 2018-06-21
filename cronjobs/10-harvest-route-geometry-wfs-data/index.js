@@ -15,7 +15,7 @@ const SYSTEM_SETTINGS_NAME = 'routes-wfs';
 const SRS_NAME = 'EPSG:25833';
 const TYPES = {
   ski: {
-    wfsType: 'app:skiløype',
+    wfsType: 'app:Skiløype',
     routeType: 'ski',
     table: 'routes_wfs_data_ski',
   },
@@ -25,7 +25,7 @@ const TYPES = {
     table: 'routes_wfs_data_foot',
   },
   bike: {
-    wfsType: 'app:sykkelrute',
+    wfsType: 'app:Sykkelrute',
     routeType: 'bike',
     table: 'routes_wfs_data_bike',
   },
