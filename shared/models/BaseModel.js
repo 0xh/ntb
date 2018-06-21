@@ -78,11 +78,15 @@ export default class BaseModel extends Model {
   }
 
   $beforeInsert() {
-    this.createdAt = new Date();
-    this.updatedAt = new Date();
+    if (this.timestamps) {
+      this.createdAt = new Date();
+      this.updatedAt = new Date();
+    }
   }
 
   $beforeUpdate() {
-    this.updatedAt = new Date();
+    if (this.timestamps) {
+      this.updatedAt = new Date();
+    }
   }
 }
