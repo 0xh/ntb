@@ -24,10 +24,14 @@ const config = {
 
 
 async function make() {
-  const name = process.argv[3].trim();
+  const name = process.argv.length > 3
+    ? process.argv[3].trim()
+    : null;
 
   if (!name) {
-    throw new Error('Invalid migration name');
+    logger.error('Invalid migration name');
+    logger.error('Use command: make [name]');
+    process.exit(1);
   }
 
   const migrationName = await knex.migrate.make(name, migrateConfig);
