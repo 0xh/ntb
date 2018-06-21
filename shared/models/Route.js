@@ -19,8 +19,8 @@ export default class Route extends BaseModel {
         from: 'routes.id',
         through: {
           modelClass: 'RouteToRouteSegment',
-          from: 'routesToRouteSegments.routeSegmentId',
-          to: 'routesToRouteSegments.routeId',
+          from: 'routesToRouteSegments.routeId',
+          to: 'routesToRouteSegments.routeSegmentId',
         },
         to: 'routeSegments.id',
       },
@@ -231,6 +231,7 @@ export default class Route extends BaseModel {
       defaultOrder: [['name', 'ASC']],
       validFilters: {
         id: {},
+        type: { filterTypes: ['=', '$in', '$nin'] },
         idLegacyNtbAb: {
           filterTypes: ['=', 'null', 'notnull', '$in', '$nin'],
         },

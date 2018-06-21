@@ -19,8 +19,8 @@ export default class RouteSegment extends BaseModel {
         from: 'routeSegments.id',
         through: {
           modelClass: 'RouteToRouteSegment',
-          from: 'routesToRouteSegments.routeId',
-          to: 'routesToRouteSegments.routeSegmentId',
+          from: 'routesToRouteSegments.routeSegmentId',
+          to: 'routesToRouteSegments.routeId',
         },
         to: 'routes.id',
       },
@@ -120,6 +120,12 @@ export default class RouteSegment extends BaseModel {
       ],
 
       defaultRelations: [],
+    };
+
+    // When included by Route.route_segments
+    config['Route.routeSegments'] = {
+      ...config.default,
+      paginate: false,
     };
 
     return config;
