@@ -25,7 +25,6 @@ clusterURI = "$DEV_CLUSTER_URI" # cluster API
 [namespaces]
 [namespaces.dev]
 
-
 # define any private/public helm charts repos you would like to get charts from
 # syntax: repo_name = "repo_url"
 [helmRepos]
@@ -47,7 +46,6 @@ dnt = "gs://dnt-helm-repo"
     valuesFile = ".circleci/ntb-dev-values.yaml" # leaving it empty uses the default chart values
     purge = false # will only be considered when there is a delete operation
     test = false # run helm tests whenever this release is installed
-    protected = true
     [apps.ntb.set]
     "environment.LEGACY_MONGO_DB_URI"= "$LEGACY_MONGO_DB_URI"
     "environment.LEGACY_MONGO_DB_NAME"= "$LEGACY_MONGO_DB_NAME"
