@@ -281,11 +281,21 @@ async function populateTempTables(handler) {
       .concat(p.suitableActivityTypes);
     links = links.concat(p.links);
 
-    p.pictures.forEach((pictureLegacyId, idx) => pictures.push({
-      pictureLegacyId,
-      routeLegacyId: p.route.idLegacyNtb,
-      sortIndex: idx,
-    }));
+    p.pictures.forEach((pictureLegacyId, idx) => {
+      const exists = pictures
+        .some((pic) => (
+          pic.pictureLegacyId === pictureLegacyId
+          && pic.routeLegacyId === p.route.idLegacyNtb
+        ));
+
+      if (!exists) {
+        pictures.push({
+          pictureLegacyId,
+          routeLegacyId: p.route.idLegacyNtb,
+          sortIndex: idx,
+        });
+      }
+    });
 
     if (p.routeWaymarkTypes) {
       p.routeWaymarkTypes.forEach((facility) => routeWaymarkTypes.push({
@@ -542,10 +552,10 @@ async function mergeRoute(handler) {
     '  ON a.id = r.id',
     `LEFT JOIN "public"."${tableName}" b`,
     '  ON b.id != r.id AND b.code = r.code',
-    'ON CONFLICT (id_legacy_ntb_ab) DO UPDATE',
+    'ON CONFLICT ("type", code) DO UPDATE',
     'SET',
-    '   "code" = EXCLUDED."code",',
-    '   "type" = EXCLUDED."type",',
+    '   "id_legacy_ntb_ab" = EXCLUDED."id_legacy_ntb_ab",',
+    '   "id_legacy_ntb_ba" = EXCLUDED."id_legacy_ntb_ba",',
     '   "name" = EXCLUDED.name,',
     '   "name_lower_case" = EXCLUDED.name_lower_case,',
     '   "description_ab" = EXCLUDED.description_ab,',

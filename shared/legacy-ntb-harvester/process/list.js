@@ -209,11 +209,21 @@ async function populateTempTables(handler) {
   handler.lists.processed.forEach((p) => {
     links = links.concat(p.links);
 
-    p.pictures.forEach((pictureLegacyId, idx) => pictures.push({
-      pictureLegacyId,
-      listLegacyId: p.list.idLegacyNtb,
-      sortIndex: idx,
-    }));
+    p.pictures.forEach((pictureLegacyId, idx) => {
+      const exists = pictures
+        .some((pic) => (
+          pic.pictureLegacyId === pictureLegacyId
+          && pic.listLegacyId === p.list.idLegacyNtb
+        ));
+
+      if (!exists) {
+        pictures.push({
+          pictureLegacyId,
+          listLegacyId: p.list.idLegacyNtb,
+          sortIndex: idx,
+        });
+      }
+    });
 
     p.groups.forEach((groupLegacyId) => groups.push({
       groupLegacyId,

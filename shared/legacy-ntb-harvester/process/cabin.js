@@ -391,12 +391,21 @@ async function populateTempTables(handler) {
       }
     });
 
+    p.pictures.forEach((pictureLegacyId, idx) => {
+      const exists = pictures
+        .some((pic) => (
+          pic.pictureLegacyId === pictureLegacyId
+          && pic.cabinLegacyId === p.cabin.idLegacyNtb
+        ));
 
-    p.pictures.forEach((pictureLegacyId, idx) => pictures.push({
-      pictureLegacyId,
-      cabinLegacyId: p.cabin.idLegacyNtb,
-      sortIndex: idx,
-    }));
+      if (!exists) {
+        pictures.push({
+          pictureLegacyId,
+          cabinLegacyId: p.cabin.idLegacyNtb,
+          sortIndex: idx,
+        });
+      }
+    });
 
     if (p.english) {
       translations.push(p.english);

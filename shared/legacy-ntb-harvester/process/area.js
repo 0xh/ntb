@@ -149,11 +149,22 @@ async function populateTempTables(handler) {
       parentLegacyId,
       childLegacyId: p.area.idLegacyNtb,
     }));
-    p.pictures.forEach((pictureLegacyId, idx) => pictures.push({
-      pictureLegacyId,
-      areaLegacyId: p.area.idLegacyNtb,
-      sortIndex: idx,
-    }));
+
+    p.pictures.forEach((pictureLegacyId, idx) => {
+      const exists = pictures
+        .some((pic) => (
+          pic.pictureLegacyId === pictureLegacyId
+          && pic.areaLegacyId === p.area.idLegacyNtb
+        ));
+
+      if (!exists) {
+        pictures.push({
+          pictureLegacyId,
+          areaLegacyId: p.area.idLegacyNtb,
+          sortIndex: idx,
+        });
+      }
+    });
   });
 
   // Insert temp data for AreaArea
