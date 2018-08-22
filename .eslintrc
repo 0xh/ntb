@@ -1,6 +1,0 @@
-{
-  "extends": [
-    "t14n-server-es6"
-  ],
-  "parser": "babel-eslint"
-}
