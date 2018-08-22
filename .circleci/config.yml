@@ -76,7 +76,6 @@ jobs:
       - run:
           name: run helmsman
           command: |
-            export IMAGE_TAG=ntb-${CIRCLE_SHA1:0:9}
             helmsman --debug --apply -f .circleci/helmsman-beta-deployment.toml
       - run:
            name: notify slack on failure
@@ -90,7 +89,7 @@ jobs:
            command: |
              chmod +x .circleci/notify-slack.sh
              ./.circleci/notify-slack.sh NTB build-and-publish true
-             
+
 workflows:
   version: 2
   build-and-publish:
