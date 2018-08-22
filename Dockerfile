@@ -1,13 +1,20 @@
-FROM node:10.4.1-alpine
+FROM node:10.9.0
 
 # Add our user and group first to make sure their IDs get assigned consistently
-RUN addgroup -S app && adduser -S -g app app
-
-# Point towards 'edge' version of alpine packages
-RUN sed -i -e 's/v[[:digit:]]\.[[:digit:]]/edge/g' /etc/apk/repositories
+RUN groupadd -r app && useradd --no-log-init -r -g app app
 
 # Install gdal
-RUN apk add --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing gdal
+COPY tools/docker/debian-gdal/99defaultrelease /etc/apt/apt.conf.d/
+COPY tools/docker/debian-gdal/stable.list tools/docker/debian-gdal/stretch.list /etc/apt/sources.list.d/
+RUN apt-get update && \
+    apt-get -t stretch --assume-yes install -u gdal-bin
+
+# Install tippecanoe
+RUN mkdir -p /tmp/tippecanoe-git
+WORKDIR /tmp/tippecanoe-git
+RUN git clone https://github.com/mapbox/tippecanoe.git
+WORKDIR /tmp/tippecanoe-git/tippecanoe
+RUN make -j -s && make install
 
 # install lerna globally
 RUN yarn global add lerna
