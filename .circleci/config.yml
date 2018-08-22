@@ -1,7 +1,3 @@
-# Javascript Node CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-javascript/ for more details
-#
 version: 2
 jobs:
   build-image:
@@ -37,7 +33,7 @@ jobs:
 
   deploy-to-dev:
     docker:
-      - image: praqma/helmsman:v1.2.0-rc2-helm-v2.8.1
+      - image: praqma/helmsman:v1.3.0-helm-v2.8.1
     steps:
       - checkout
       - run:
@@ -48,7 +44,7 @@ jobs:
 
   deploy-to-beta:
     docker:
-      - image: praqma/helmsman:v1.2.0-rc2-helm-v2.8.1
+      - image: praqma/helmsman:v1.3.0-helm-v2.8.1
     steps:
       - checkout
       - run:
