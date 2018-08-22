@@ -30,6 +30,19 @@ jobs:
             docker tag ntb eu.gcr.io/dnt-docker-registry-public/ntb:$TAG
             docker push eu.gcr.io/dnt-docker-registry-public/ntb:latest
             docker push eu.gcr.io/dnt-docker-registry-public/ntb:$TAG
+      
+      - run:
+           name: notify slack on failure
+           when: on_fail
+           command: |
+             chmod +x .circleci/notify-slack.sh
+             ./.circleci/notify-slack.sh NTB build-and-publish false
+      - run:
+           name: notify slack on sucess
+           when: on_success
+           command: |
+             chmod +x .circleci/notify-slack.sh
+             ./.circleci/notify-slack.sh NTB build-and-publish true      
 
   deploy-to-dev:
     docker:
@@ -42,6 +55,19 @@ jobs:
             export IMAGE_TAG=ntb-${CIRCLE_SHA1:0:9}
             helmsman --debug --apply -f .circleci/helmsman-dev-deployment.toml
 
+      - run:
+           name: notify slack on failure
+           when: on_fail
+           command: |
+             chmod +x .circleci/notify-slack.sh
+             ./.circleci/notify-slack.sh NTB build-and-publish false
+      - run:
+           name: notify slack on sucess
+           when: on_success
+           command: |
+             chmod +x .circleci/notify-slack.sh
+             ./.circleci/notify-slack.sh NTB build-and-publish true
+
   deploy-to-beta:
     docker:
       - image: praqma/helmsman:v1.3.0-helm-v2.8.1
@@ -52,7 +78,19 @@ jobs:
           command: |
             export IMAGE_TAG=ntb-${CIRCLE_SHA1:0:9}
             helmsman --debug --apply -f .circleci/helmsman-beta-deployment.toml
-
+      - run:
+           name: notify slack on failure
+           when: on_fail
+           command: |
+             chmod +x .circleci/notify-slack.sh
+             ./.circleci/notify-slack.sh NTB build-and-publish false
+      - run:
+           name: notify slack on sucess
+           when: on_success
+           command: |
+             chmod +x .circleci/notify-slack.sh
+             ./.circleci/notify-slack.sh NTB build-and-publish true
+             
 workflows:
   version: 2
   build-and-publish:
