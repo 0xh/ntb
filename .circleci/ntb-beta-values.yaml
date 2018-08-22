@@ -65,16 +65,16 @@ ingress:
      - host: ntb-api.beta.dnt.org
        paths:
          - path: /
-           serviceName: ntb-api
+           serviceName: ntb-beta-api
            servicePort: 3000
      - host: ntb-docs.beta.dnt.org
        paths:
          - path: /
-           serviceName: ntb-docs
+           serviceName: ntb-beta-docs
            servicePort: 8080
 
   tls:
-    - secretName: dev-beta-dnt-org-tls
+    - secretName: beta-dnt-org-tls
       hosts:
         - ntb-api.beta.dnt.org
         - ntb-docs.beta.dnt.org
