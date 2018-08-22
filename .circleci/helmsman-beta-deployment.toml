@@ -28,16 +28,14 @@ clusterURI = "$DEV_CLUSTER_URI" # cluster API
 # define any private/public helm charts repos you would like to get charts from
 # syntax: repo_name = "repo_url"
 [helmRepos]
-stable = "https://kubernetes-charts.storage.googleapis.com"
-incubator = "http://storage.googleapis.com/kubernetes-charts-incubator"
 dnt = "gs://dnt-helm-repo"
 
 # define the desired state of your applications helm charts
 # each contains the following:
 
 [apps]
-    [apps.ntb]
-    name = "ntb" # should be unique across all apps
+    [apps.ntb-beta]
+    name = "ntb-beta" # should be unique across all apps
     description = "Latest NTB app version in the beta namespace"
     namespace = "beta" # maps to the namespace as defined in environmetns above
     enabled = true # change to false if you want to delete this app release [empty/undefined = false]
@@ -46,11 +44,10 @@ dnt = "gs://dnt-helm-repo"
     valuesFile = ".circleci/ntb-beta-values.yaml" # leaving it empty uses the default chart values
     purge = false # will only be considered when there is a delete operation
     test = false # run helm tests whenever this release is installed
-    [apps.ntb.set]
+    [apps.ntb-beta.set]
     "environment.LEGACY_MONGO_DB_URI"= "$BETA_LEGACY_MONGO_DB_URI"
     "environment.LEGACY_MONGO_DB_NAME"= "$BETA_LEGACY_MONGO_DB_NAME"
     "environment.DB_USER"="$BETA_DB_USER"
     "environment.DB_PASSWORD"="$BETA_DB_PASSWORD"
     "environment.DB_NAME"="$BETA_DB_NAME"
     "environment.INSTANCE_CONNECTION_NAME"="$BETA_INSTANCE_CONNECTION_NAME"
-    "image.tag"= "$IMAGE_TAG"

@@ -1,7 +1,3 @@
-# Javascript Node CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-javascript/ for more details
-#
 version: 2
 jobs:
   build-image:
@@ -37,25 +33,25 @@ jobs:
 
   deploy-to-dev:
     docker:
-      - image: praqma/helmsman:v1.2.0-rc2-helm-v2.8.1
+      - image: praqma/helmsman:v1.3.0-helm-v2.8.1
     steps:
       - checkout
       - run:
           name: run helmsman
           command: |
             export IMAGE_TAG=ntb-${CIRCLE_SHA1:0:9}
-            helmsman -debug -apply -f .circleci/helmsman-dev-deployment.toml
+            helmsman --debug --apply -f .circleci/helmsman-dev-deployment.toml
 
   deploy-to-beta:
     docker:
-      - image: praqma/helmsman:v1.2.0-rc2-helm-v2.8.1
+      - image: praqma/helmsman:v1.3.0-helm-v2.8.1
     steps:
       - checkout
       - run:
           name: run helmsman
           command: |
             export IMAGE_TAG=ntb-${CIRCLE_SHA1:0:9}
-            helmsman -debug -apply -f .circleci/helmsman-beta-deployment.toml
+            helmsman --debug --apply -f .circleci/helmsman-beta-deployment.toml
 
 workflows:
   version: 2
@@ -67,7 +63,6 @@ workflows:
             branches:
               only:
                 - master
-                - deploy-beta
       - deploy-to-dev:
           requires:
             - build-image
@@ -77,8 +72,6 @@ workflows:
               only:
                 - master
       - deploy-to-beta:
-          requires:
-            - build-image
           context: dnt-k8s-dev-beta
           filters:
             branches:

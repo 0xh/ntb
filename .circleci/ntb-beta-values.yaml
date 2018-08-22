@@ -42,7 +42,7 @@ environment:
   SERVICES_DOCS_GA_CODE: null
   SERVICES_DOCS_GTM_CODE: null
 
-  INSTANCE_CONNECTION_NAME: "something"
+  INSTANCE_CONNECTION_NAME: ""
 
 service:
   api:
@@ -62,26 +62,26 @@ ingress:
     kubernetes.io/ingress.class: nginx
 
   hosts:
-     - host: ntb2-beta-api.dnt.org
+     - host: ntb-api.beta.dnt.org
        paths:
          - path: /
            serviceName: ntb-api
            servicePort: 3000
-     - host: ntb2-beta-docs.dnt.org
+     - host: ntb-docs.beta.dnt.org
        paths:
          - path: /
            serviceName: ntb-docs
            servicePort: 8080
 
   tls:
-    - secretName: ntb-tls
+    - secretName: dev-beta-dnt-org-tls
       hosts:
-        - ntb2-beta-api.dnt.org
-        - ntb2-beta-docs.dnt.org
+        - ntb-api.beta.dnt.org
+        - ntb-docs.beta.dnt.org
 
 
 cert:
-  enabled: true
+  enabled: false
   issuer: "letsencrypt-production"
 
 resources:
