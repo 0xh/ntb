@@ -167,6 +167,140 @@ async function deleteDeprecatedCounties(geometryTableName) {
 }
 
 
+async function updateCountiesTranslations(geometryTableName) {
+  logger.info('Updating county translations');
+
+  await knex.raw(`
+    INSERT INTO county_translations (
+      id,
+      county_id,
+      name,
+      name_lower_case,
+      language,
+      data_source,
+      created_at,
+      updated_at
+    )
+    SELECT
+      uuid_generate_v4(),
+      c.id,
+      x.name,
+      LOWER(x.name),
+      x.lang,
+      'kartverket',
+      now(),
+      now()
+    FROM "${geometryTableName}" t
+    JOIN unnest(names, languages) x ("name", "lang") ON true
+    INNER JOIN counties c ON
+      c.code = t.code
+    WHERE
+      cardinality(t.names) > 1
+      AND t."type" = ANY ('{fylke,region}'::TEXT[])
+      AND x.lang <> 'nor'
+    ON CONFLICT (county_id, language) DO UPDATE SET
+      "name" = EXCLUDED."name",
+      "name_lower_case" = EXCLUDED."name_lower_case"
+  `);
+}
+
+
+async function deleteDeprecatedCountyTranslations(geometryTableName) {
+  logger.info('Delete deprecated county translations');
+
+  await knex.raw(`
+    DELETE FROM county_translations
+    USING county_translations ct
+    LEFT JOIN (
+      SELECT
+        c.id,
+        x.name,
+        x.lang
+      FROM "${geometryTableName}" t
+      LEFT JOIN unnest(names, languages) x(name, lang) ON true
+      INNER JOIN counties c ON
+        c.code = t.code
+      WHERE
+        cardinality(t.names) > 1
+        AND t."type" = ANY ('{fylke,region}'::TEXT[])
+        AND x.lang <> 'nor'
+    ) cur ON
+      ct.county_id = cur.id
+      AND ct.language = cur.lang
+    WHERE
+      cur.id IS NULL
+      AND public.county_translations.id = ct.id
+  `);
+}
+
+
+async function updateMunicipalityTranslations(geometryTableName) {
+  logger.info('Updating municipality translations');
+
+  await knex.raw(`
+    INSERT INTO municipality_translations (
+      id,
+      municipality_id,
+      name,
+      name_lower_case,
+      language,
+      data_source,
+      created_at,
+      updated_at
+    )
+    SELECT
+      uuid_generate_v4(),
+      c.id,
+      x.name,
+      LOWER(x.name),
+      x.lang,
+      'kartverket',
+      now(),
+      now()
+    FROM "${geometryTableName}" t
+    JOIN unnest(names, languages) x ("name", "lang") ON true
+    INNER JOIN municipalities c ON
+      c.code = t.code
+    WHERE
+      cardinality(t.names) > 1
+      AND t."type" = ANY ('{municipality,kommune}'::TEXT[])
+      AND x.lang <> 'nor'
+    ON CONFLICT (municipality_id, language) DO UPDATE SET
+      "name" = EXCLUDED."name",
+      "name_lower_case" = EXCLUDED."name_lower_case"
+  `);
+}
+
+
+async function deleteDeprecatedMunicipalityTranslations(geometryTableName) {
+  logger.info('Delete deprecated municipality translations');
+
+  await knex.raw(`
+    DELETE FROM municipality_translations
+    USING municipality_translations ct
+    LEFT JOIN (
+      SELECT
+        c.id,
+        x.name,
+        x.lang
+      FROM "${geometryTableName}" t
+      LEFT JOIN unnest(names, languages) x(name, lang) ON true
+      INNER JOIN municipalities c ON
+        c.code = t.code
+      WHERE
+        cardinality(t.names) > 1
+        AND t."type" = ANY ('{municipality,kommune}'::TEXT[])
+        AND x.lang <> 'nor'
+    ) cur ON
+      ct.municipality_id = cur.id
+      AND ct.language = cur.lang
+    WHERE
+      cur.id IS NULL
+      AND public.municipality_translations.id = ct.id
+  `);
+}
+
+
 async function updateMunicipalities(geometryTableName) {
   logger.info('Creating or updating municipalities');
 
@@ -237,8 +371,13 @@ async function main() {
 
   await updateCounties(geometryTableName);
   await deleteDeprecatedCounties(geometryTableName);
+  await updateCountiesTranslations(geometryTableName);
+  await deleteDeprecatedCountyTranslations(geometryTableName);
+
   await updateMunicipalities(geometryTableName);
   await deleteDeprecatedMunicipalities(geometryTableName);
+  await updateMunicipalityTranslations(geometryTableName);
+  await deleteDeprecatedMunicipalityTranslations(geometryTableName);
 
   await dropTempTable(geometryTableName);
 }
