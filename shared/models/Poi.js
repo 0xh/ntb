@@ -129,6 +129,19 @@ export default class Poi extends BaseModel {
         to: 'trips.id',
       },
     },
+    hazardRegions: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'HazardRegion',
+      join: {
+        from: 'pois.id',
+        through: {
+          modelClass: 'PoiToHazardRegion',
+          from: 'poisToHazardRegions.poiId',
+          to: 'poisToHazardRegions.hazardRegionId',
+        },
+        to: 'hazardRegions.id',
+      },
+    },
   };
 
 

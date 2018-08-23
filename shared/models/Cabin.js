@@ -103,6 +103,19 @@ export default class Cabin extends BaseModel {
         to: 'pictures.cabinId',
       },
     },
+    hazardRegions: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'HazardRegion',
+      join: {
+        from: 'cabins.id',
+        through: {
+          modelClass: 'CabinToHazardRegion',
+          from: 'cabinsToHazardRegions.cabinId',
+          to: 'cabinsToHazardRegions.hazardRegionId',
+        },
+        to: 'hazardRegions.id',
+      },
+    },
   };
 
 

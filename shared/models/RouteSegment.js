@@ -24,11 +24,24 @@ export default class RouteSegment extends BaseModel {
         to: 'routes.id',
       },
     },
+    hazardRegions: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'HazardRegion',
+      join: {
+        from: 'routeSegments.id',
+        through: {
+          modelClass: 'RouteSegmentToHazardRegion',
+          from: 'routeSegmentsToHazardRegions.routeSegmentId',
+          to: 'routeSegmentsToHazardRegions.hazardRegionId',
+        },
+        to: 'hazardRegions.id',
+      },
+    },
   };
 
 
   static geometryAttributes = [
-    'geometry',
+    'path',
   ];
 
 
@@ -58,7 +71,7 @@ export default class RouteSegment extends BaseModel {
         ],
       },
       calculatedDistance: { type: 'number' },
-      geometry: { type: 'object' },
+      path: { type: 'object' },
       dataSource: { type: 'string' },
       updatedAt: { type: 'string', format: 'date', readOnly: true },
       createdAt: { type: 'string', format: 'date', readOnly: true },
@@ -94,7 +107,7 @@ export default class RouteSegment extends BaseModel {
         'id',
         'maintainers',
         'calculatedDistance',
-        'geometry',
+        'path',
       ],
       defaultFields: [
         '*full',

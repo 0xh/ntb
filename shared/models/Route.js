@@ -106,6 +106,19 @@ export default class Route extends BaseModel {
         to: 'pictures.routeId',
       },
     },
+    hazardRegions: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'HazardRegion',
+      join: {
+        from: 'routes.id',
+        through: {
+          modelClass: 'RouteToHazardRegion',
+          from: 'routesToHazardRegions.routeId',
+          to: 'routesToHazardRegions.hazardRegionId',
+        },
+        to: 'hazardRegions.id',
+      },
+    },
   };
 
 

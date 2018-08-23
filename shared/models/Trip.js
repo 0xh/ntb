@@ -70,6 +70,19 @@ export default class Trip extends BaseModel {
         to: 'pictures.tripId',
       },
     },
+    hazardRegions: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'HazardRegion',
+      join: {
+        from: 'trips.id',
+        through: {
+          modelClass: 'TripToHazardRegion',
+          from: 'tripsToHazardRegions.tripId',
+          to: 'tripsToHazardRegions.hazardRegionId',
+        },
+        to: 'hazardRegions.id',
+      },
+    },
   };
 
 
