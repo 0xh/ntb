@@ -4,6 +4,25 @@ import { createLogger } from '@turistforeningen/ntb-shared-utils';
 import { knex } from '@turistforeningen/ntb-shared-db-utils';
 
 
+// TODO(Roar)
+// - Missing relations to Area
+//   - RouteSegment
+//   - Route
+//   - Trip
+// - Missing relations to Counties
+//   - Cabin
+//   - RouteSegment
+//   - Route
+//   - Trip
+//   - Poi
+// - Missing relations to Municipalities
+//   - Cabin
+//   - RouteSegment
+//   - Route
+//   - Trip
+//   - Poi
+
+
 const logger = createLogger();
 
 const LIMIT = 2000;
@@ -177,12 +196,13 @@ async function deleteDeprecatedInThroughTable(idx, type, tableName) {
   await knex.raw(`
     DELETE FROM "${type.throughTable}"
     USING "${type.throughTable}" c
+    INNER JOIN (SELECT DISTINCT main_id FROM "${tableName}") x ON
+      c."${type.throughMainAttribute}" = x.main_id
     LEFT JOIN "${tableName}" t ON
       c."${type.throughMainAttribute}" = t.main_id
       AND c."${type.throughJoinAttribute}" = t.join_id
-      AND t.join_id IS NOT NULL
     WHERE
-      t.main_id IS NULL
+      t.join_id IS NULL
       AND public."${type.throughTable}"."${type.throughMainAttribute}" =
         c."${type.throughMainAttribute}"
       AND public."${type.throughTable}"."${type.throughJoinAttribute}" =
