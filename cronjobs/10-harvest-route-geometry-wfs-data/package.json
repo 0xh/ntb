@@ -5,6 +5,7 @@
   "dependencies": {
     "@turistforeningen/ntb-shared-utils": "*",
     "@turistforeningen/ntb-shared-wfs-utils": "*",
+    "@turistforeningen/ntb-shared-db-utils": "*",
     "@turistforeningen/ntb-shared-models": "*"
   }
 }

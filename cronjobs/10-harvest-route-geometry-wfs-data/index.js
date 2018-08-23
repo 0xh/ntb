@@ -125,7 +125,7 @@ async function main() {
 
 main()
   .then((res) => {
-    logger.debug('ALL DONE');
+    logger.info('ALL DONE');
     process.exit(0);
   })
   .catch((err) => {
