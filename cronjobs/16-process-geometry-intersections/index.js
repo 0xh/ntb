@@ -9,18 +9,21 @@ import { knex } from '@turistforeningen/ntb-shared-db-utils';
 //   - RouteSegment
 //   - Route
 //   - Trip
+//   - HazardRegion
 // - Missing relations to Counties
 //   - Cabin
 //   - RouteSegment
 //   - Route
 //   - Trip
 //   - Poi
+//   - HazardRegion
 // - Missing relations to Municipalities
 //   - Cabin
 //   - RouteSegment
 //   - Route
 //   - Trip
 //   - Poi
+//   - HazardRegion
 
 
 const logger = createLogger();
@@ -229,6 +232,49 @@ async function deleteTempTable(idx, tableName) {
 }
 
 
+async function aggregateRouteHazardRegions() {
+  logger.info('Updating route to hazard regions relations');
+
+  await knex.raw(`
+    INSERT INTO routes_to_hazard_regions (route_id, hazard_region_id)
+    SELECT DISTINCT
+      r.id,
+      rsthr.hazard_region_id
+    FROM routes r
+    INNER JOIN routes_to_route_segments rtrs ON
+      rtrs.route_id = r.id
+    INNER JOIN route_segments rs ON
+      rs.id = rtrs.route_segment_id
+    INNER JOIN route_segments_to_hazard_regions rsthr ON
+      rsthr.route_segment_id = rs.id
+    ON CONFLICT (route_id, hazard_region_id) DO NOTHING
+  `);
+
+  await knex.raw(`
+    DELETE FROM routes_to_hazard_regions
+    USING routes_to_hazard_regions t
+    LEFT JOIN (
+      SELECT DISTINCT
+        r.id route_id,
+        rsthr.hazard_region_id hazard_region_id
+      FROM routes r
+      INNER JOIN routes_to_route_segments rtrs ON
+        rtrs.route_id = r.id
+      INNER JOIN route_segments rs ON
+        rs.id = rtrs.route_segment_id
+      INNER JOIN route_segments_to_hazard_regions rsthr ON
+        rsthr.route_segment_id = rs.id
+    ) x ON
+      t.route_id = x.route_id
+      AND t.hazard_region_id = x.hazard_region_id
+    WHERE
+      t.route_id IS NULL
+      AND t.route_id = public.routes_to_hazard_regions.route_id
+      AND t.hazard_region_id = public.routes_to_hazard_regions.hazard_region_id
+  `);
+}
+
+
 async function processType(idx, type) {
   logger.info(`[${idx}] Processing`);
 
@@ -244,6 +290,7 @@ async function processType(idx, type) {
 async function main() {
   const promises = TYPES.map((type, idx) => processType(idx, type));
   await Promise.all(promises);
+  await aggregateRouteHazardRegions();
 }
 
 
