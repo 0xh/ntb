@@ -13,7 +13,7 @@ const DATASOURCE = 'kartverket-ruter';
 
 
 async function verifyWfsData(wfsTable) {
-  logger.debug('Verifying wfs-data exists');
+  logger.info('Verifying wfs-data exists');
   const result = await knex(wfsTable).count('*');
 
   if (!result || !result.length || !result[0] || !result[0].count) {
@@ -130,7 +130,7 @@ async function setRouteIdentifiers(
 
 
 async function deleteOldData(routeType) {
-  logger.debug('Removing old routes to route segments');
+  logger.info('Removing old routes to route segments');
   await knex.raw(`
     DELETE FROM routes_to_route_segments WHERE
     data_source = :data_source AND "type" = :type
@@ -139,7 +139,21 @@ async function deleteOldData(routeType) {
     type: routeType,
   });
 
-  logger.debug('Removing old route segments');
+  logger.info('Removing old route segments to hazard regions');
+  await knex.raw(`
+    DELETE FROM route_segments_to_hazard_regions a
+    USING route_segments_to_hazard_regions b
+    INNER JOIN route_segments s ON
+      s.id = b.route_segment_id
+      AND s."type" = :type
+    WHERE
+      s."type" = :type
+      AND a.route_segment_id = b.route_segment_id
+  `, {
+    type: routeType,
+  });
+
+  logger.info('Removing old route segments');
   await knex.raw(`
       DELETE FROM route_segments WHERE
       data_source = :data_source AND "type" = :type
@@ -151,7 +165,7 @@ async function deleteOldData(routeType) {
 
 
 async function populateRouteSegments(routeType, geometryTableName) {
-  logger.debug('Creating route segments');
+  logger.info('Creating route segments');
   await knex.raw(`
     INSERT INTO route_segments (
       "id",
@@ -159,7 +173,7 @@ async function populateRouteSegments(routeType, geometryTableName) {
       gml_ids,
       maintainers,
       calculated_distance,
-      geometry,
+      path,
       point_a,
       point_b,
       data_source
@@ -185,7 +199,7 @@ async function populateRouteSegments(routeType, geometryTableName) {
 
 
 async function createNewRoutes(routeType, geometryTableName) {
-  logger.debug('Creating missing routes based on type and code');
+  logger.info('Creating missing routes based on type and code');
   const searchConfig = await knex('searchConfig')
     .select('boost')
     .where({ name: 'search_document__route' });
@@ -229,7 +243,7 @@ async function createNewRoutes(routeType, geometryTableName) {
 
 
 async function updateRouteTypes(routeType, geometryTableName) {
-  logger.debug('Updating route types for routes from legacy-ntb');
+  logger.info('Updating route types for routes from legacy-ntb');
   await knex.raw(`
     UPDATE routes SET
       "type" = :type
@@ -253,7 +267,7 @@ async function updateRouteTypes(routeType, geometryTableName) {
 
 
 async function createRoutesToRouteSegments(routeType, geometryTableName) {
-  logger.debug('Creating route to route segments relations');
+  logger.info('Creating route to route segments relations');
 
   await knex.raw(`
     INSERT INTO routes_to_route_segments (
@@ -288,7 +302,7 @@ async function createRoutesToRouteSegments(routeType, geometryTableName) {
 
 
 async function calculateRouteDistance(routeType, geometryTableName) {
-  logger.debug('Calculating route distance');
+  logger.info('Calculating route distance');
 
   await knex.raw(`
     UPDATE routes SET
