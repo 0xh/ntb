@@ -14,7 +14,7 @@ const unnestMaintainers = 'ARRAY[a.vedlikeholdsansvarlig]';
 
 processRouteSegments(type, wfsTable, unnestCodes, unnestMaintainers)
   .then((res) => {
-    logger.debug('ALL DONE');
+    logger.info('ALL DONE');
     process.exit(0);
   })
   .catch((err) => {
