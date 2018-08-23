@@ -17,8 +17,6 @@ const unnestMaintainers = (
   'from \'\\([0-9]+:(.+)\\)\'), \',\')'
 );
 
-string_to_array(substring(a.vedlikeholdsansvarlig from '([0-9]+:(.+))'), ',')
-
 processRouteSegments(type, wfsTable, unnestCodes, unnestMaintainers)
   .then((res) => {
     logger.info('ALL DONE');
