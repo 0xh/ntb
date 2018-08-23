@@ -1,17 +1,18 @@
-import fs from 'fs';
-import path from 'path';
-
 import moment from 'moment';
 
-import { createLogger } from '@turistforeningen/ntb-shared-utils';
+import {
+  createLogger,
+  startDuration,
+  endDuration,
+} from '@turistforeningen/ntb-shared-utils';
 import { knex } from '@turistforeningen/ntb-shared-db-utils';
-import wfsUtils from '@turistforeningen/ntb-shared-wfs-utils';
+import wfsDownload from '@turistforeningen/ntb-shared-wfs-utils/download';
 
 
 const logger = createLogger();
 
 const SRS_NAME = 'urn:ogc:def:crs:EPSG::25833';
-const FOLDER = path.resolve(__dirname, 'data');
+const TABLENAME = 'counties_municipalities_wfs_data';
 
 const WFS = (
   'https://wfs.geonorge.no/skwms1/wfs.elf-au?service=WFS&version=2.0.0' +
@@ -19,20 +20,238 @@ const WFS = (
 );
 
 
-async function downloadData() {
-  const wfsTableName = await wfsUtils(WFS);
-
-  if (wfsTableName === false) {
-    logger.warn('Downloading wfs failed.');
-    return false;
-  }
-
-  return true;
+async function truncateWfsData() {
+  logger.info('Trucating the current wfs-data');
+  await knex.raw(`TRUNCATE TABLE "public"."${TABLENAME}"`)
+    .catch((err) => {
+      logger.warn(`Unable to truncate the ${TABLENAME}-table`);
+      logger.warn('-----');
+      logger.warn(err.message);
+      logger.warn('-----');
+    });
 }
 
 
-downloadData()
-  .then((status) => {
-    console.log('ALL DONE', status);  // eslint-disable-line
-    console.log('****');  // eslint-disable-line
+async function downloadWfsData() {
+  logger.debug('Downloading wfs data');
+  const durationId = startDuration();
+
+  const status = await wfsDownload(WFS, TABLENAME);
+
+  if (status === false) {
+    throw new Error('Downloading wfs failed.');
+  }
+
+  endDuration(durationId);
+}
+
+
+async function verifyWfsData() {
+  logger.debug('Verifying wfs-data exists');
+  const result = await knex(TABLENAME).count('*');
+
+  if (!result || !result.length || !result[0] || !result[0].count) {
+    throw new Error(`${TABLENAME} does not contain any rows?`);
+  }
+}
+
+
+async function createTempGeometryTable() {
+  logger.info('Create temp geometry table');
+  const durationId = startDuration();
+
+  const timeStamp = moment().format('YYYYMMDDHHmmssSSS');
+  const tableName = `0_${timeStamp}_county_mun_wfs`;
+
+  // Create temp table
+  await knex.schema.createTable(tableName, (table) => {
+    table.uuid('id')
+      .primary();
+    table.text('code');
+    table.text('type');
+    table.specificType('names', 'TEXT[]');
+    table.specificType('languages', 'TEXT[]');
+    table.specificType('geometry', 'GEOMETRY');
+
+    table.index('geometry', null, 'GIST');
+  });
+
+  // Set correct SRID
+  await Promise.all(['geometry'].map((c) => (
+    knex.raw(`SELECT UpdateGeometrySRID('${tableName}', '${c}', 25833);`)
+  )));
+
+  endDuration(durationId);
+  return tableName;
+}
+
+
+async function insertDataToTempGeometryTable(geometryTableName) {
+  logger.info('Insert base data to temp table');
+  const durationId = startDuration();
+
+  await knex.raw(`
+    INSERT INTO "${geometryTableName}"
+      (id, code, type, names, languages, geometry)
+    SELECT
+      uuid_generate_v4(),
+      nationalcode,
+      localisedcharacterstring[1],
+      string_to_array(
+        substring(cmwfs."text" from '\\([0-9]+:(.+)\\)'),
+        ','
+      ),
+      string_to_array(
+        substring(cmwfs."language" from '\\([0-9]+:(.+)\\)'),
+        ','
+      ),
+      geometry
+    FROM counties_municipalities_wfs_data cmwfs
+    WHERE
+      localisedcharacterstring[1] =
+        ANY ('{fylke,region,municipality,kommune}'::TEXT[])
+  `);
+
+  endDuration(durationId);
+}
+
+
+async function updateCounties(geometryTableName) {
+  logger.info('Creating or updating counties');
+
+  await knex.raw(`
+    INSERT INTO counties (
+      id,
+      code,
+      name,
+      name_lower_case,
+      status,
+      data_source,
+      created_at,
+      updated_at,
+      geometry
+    )
+    SELECT
+      c.id,
+      c.code,
+      c."names"[1],
+      LOWER(c."names"[1]),
+      'public',
+      'kartverket',
+      now(),
+      now(),
+      ST_Transform(c.geometry, 4326)
+    FROM "${geometryTableName}" c
+    WHERE "type" = ANY ('{fylke,region}'::TEXT[])
+    ON CONFLICT (code) DO UPDATE SET
+      "name" = EXCLUDED."name",
+      "name_lower_case" = EXCLUDED."name_lower_case",
+      "geometry" = EXCLUDED."geometry"
+  `);
+}
+
+
+async function deleteDeprecatedCounties(geometryTableName) {
+  logger.info('Updating counties');
+
+  await knex.raw(`
+    DELETE FROM counties
+    USING public.counties c
+    LEFT JOIN "${geometryTableName}" t ON
+      t.code = c.code
+      AND "type" = ANY ('{fylke,region}'::TEXT[])
+    WHERE
+      t.code IS NULL
+      AND public.counties.code = c.code
+  `);
+}
+
+
+async function updateMunicipalities(geometryTableName) {
+  logger.info('Creating or updating municipalities');
+
+  await knex.raw(`
+    INSERT INTO municipalities (
+      id,
+      code,
+      name,
+      name_lower_case,
+      status,
+      data_source,
+      created_at,
+      updated_at,
+      geometry
+    )
+    SELECT
+      c.id,
+      c.code,
+      c."names"[1],
+      LOWER(c."names"[1]),
+      'public',
+      'kartverket',
+      now(),
+      now(),
+      ST_Transform(c.geometry, 4326)
+    FROM "${geometryTableName}" c
+    WHERE "type" = ANY ('{municipality,kommune}'::TEXT[])
+    ON CONFLICT (code) DO UPDATE SET
+      "name" = EXCLUDED."name",
+      "name_lower_case" = EXCLUDED."name_lower_case",
+      "geometry" = EXCLUDED."geometry"
+  `);
+}
+
+
+async function deleteDeprecatedMunicipalities(geometryTableName) {
+  logger.info('Updating municipalities');
+
+  await knex.raw(`
+    DELETE FROM municipalities
+    USING public.municipalities c
+    LEFT JOIN "${geometryTableName}" t ON
+      t.code = c.code
+      AND "type" = ANY ('{municipality,kommune}'::TEXT[])
+    WHERE
+      t.code IS NULL
+      AND public.municipalities.code = c.code
+  `);
+}
+
+
+async function dropTempTable(geometryTableName) {
+  logger.info('Dropping temporary table');
+  const durationId = startDuration();
+
+  await knex.schema.dropTableIfExists(geometryTableName);
+
+  endDuration(durationId);
+}
+
+
+async function main() {
+  await truncateWfsData();
+  await downloadWfsData();
+  await verifyWfsData();
+  const geometryTableName = await createTempGeometryTable();
+  await insertDataToTempGeometryTable(geometryTableName);
+
+  await updateCounties(geometryTableName);
+  await deleteDeprecatedCounties(geometryTableName);
+  await updateMunicipalities(geometryTableName);
+  await deleteDeprecatedMunicipalities(geometryTableName);
+
+  await dropTempTable(geometryTableName);
+}
+
+
+main()
+  .then((res) => {
+    logger.info('ALL DONE');
+    process.exit(0);
+  })
+  .catch((err) => {
+    logger.error('UNCAUGHT ERROR');
+    logger.error(err);
+    logger.error(err.stack);
+    process.exit(1);
   });
