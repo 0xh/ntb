@@ -1,103 +1,240 @@
 import moment from 'moment';
 
 import { createLogger } from '@turistforeningen/ntb-shared-utils';
-import { knex, Model } from '@turistforeningen/ntb-shared-db-utils';
+import { knex } from '@turistforeningen/ntb-shared-db-utils';
 
 
 const logger = createLogger();
 
-
+const LIMIT = 2000;
 const TYPES = [
+  // TO HAZARD-REGIONS
   {
     mainTable: 'cabins',
     mainAttribute: 'coordinates',
+    mainStatusAttribute: 'processed_hazard_regions',
     joinTable: 'hazard_regions',
     joinAttribute: 'geometry',
     throughTable: 'cabins_to_hazard_regions',
+    throughMainAttribute: 'cabin_id',
+    throughJoinAttribute: 'hazard_region_id',
+  },
+  {
+    mainTable: 'route_segments',
+    mainAttribute: 'path',
+    mainStatusAttribute: 'processed_hazard_regions',
+    joinTable: 'hazard_regions',
+    joinAttribute: 'geometry',
+    throughTable: 'route_segments_to_hazard_regions',
+    throughMainAttribute: 'route_segment_id',
+    throughJoinAttribute: 'hazard_region_id',
+  },
+  {
+    mainTable: 'trips',
+    mainAttribute: 'path',
+    mainStatusAttribute: 'processed_hazard_regions',
+    joinTable: 'hazard_regions',
+    joinAttribute: 'geometry',
+    throughTable: 'trips_to_hazard_regions',
+    throughMainAttribute: 'trip_id',
+    throughJoinAttribute: 'hazard_region_id',
+  },
+  {
+    mainTable: 'pois',
+    mainAttribute: 'coordinates',
+    mainStatusAttribute: 'processed_hazard_regions',
+    joinTable: 'hazard_regions',
+    joinAttribute: 'geometry',
+    throughTable: 'pois_to_hazard_regions',
+    throughMainAttribute: 'poi_id',
+    throughJoinAttribute: 'hazard_region_id',
+  },
+
+  // TO AREAS
+  {
+    mainTable: 'cabins',
+    mainAttribute: 'coordinates',
+    mainStatusAttribute: 'processed_areas',
+    joinTable: 'areas',
+    joinAttribute: 'geometry',
+    throughTable: 'cabins_to_areas',
+    throughMainAttribute: 'cabin_id',
+    throughJoinAttribute: 'area_id',
+  },
+  {
+    mainTable: 'pois',
+    mainAttribute: 'coordinates',
+    mainStatusAttribute: 'processed_areas',
+    joinTable: 'areas',
+    joinAttribute: 'geometry',
+    throughTable: 'pois_to_areas',
+    throughMainAttribute: 'poi_id',
+    throughJoinAttribute: 'area_id',
+  },
+
+  // TO COUNTIES
+  {
+    mainTable: 'areas',
+    mainAttribute: 'geometry',
+    mainStatusAttribute: 'processed_counties',
+    joinTable: 'counties',
+    joinAttribute: 'geometry',
+    throughTable: 'areas_to_counties',
+    throughMainAttribute: 'area_id',
+    throughJoinAttribute: 'county_id',
+  },
+
+  // TO MUNICIPALITIES
+  {
+    mainTable: 'areas',
+    mainAttribute: 'geometry',
+    mainStatusAttribute: 'processed_municipalities',
+    joinTable: 'municipalities',
+    joinAttribute: 'geometry',
+    throughTable: 'areas_to_municipalities',
+    throughMainAttribute: 'area_id',
+    throughJoinAttribute: 'municipality_id',
   },
 ];
 
 
-// async function createTempTable(suffix) {
-//   const timeStamp = moment().format('YYYYMMDDHHmmssSSS');
-//   const tableName = `0_${timeStamp}_hazard_${suffix}`;
+async function createTempTable(idx) {
+  const timeStamp = moment().format('YYYYMMDDHHmmssSSS');
+  const tableName = `0_${timeStamp}_intersect_${idx}`;
 
-//   logger.info(`Creating temp table: ${tableName}`);
+  logger.info(`[${idx}] Creating temp table: ${tableName}`);
 
-//   await knex.schema.createTable(tableName, (table) => {
-//     table.increments('id');
-//     table.text('type');
-//     table.integer('regionId');
-//     table.text('name');
-//     table.integer('regionTypeId');
-//     table.text('regionType');
-//     table.specificType('geometry', 'GEOMETRY');
-//   });
+  await knex.schema.createTable(tableName, (table) => {
+    table.uuid('mainId');
+    table.uuid('joinId');
+  });
 
-//   class TempModel extends Model {
-//     static tableName = tableName;
-//   }
-//   return TempModel;
-// }
+  return tableName;
+}
 
 
-// async function deleteTempTable(tableName) {
-//   await knex.schema.dropTableIfExists(tableName);
-// }
+async function populateTempTable(idx, type, tableName) {
+  logger.info(`[${idx}] Populating temp table`);
+
+  await knex.raw(`
+    INSERT INTO "${tableName}" (
+      main_id,
+      join_id
+    )
+    SELECT
+      m.id,
+      j.id
+    FROM (
+      SELECT
+        "inner".id,
+        "inner"."${type.mainAttribute}" geom
+      FROM "${type.mainTable}" "inner"
+      WHERE
+        "inner"."${type.mainAttribute}" IS NOT NULL
+        AND "inner"."${type.mainStatusAttribute}" IS FALSE
+      ORDER BY
+        "inner".id
+      LIMIT ${LIMIT}
+    ) m
+    LEFT JOIN "${type.joinTable}" j ON
+      st_intersects(j."${type.joinAttribute}", m."geom")
+    ORDER BY
+      m.id
+  `);
+}
 
 
+async function populateThroughTable(idx, type, tableName) {
+  logger.info(`[${idx}] Updating through table`);
 
-// async function processType({ type, url }) {
-//   const tableName = await harvestToTempTable(type, url);
-
-//   logger.info('Updating hazard_region data');
-
-//   // Merge into production table
-//   await knex.raw([
-//     'INSERT INTO hazard_regions (',
-//     '  id,',
-//     '  type,',
-//     '  name,',
-//     '  region_id,',
-//     '  region_type_id,',
-//     '  region_type,',
-//     '  geometry',
-//     ')',
-//     'SELECT',
-//     '  uuid_generate_v4(),',
-//     '  a."type",',
-//     '  a."name",',
-//     '  a."region_id",',
-//     '  a."region_type_id",',
-//     '  a."region_type",',
-//     '  a."geometry"',
-//     `FROM "${tableName}" a`,
-//     'ON CONFLICT ("type", region_id) DO UPDATE SET',
-//     '  name = EXCLUDED.name,',
-//     '  region_type_id = EXCLUDED.region_type_id,',
-//     '  region_type = EXCLUDED.region_type,',
-//     '  geometry = EXCLUDED.geometry',
-//   ].join('\n'));
-
-//   logger.info('Deleting temp table');
-//   await deleteTempTable(tableName);
-// }
+  await knex.raw(`
+    INSERT INTO "${type.throughTable}" (
+      "${type.throughMainAttribute}",
+      "${type.throughJoinAttribute}",
+      created_at,
+      updated_at
+    )
+    SELECT
+      t.main_id,
+      t.join_id,
+      now(),
+      now()
+    FROM "${tableName}" t
+    WHERE
+      t.join_id IS NOT NULL
+    ON CONFLICT (
+      "${type.throughMainAttribute}",
+      "${type.throughJoinAttribute}"
+    ) DO UPDATE SET
+      updated_at = EXCLUDED.updated_at
+  `);
+}
 
 
-// async function process() {
-//   const promises = HAZARD_TYPES.map((h) => processType(h));
-//   await Promise.all(promises);
-// }
+async function deleteDeprecatedInThroughTable(idx, type, tableName) {
+  logger.info(`[${idx}] Deleting deprecated in through table`);
+
+  await knex.raw(`
+    DELETE FROM "${type.throughTable}"
+    USING "${type.throughTable}" c
+    LEFT JOIN "${tableName}" t ON
+      c."${type.throughMainAttribute}" = t.main_id
+      AND c."${type.throughJoinAttribute}" = t.join_id
+      AND t.join_id IS NOT NULL
+    WHERE
+      t.main_id IS NULL
+      AND public."${type.throughTable}"."${type.throughMainAttribute}" =
+        c."${type.throughMainAttribute}"
+      AND public."${type.throughTable}"."${type.throughJoinAttribute}" =
+        c."${type.throughJoinAttribute}"
+  `);
+}
 
 
-// process()
-//   .then((res) => {
-//     logger.info('Completed harvesting hazard regions');
-//     process.exit(0);
-//   })
-//   .catch((err) => {
-//     logger.error('UNCAUGHT ERROR');
-//     logger.error(err);
-//     logger.error(err.stack);
-//     process.exit(1);
-//   });
+async function tagMainRecordsAsProcessed(idx, type, tableName) {
+  logger.info(`[${idx}] Tagging main records as processed`);
+
+  await knex.raw(`
+    UPDATE "${type.mainTable}" SET "${type.mainStatusAttribute}" = true
+    WHERE id IN (
+      SELECT DISTINCT main_id FROM "${tableName}"
+    )
+  `);
+}
+
+
+async function deleteTempTable(idx, tableName) {
+  logger.info(`[${idx}] Deleting temp table`);
+  await knex.schema.dropTableIfExists(tableName);
+}
+
+
+async function processType(idx, type) {
+  logger.info(`[${idx}] Processing`);
+
+  const tableName = await createTempTable(idx);
+  await populateTempTable(idx, type, tableName);
+  await populateThroughTable(idx, type, tableName);
+  await deleteDeprecatedInThroughTable(idx, type, tableName);
+  await tagMainRecordsAsProcessed(idx, type, tableName);
+  await deleteTempTable(idx, tableName);
+}
+
+
+async function main() {
+  const promises = TYPES.map((type, idx) => processType(idx, type));
+  await Promise.all(promises);
+}
+
+
+main()
+  .then((res) => {
+    logger.info('ALL DONE');
+    process.exit(0);
+  })
+  .catch((err) => {
+    logger.error('UNCAUGHT ERROR');
+    logger.error(err);
+    logger.error(err.stack);
+    process.exit(1);
+  });
