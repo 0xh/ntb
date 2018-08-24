@@ -16,13 +16,22 @@ const PG_STRING = (
 );
 
 
-export default async function (wfs, targetTableName = null) {
+export default async function (
+  wfs,
+  targetTableName = null,
+  forceCreate = false
+) {
   logger.info(`Starting wfs-download for ${wfs}`);
 
   let tableName = targetTableName;
+  let lco = !tableName || forceCreate
+    ? ['-lco', 'GEOMETRY_NAME=wkb_geometry']
+    : [];
+
   if (!tableName) {
     const timeStamp = moment().format('YYYYMMDDHHmmssSSS');
     tableName = `0_${timeStamp}_wfs`;
+    lco = ['-lco', 'GEOMETRY_NAME=wkb_geometry'];
   }
 
   const status = spawnSync('ogr2ogr', [
@@ -31,6 +40,7 @@ export default async function (wfs, targetTableName = null) {
     `"${PG_STRING}"`,
     '-nln',
     tableName,
+    ...lco,
     `"WFS:${wfs}"`,
   ], {
     cwd: process.cwd(),
