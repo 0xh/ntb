@@ -99,10 +99,9 @@ function setValidKeys(handler) {
   });
 
   // Filter keys
-  const validFilters = { self: [], relations: {} };
+  const validFilters = { self: [], relations: {}, join: {} };
   if (!handler.id) {
     validFilters.self = Object.keys((handler.config.validFilters || {}));
-
     // Valid relation filters
     Object.keys(relations || {}).forEach((key) => {
       const rel = relations[key];
@@ -119,6 +118,18 @@ function setValidKeys(handler) {
           relationAPIConfig.validFilters;
       }
     });
+
+    // Valid join filters
+    if (
+      handler.relation
+      && handler.relation.joinModelClass
+      && handler.relation.joinModelClass.validFilters
+    ) {
+      validFilters.join = Object.keys(
+        handler.relation.joinModelClass.validFilters
+      );
+      validFilters.self = [].concat(validFilters.self, validFilters.join);
+    }
 
     // Enable `df` if this is an associated reference (not main entry model)
     if (

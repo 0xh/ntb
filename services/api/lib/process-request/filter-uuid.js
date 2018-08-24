@@ -1,6 +1,6 @@
 import uuidValidate from 'uuid-validate';
 
-import { isString } from 'util';
+import { isString } from '@turistforeningen/ntb-shared-utils';
 
 
 function whereNotNull(handler, filter) {

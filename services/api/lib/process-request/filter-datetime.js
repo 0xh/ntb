@@ -1,6 +1,6 @@
 import moment from 'moment';
 
-import { isString } from 'util';
+import { isString } from '@turistforeningen/ntb-shared-utils';
 
 
 export default function (handler, filter) {

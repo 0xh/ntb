@@ -68,7 +68,7 @@ function addJoins(queryInstance, model, modelAlias, queryOptions) {
 }
 
 
-function setFilters(queryInstance, modelAlias, baseFilters) {
+function setFilters(queryInstance, modelAlias, baseFilters, relation) {
   const and = !!baseFilters.$and;
   const filters = baseFilters.$and || baseFilters.$or;
   const baseWhere = and ? 'where' : 'orWhere';
@@ -83,12 +83,22 @@ function setFilters(queryInstance, modelAlias, baseFilters) {
       }
       else {
         const whereType = filter.whereType.replace('where', baseWhere);
-        const modelRef = whereType.endsWith('Raw')
+        const selfModelRef = whereType.endsWith('Raw')
           ? _.snakeCase(modelAlias)
           : modelAlias;
+        let joinModelRef = '';
+        if (relation && relation.joinTable) {
+          joinModelRef = whereType.endsWith('Raw')
+            ? _.snakeCase(relation.joinTable)
+            : relation.joinTable;
+        }
         const options = filter.options
           .map((o) => (
-            isString(o) ? o.replace('[[MODEL-TABLE]]', modelRef) : o
+            isString(o)
+              ? o
+                .replace('[[MODEL-TABLE]]', selfModelRef)
+                .replace('[[JOIN-TABLE]]', joinModelRef)
+              : o
           ));
         w[whereType](...options);
       }
@@ -206,7 +216,12 @@ function createPaginatedMultiThroughMainQuery(handler, identifiersByProp) {
 
   // Filters
   if (queryOptions.where) {
-    subQuery = setFilters(subQuery, 'inner', queryOptions.where);
+    subQuery = setFilters(
+      subQuery,
+      'inner',
+      queryOptions.where,
+      handler.relation
+    );
   }
 
   // Set ordering
@@ -298,7 +313,7 @@ function createMultiThroughMainQuery(handler, identifiersByProp) {
 
   // Filters
   if (queryOptions.where) {
-    query = setFilters(query, 'inner', queryOptions.where);
+    query = setFilters(query, 'inner', queryOptions.where, handler.relation);
   }
 
   // Set ordering
@@ -367,7 +382,7 @@ function createPaginatedMultiThroughCountQuery(handler, identifiersByProp) {
 
   // Filters
   if (queryOptions.where) {
-    query = setFilters(query, 'inner', queryOptions.where);
+    query = setFilters(query, 'inner', queryOptions.where, handler.relation);
   }
 
   // Filter on outer identifiers
@@ -415,7 +430,12 @@ function createPaginatedMultiMainQuery(handler, identifiersByProp) {
 
   // Filters
   if (queryOptions.where) {
-    subQuery = setFilters(subQuery, 'inner', queryOptions.where);
+    subQuery = setFilters(
+      subQuery,
+      'inner',
+      queryOptions.where,
+      handler.relation
+    );
   }
 
   // Filter on ids from outer table
@@ -516,7 +536,7 @@ function createPaginatedMultiCountQuery(handler, identifiersByProp) {
 
   // Filters
   if (queryOptions.where) {
-    query = setFilters(query, 'inner', queryOptions.where);
+    query = setFilters(query, 'inner', queryOptions.where, handler.relation);
   }
 
   // Filter on outer identifiers
@@ -757,7 +777,12 @@ async function executeSingleOrMultiRelation(
 
   // Filters
   if (queryOptions.where) {
-    query = setFilters(query, model.tableName, queryOptions.where);
+    query = setFilters(
+      query,
+      model.tableName,
+      queryOptions.where,
+      handler.relation
+    );
   }
 
   // Set ordering

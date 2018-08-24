@@ -5,6 +5,7 @@ import processUuidClause from './filter-uuid';
 import processBooleanClause from './filter-boolean';
 import processDatetimeClause from './filter-datetime';
 import processRelationExistanceClause from './filter-relation-existance';
+import processNumberClause from './filter-number';
 
 
 function processExpressJSQueryObjectDeepFilter(
@@ -264,11 +265,20 @@ function processStructuredQueryObject(handler) {
 
 
 function createClause(handler, filter) {
-  if (!filter.relationKey) {
+  // Join filter
+  if (handler.validFilters.join.includes(filter.key)) {
+    const props = handler.relation.joinModelClass.validFilters[filter.key];
+    filter.isJoinFilter = true;
+    filter.type = props.type;
+    filter.options = props.options;
+  }
+  // Self filter
+  else if (!filter.relationKey) {
     const schemaProperties = handler.model.jsonSchema.properties;
     filter.type = schemaProperties[filter.key].type;
     filter.schema = schemaProperties[filter.key];
   }
+  // Relation filter
   else {
     const relations = handler.model.getRelations();
     const relation = relations[filter.relationKey];
@@ -309,14 +319,26 @@ function createClause(handler, filter) {
     }
   }
 
-  const { relationKey, options, key } = filter;
+  const {
+    isJoinFilter,
+    relationKey,
+    options,
+    key,
+  } = filter;
 
-  filter.attribute = relationKey
-    ? `${relationKey}.${options.attribute || key}`
-    : `[[MODEL-TABLE]].${options.attribute || key}`;
-  filter.snakeCasedAttribute = relationKey
-    ? `${_.snakeCase(relationKey)}.${_.snakeCase(options.attribute || key)}`
-    : `"[[MODEL-TABLE]]"."${_.snakeCase(options.attribute || key)}"`;
+  // Relation filter
+  if (relationKey) {
+    filter.attribute = `${relationKey}.${options.attribute || key}`;
+    filter.snakeCasedAttribute =
+      `${_.snakeCase(relationKey)}.${_.snakeCase(options.attribute || key)}`;
+  }
+  else {
+    // Join or self filter
+    const tbl = isJoinFilter ? 'JOIN-TABLE' : 'MODEL-TABLE';
+    filter.attribute = `[[${tbl}]].${options.attribute || key}`;
+    filter.snakeCasedAttribute =
+      `"[[${tbl}]]"."${_.snakeCase(options.attribute || key)}"`;
+  }
 
   // Relation existance
   if (filter.relationExistance) {
@@ -344,6 +366,11 @@ function createClause(handler, filter) {
   // Boolean clause
   if (filter.type === 'boolean') {
     return processBooleanClause(handler, filter);
+  }
+
+  // Number clause
+  if (filter.type === 'number') {
+    return processNumberClause(handler, filter);
   }
 
   // Plain string clause with no format
