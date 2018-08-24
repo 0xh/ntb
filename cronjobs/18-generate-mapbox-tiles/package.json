@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "name": "@turistforeningen/ntb-cronjobs-18",
+  "version": "0.0.0",
+  "dependencies": {
+    "@turistforeningen/ntb-shared-models": "*",
+    "@turistforeningen/ntb-shared-db-utils": "*",
+    "@turistforeningen/ntb-shared-utils": "*"
+  }
+}
