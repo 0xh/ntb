@@ -21,10 +21,10 @@ const WFS = (
 
 
 async function truncateWfsData() {
-  logger.info('Trucating the current wfs-data');
-  await knex.raw(`TRUNCATE TABLE "public"."${TABLENAME}"`)
+  logger.info('Removing the current wfs-data');
+  await knex.raw(`DROP TABLE "public"."${TABLENAME}"`)
     .catch((err) => {
-      logger.warn(`Unable to truncate the ${TABLENAME}-table`);
+      logger.warn(`Unable to drop the ${TABLENAME}-table`);
       logger.warn('-----');
       logger.warn(err.message);
       logger.warn('-----');
@@ -36,7 +36,7 @@ async function downloadWfsData() {
   logger.debug('Downloading wfs data');
   const durationId = startDuration();
 
-  const status = await wfsDownload(WFS, TABLENAME);
+  const status = await wfsDownload(WFS, TABLENAME, true);
 
   if (status === false) {
     throw new Error('Downloading wfs failed.');
@@ -105,7 +105,7 @@ async function insertDataToTempGeometryTable(geometryTableName) {
         substring(cmwfs."language" from '\\([0-9]+:(.+)\\)'),
         ','
       ),
-      geometry
+      wkb_geometry
     FROM counties_municipalities_wfs_data cmwfs
     WHERE
       localisedcharacterstring[1] =
