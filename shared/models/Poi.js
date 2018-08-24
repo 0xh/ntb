@@ -142,6 +142,48 @@ export default class Poi extends BaseModel {
         to: 'hazardRegions.id',
       },
     },
+    routesByDistance: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Route',
+      join: {
+        from: 'pois.id',
+        through: {
+          modelClass: 'RouteToPoiByDistance',
+          extra: { calculatedDistance: 'calculatedDistance' },
+          from: 'routesToPoisByDistance.poiId',
+          to: 'routesToPoisByDistance.routeId',
+        },
+        to: 'routes.id',
+      },
+    },
+    cabinsByDistance: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Cabin',
+      join: {
+        from: 'pois.id',
+        through: {
+          modelClass: 'CabinToPoiByDistance',
+          extra: { calculatedDistance: 'calculatedDistance' },
+          from: 'cabinsToPoisByDistance.poiId',
+          to: 'cabinsToPoisByDistance.cabinId',
+        },
+        to: 'cabins.id',
+      },
+    },
+    tripsByDistance: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Trip',
+      join: {
+        from: 'pois.id',
+        through: {
+          modelClass: 'TripToPoiByDistance',
+          extra: { calculatedDistance: 'calculatedDistance' },
+          from: 'tripsToPoisByDistance.poiId',
+          to: 'tripsToPoisByDistance.tripId',
+        },
+        to: 'trips.id',
+      },
+    },
   };
 
 
@@ -272,6 +314,33 @@ export default class Poi extends BaseModel {
       ],
     };
 
+    // Configuration when included through Route.poisByDistance
+    config['Route.poisByDistance'] = {
+      ...config.default,
+      defaultFields: [
+        ...config.default.defaultFields,
+        'calculatedDistance',
+      ],
+    };
+
+    // Configuration when included through Cabin.poisByDistance
+    config['Cabin.poisByDistance'] = {
+      ...config.default,
+      defaultFields: [
+        ...config.default.defaultFields,
+        'calculatedDistance',
+      ],
+    };
+
+    // Configuration when included through Trip.poisByDistance
+    config['Trip.poisByDistance'] = {
+      ...config.default,
+      defaultFields: [
+        ...config.default.defaultFields,
+        'calculatedDistance',
+      ],
+    };
+
     return config;
   }
 
@@ -280,6 +349,8 @@ export default class Poi extends BaseModel {
     const extra = {
       // Related extra field from Accessability
       poiAccessabilityDescription: ['poiAccessabilityDescription'],
+      // Related extra field from Route++
+      calculatedDistance: ['calculatedDistance'],
       // Related extra field from PoiType
       primaryPoiType: ['primaryPoiType'],
     };

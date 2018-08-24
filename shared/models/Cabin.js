@@ -116,6 +116,48 @@ export default class Cabin extends BaseModel {
         to: 'hazardRegions.id',
       },
     },
+    routesByDistance: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Route',
+      join: {
+        from: 'cabins.id',
+        through: {
+          modelClass: 'RouteToCabinByDistance',
+          extra: { calculatedDistance: 'calculatedDistance' },
+          from: 'routesToCabinsByDistance.cabinId',
+          to: 'routesToCabinsByDistance.routeId',
+        },
+        to: 'routes.id',
+      },
+    },
+    poisByDistance: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Poi',
+      join: {
+        from: 'cabins.id',
+        through: {
+          modelClass: 'CabinToPoiByDistance',
+          extra: { calculatedDistance: 'calculatedDistance' },
+          from: 'cabinsToPoisByDistance.cabinId',
+          to: 'cabinsToPoisByDistance.poiId',
+        },
+        to: 'pois.id',
+      },
+    },
+    tripsByDistance: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Trip',
+      join: {
+        from: 'cabins.id',
+        through: {
+          modelClass: 'CabinToTripByDistance',
+          extra: { calculatedDistance: 'calculatedDistance' },
+          from: 'cabinsToTripsByDistance.cabinId',
+          to: 'cabinsToTripsByDistance.tripId',
+        },
+        to: 'trips.id',
+      },
+    },
   };
 
 
@@ -365,6 +407,33 @@ export default class Cabin extends BaseModel {
       ],
     };
 
+    // Configuration when included through Route.cabinsByDistance
+    config['Route.cabinsByDistance'] = {
+      ...config.default,
+      defaultFields: [
+        ...config.default.defaultFields,
+        'calculatedDistance',
+      ],
+    };
+
+    // Configuration when included through Poi.cabinsByDistance
+    config['Poi.cabinsByDistance'] = {
+      ...config.default,
+      defaultFields: [
+        ...config.default.defaultFields,
+        'calculatedDistance',
+      ],
+    };
+
+    // Configuration when included through Trip.cabinsByDistance
+    config['Trip.cabinsByDistance'] = {
+      ...config.default,
+      defaultFields: [
+        ...config.default.defaultFields,
+        'calculatedDistance',
+      ],
+    };
+
     return config;
   }
 
@@ -376,6 +445,9 @@ export default class Cabin extends BaseModel {
 
       // Related extra field from Facility
       cabinFacilityDescription: ['cabinFacilityDescription'],
+
+      // Related extra field from Route
+      calculatedDistance: ['calculatedDistance'],
 
       // Related extra fields from DabinServiceLevel.cabinsThroughOpeningHours
       openAllYear: ['openAllYear'],

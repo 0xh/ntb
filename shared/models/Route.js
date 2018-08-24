@@ -119,6 +119,34 @@ export default class Route extends BaseModel {
         to: 'hazardRegions.id',
       },
     },
+    poisByDistance: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Poi',
+      join: {
+        from: 'routes.id',
+        through: {
+          modelClass: 'RouteToPoiByDistance',
+          extra: { calculatedDistance: 'calculatedDistance' },
+          from: 'routesToPoisByDistance.routeId',
+          to: 'routesToPoisByDistance.poiId',
+        },
+        to: 'pois.id',
+      },
+    },
+    cabinsByDistance: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Cabin',
+      join: {
+        from: 'routes.id',
+        through: {
+          modelClass: 'RouteToCabinByDistance',
+          extra: { calculatedDistance: 'calculatedDistance' },
+          from: 'routesToCabinsByDistance.routeId',
+          to: 'routesToCabinsByDistance.cabinId',
+        },
+        to: 'cabins.id',
+      },
+    },
   };
 
 
@@ -317,6 +345,24 @@ export default class Route extends BaseModel {
       defaultRelations: [],
     };
 
+    // Configuration when included through Poi.routesByDistance
+    config['Poi.routesByDistance'] = {
+      ...config.default,
+      defaultFields: [
+        ...config.default.defaultFields,
+        'calculatedDistance',
+      ],
+    };
+
+    // Configuration when included through Cabin.routesByDistance
+    config['Cabin.routesByDistance'] = {
+      ...config.default,
+      defaultFields: [
+        ...config.default.defaultFields,
+        'calculatedDistance',
+      ],
+    };
+
     return config;
   }
 
@@ -325,6 +371,9 @@ export default class Route extends BaseModel {
     const extra = {
       // Related extra field from Accessability
       cabinAccessabilityDescription: ['cabinAccessabilityDescription'],
+      // Related extra field from poisByDistance, cabinsByDistance
+      calculatedDistance: ['calculatedDistance'],
+
       waymarkWinter: [
         'waymarkWinterAllYear',
         'waymarkWinterFrom',

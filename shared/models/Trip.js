@@ -83,6 +83,34 @@ export default class Trip extends BaseModel {
         to: 'hazardRegions.id',
       },
     },
+    cabinsByDistance: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Cabin',
+      join: {
+        from: 'trips.id',
+        through: {
+          modelClass: 'CabinToTripByDistance',
+          extra: { calculatedDistance: 'calculatedDistance' },
+          from: 'cabinsToTripsByDistance.tripId',
+          to: 'cabinsToTripsByDistance.cabinId',
+        },
+        to: 'cabins.id',
+      },
+    },
+    poisByDistance: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Poi',
+      join: {
+        from: 'trips.id',
+        through: {
+          modelClass: 'TripToPoiByDistance',
+          extra: { calculatedDistance: 'calculatedDistance' },
+          from: 'tripsToPoisByDistance.tripId',
+          to: 'tripsToPoisByDistance.poiId',
+        },
+        to: 'pois.id',
+      },
+    },
   };
 
 
@@ -264,6 +292,24 @@ export default class Trip extends BaseModel {
       defaultRelations: [],
     };
 
+    // Configuration when included through Cabin.tripsByDistance
+    config['Cabin.tripsByDistance'] = {
+      ...config.default,
+      defaultFields: [
+        ...config.default.defaultFields,
+        'calculatedDistance',
+      ],
+    };
+
+    // Configuration when included through Poi.tripsByDistance
+    config['Poi.tripsByDistance'] = {
+      ...config.default,
+      defaultFields: [
+        ...config.default.defaultFields,
+        'calculatedDistance',
+      ],
+    };
+
     return config;
   }
 
@@ -286,6 +332,8 @@ export default class Trip extends BaseModel {
         'htgtCarSummer',
         'htgtBicycle',
       ],
+      // Related extra field from Cabin++
+      calculatedDistance: ['calculatedDistance'],
     };
 
     const attributes = super.getAPIFieldsToAttributes(referrer, fields, extra);
