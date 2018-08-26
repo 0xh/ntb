@@ -724,83 +724,6 @@ async function removeDepreactedPoiAccessabilities(handler) {
 
 
 /**
- * Insert into `poi_to_area`-table or update if it already exists
- */
-async function mergePoiToArea(handler) {
-  let sql;
-  let durationId;
-  const { tableName } = handler.pois.TempPoiToAreaModel;
-
-  // Set ids on poiToArea temp data
-  sql = [
-    `UPDATE "public"."${tableName}" a1 SET`,
-    '  poi_id = c.id,',
-    '  area_id = a.id',
-    `FROM "public"."${tableName}" a2`,
-    'INNER JOIN public.areas a ON',
-    '  a.id_legacy_ntb = a2.area_legacy_id',
-    'INNER JOIN public.pois c ON',
-    '  c.id_legacy_ntb = a2.poi_legacy_id',
-    'WHERE',
-    '  a1.area_legacy_id = a2.area_legacy_id AND',
-    '  a1.poi_legacy_id = a2.poi_legacy_id',
-  ].join('\n');
-
-  logger.info('Update ids on poi-to-area temp data');
-  durationId = startDuration();
-  await knex.raw(sql);
-  endDuration(durationId);
-
-  // Merge into prod table
-  sql = [
-    'INSERT INTO pois_to_areas (',
-    '  poi_id, area_id, data_source, created_at, updated_at',
-    ')',
-    'SELECT',
-    '  poi_id, area_id, :data_source, now(), now()',
-    `FROM "public"."${tableName}"`,
-    'WHERE poi_id IS NOT NULL AND area_id IS NOT NULL',
-    'ON CONFLICT (poi_id, area_id) DO NOTHING',
-  ].join('\n');
-
-  logger.info('Creating or updating poi to area relations');
-  durationId = startDuration();
-  await knex.raw(sql, {
-    data_source: DATASOURCE_NAME,
-  });
-  endDuration(durationId);
-}
-
-
-/**
- * Remove poi to area relations that no longer exist in legacy-ntb
- */
-async function removeDepreactedPoiToArea(handler) {
-  const { tableName } = handler.pois.TempPoiToAreaModel;
-
-  const sql = [
-    'DELETE FROM public.pois_to_areas',
-    'USING public.pois_to_areas c2a',
-    `LEFT JOIN "public"."${tableName}" te ON`,
-    '  c2a.poi_id = te.poi_id AND',
-    '  c2a.area_id = te.area_id',
-    'WHERE',
-    '  te.area_id IS NULL AND',
-    '  c2a.data_source = :data_source AND',
-    '  public.pois_to_areas.poi_id = c2a.poi_id AND',
-    '  public.pois_to_areas.area_id = c2a.area_id',
-  ].join('\n');
-
-  logger.info('Deleting deprecated poi to area relations');
-  const durationId = startDuration();
-  await knex.raw(sql, {
-    data_source: DATASOURCE_NAME,
-  });
-  endDuration(durationId);
-}
-
-
-/**
  * Insert into `pois_to_groups`-table or update if it already exists
  */
 async function mergePoiToGroup(handler) {
@@ -994,8 +917,6 @@ const process = async (handler) => {
   await createAccessabilities(handler);
   await createPoiAccessabilities(handler);
   await removeDepreactedPoiAccessabilities(handler);
-  await mergePoiToArea(handler);
-  await removeDepreactedPoiToArea(handler);
   await mergePoiToGroup(handler);
   await removeDepreactedPoiToGroup(handler);
   await setPoiPictures(handler);

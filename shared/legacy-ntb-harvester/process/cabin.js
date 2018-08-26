@@ -1205,83 +1205,6 @@ async function removeDepreactedCabinOpeningHours(handler) {
 
 
 /**
- * Insert into `cabin_to_area`-table or update if it already exists
- */
-async function mergeCabinToArea(handler) {
-  let sql;
-  let durationId;
-  const { tableName } = handler.cabins.TempCabinToAreaModel;
-
-  // Set ids on cabinToArea temp data
-  sql = [
-    `UPDATE "public"."${tableName}" a1 SET`,
-    '  cabin_id = c.id,',
-    '  area_id = a.id',
-    `FROM "public"."${tableName}" a2`,
-    'INNER JOIN public.areas a ON',
-    '  a.id_legacy_ntb = a2.area_legacy_id',
-    'INNER JOIN public.cabins c ON',
-    '  c.id_legacy_ntb = a2.cabin_legacy_id',
-    'WHERE',
-    '  a1.area_legacy_id = a2.area_legacy_id AND',
-    '  a1.cabin_legacy_id = a2.cabin_legacy_id',
-  ].join('\n');
-
-  logger.info('Update ids on cabin-to-area temp data');
-  durationId = startDuration();
-  await knex.raw(sql);
-  endDuration(durationId);
-
-  // Merge into prod table
-  sql = [
-    'INSERT INTO cabins_to_areas (',
-    '  cabin_id, area_id, data_source, created_at, updated_at',
-    ')',
-    'SELECT',
-    '  cabin_id, area_id, :data_source, now(), now()',
-    `FROM "public"."${tableName}"`,
-    'WHERE cabin_id IS NOT NULL AND area_id IS NOT NULL',
-    'ON CONFLICT (cabin_id, area_id) DO NOTHING',
-  ].join('\n');
-
-  logger.info('Creating or updating cabin to area relations');
-  durationId = startDuration();
-  await knex.raw(sql, {
-    data_source: DATASOURCE_NAME,
-  });
-  endDuration(durationId);
-}
-
-
-/**
- * Remove area to area relations that no longer exist in legacy-ntb
- */
-async function removeDepreactedCabinToArea(handler) {
-  const { tableName } = handler.cabins.TempCabinToAreaModel;
-
-  const sql = [
-    'DELETE FROM public.cabins_to_areas',
-    'USING public.cabins_to_areas c2a',
-    `LEFT JOIN "public"."${tableName}" te ON`,
-    '  c2a.cabin_id = te.cabin_id AND',
-    '  c2a.area_id = te.area_id',
-    'WHERE',
-    '  te.area_id IS NULL AND',
-    '  c2a.data_source = :data_source AND',
-    '  public.cabins_to_areas.cabin_id = c2a.cabin_id AND',
-    '  public.cabins_to_areas.area_id = c2a.area_id',
-  ].join('\n');
-
-  logger.info('Deleting deprecated cabin to area relations');
-  const durationId = startDuration();
-  await knex.raw(sql, {
-    data_source: DATASOURCE_NAME,
-  });
-  endDuration(durationId);
-}
-
-
-/**
  * Insert cabin id into `pictures`-table
  */
 async function setCabinPictures(handler) {
@@ -1414,8 +1337,6 @@ const process = async (handler) => {
   await removeDepreactedCabinAccessabilities(handler);
   await mergeCabinOpeningHours(handler);
   await removeDepreactedCabinOpeningHours(handler);
-  await mergeCabinToArea(handler);
-  await removeDepreactedCabinToArea(handler);
   await setCabinPictures(handler);
   await removeDepreactedCabinPictures(handler);
   await removeDepreactedCabin(handler);

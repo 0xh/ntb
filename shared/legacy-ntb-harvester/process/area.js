@@ -249,79 +249,6 @@ async function mergeAreas(handler) {
 
 
 /**
- * Insert into `areas_to_areas`-table or update if it already exists
- */
-async function mergeAreaToArea(handler) {
-  let sql;
-  let durationId;
-
-  // Set UUIDs on areaToArea temp data
-  sql = [
-    `UPDATE public."${handler.areas.TempAreaAreaModel.tableName}" a1 SET`,
-    '  child_id = a_child.id,',
-    '  parent_id = a_parent.id',
-    `FROM public."${handler.areas.TempAreaAreaModel.tableName}" a2`,
-    'INNER JOIN public.areas a_parent ON',
-    '  a_parent.id_legacy_ntb = a2.parent_legacy_id',
-    'INNER JOIN public.areas a_child ON',
-    '  a_child.id_legacy_ntb = a2.child_legacy_id',
-    'WHERE',
-    '  a1.child_legacy_id = a2.child_legacy_id AND',
-    '  a1.parent_legacy_id = a2.parent_legacy_id',
-  ].join('\n');
-
-  logger.info('Update ids on area-to-area temp data');
-  durationId = startDuration();
-  await knex.raw(sql);
-  endDuration(durationId);
-
-  // Merge into prod table
-  sql = [
-    'INSERT INTO areas_to_areas (',
-    '  parent_id, child_id, data_source, created_at, updated_at',
-    ')',
-    'SELECT',
-    '  parent_id, child_id, :data_source, now(), now()',
-    `FROM public."${handler.areas.TempAreaAreaModel.tableName}"`,
-    'ON CONFLICT (parent_id, child_id) DO NOTHING',
-  ].join('\n');
-
-  logger.info('Creating or updating area to area relations');
-  durationId = startDuration();
-  await knex.raw(sql, {
-    data_source: DATASOURCE_NAME,
-  });
-  endDuration(durationId);
-}
-
-
-/**
- * Remove area to area relations that no longer exist in legacy-ntb
- */
-async function removeDepreactedAreaToArea(handler) {
-  const sql = [
-    'DELETE FROM public.areas_to_areas',
-    'USING public.areas_to_areas a2a',
-    `LEFT JOIN public."${handler.areas.TempAreaAreaModel.tableName}" te ON`,
-    '  a2a.parent_id = te.parent_id AND',
-    '  a2a.child_id = te.child_id',
-    'WHERE',
-    '  te.child_id IS NULL AND',
-    '  a2a.data_source = :data_source AND',
-    '  public.areas_to_areas.parent_id = a2a.parent_id AND',
-    '  public.areas_to_areas.child_id = a2a.child_id',
-  ].join('\n');
-
-  logger.info('Deleting deprecated area to area relations');
-  const durationId = startDuration();
-  await knex.raw(sql, {
-    data_source: DATASOURCE_NAME,
-  });
-  endDuration(durationId);
-}
-
-
-/**
  * Insert area id into `pictures`-table
  */
 async function setAreaPictures(handler) {
@@ -431,8 +358,6 @@ const process = async (handler) => {
 
   await createTempTables(handler, false);
   await mergeAreas(handler);
-  await mergeAreaToArea(handler);
-  await removeDepreactedAreaToArea(handler);
   await setAreaPictures(handler);
   await removeDepreactedAreaPictures(handler);
   await removeDepreactedArea(handler);
