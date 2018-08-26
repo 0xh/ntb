@@ -194,3 +194,31 @@ resources:
       requests:
         cpu: 70m
         memory: 200Mi
+  # ntbApi:
+  #   requests:
+  #     cpu: 40m
+  #     memory: 100Mi
+  #   limits:
+  #     cpu: 100m
+  #     memory: 200Mi
+  # ntbDocs:
+  #   requests:
+  #     cpu: 40m
+  #     memory: 100Mi
+  #   limits:
+  #     cpu: 100m
+  #     memory: 200Mi
+  # dbMigration:
+  #   requests:
+  #     cpu: 40m
+  #     memory: 100Mi
+  #   limits:
+  #     cpu: 100m
+  #     memory: 200Mi
+  # cronJobs:
+  #   requests:
+  #     cpu: 40m
+  #     memory: 100Mi
+  #   limits:
+  #     cpu: 100m
+  #     memory: 200Mi
