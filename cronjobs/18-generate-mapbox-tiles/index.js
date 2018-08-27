@@ -2,14 +2,24 @@ import fs from 'fs';
 import path from 'path';
 import { spawnSync } from 'child_process';
 
+import eventStream from 'event-stream';
+import JSONStream from 'JSONStream';
+import clustersDbscan from '@turf/clusters-dbscan';
+import { clusterEach } from '@turf/clusters';
+import center from '@turf/center';
+
 import {
   createLogger,
   startDuration,
   endDuration,
 } from '@turistforeningen/ntb-shared-utils';
-import { knex } from '@turistforeningen/ntb-shared-db-utils';
+import { knex, Knex } from '@turistforeningen/ntb-shared-db-utils';
 import * as models from '@turistforeningen/ntb-shared-models';
+import settings from '@turistforeningen/ntb-shared-settings';
 
+
+// Bump this if you change or delete properties (not if you only add new ones)
+const VERSION = '1';
 
 const logger = createLogger();
 const DATA_DIR = path.resolve(__dirname, 'data');
@@ -87,29 +97,58 @@ async function createGeojsonCabins() {
     )
     .eager('facilities', 'accessabilities')
     .whereNotNull('coordinates')
+    .whereNotNull('serviceLevel')
     .where('status', '=', 'public')
+    .where('provider', '=', 'DNT')
     .orderBy('id');
 
-  const cabins = instances.map((instance) => ({
-    type: 'Feature',
-    properties: {
-      id: instance.id,
-      ikon: 'betjent-dnt',
-      name: instance.name,
-      dnt_cabin: instance.dntCabin,
-      service_level: instance.serviceLevel,
-      htgt: {
-        public_transport_available: instance.htgtPublicTransportAvailable,
-        boat_transport_available: instance.htgtBoatTransportAvailable,
-        car_all_year: instance.htgtCarAllYear,
-        car_summer: instance.htgtCarSummer,
-        bicycle: instance.htgtCarBicycle,
+  const cabins = instances.map((instance) => {
+    const cabin = {
+      type: 'Feature',
+      properties: {
+        id: instance.id,
+        icon: `${instance.dntCabin ? 'dnt' : 'private'}__${
+          (instance.serviceLevel || 'unknown').replace(' ', '_')}`,
+        name: instance.name.substr(0, 200),
+        dnt_cabin: instance.dntCabin,
+        service_level: instance.serviceLevel,
+        ...(instance.accessabilities || [])
+          .reduce((agg, cur) => {
+            agg[`accessability__${cur.name.replace(' ', '_')}`] = true;
+            return agg;
+          }, {}),
+        ...(instance.facilities || [])
+          .reduce((agg, cur) => {
+            agg[`facility__${cur.name.replace(' ', '_')}`] = true;
+            return agg;
+          }, {}),
       },
-      accessabilities: (instance.accessabilities || []).map((a) => a.name),
-      facilities: (instance.facilities || []).map((f) => f.name),
-    },
-    geometry: instance.coordinates,
-  }));
+      geometry: instance.coordinates,
+    };
+
+
+    if (instance.htgtPublicTransportAvailable) {
+      cabin.properties.htgt_public_transport_available = true;
+    }
+
+    if (instance.htgtBoatTransportAvailable) {
+      cabin.properties.htgt_boat_transport_available = true;
+    }
+
+    if (instance.htgtCarAllYear) {
+      cabin.properties.htgt_car_all_year = true;
+    }
+
+    if (instance.htgtCarSummer) {
+      cabin.properties.htgt_car_summer = true;
+    }
+
+    if (instance.htgtCarBicycle) {
+      cabin.properties.htgt_bicycle = true;
+    }
+
+    return cabin;
+  });
 
   fs.writeFileSync(
     path.resolve(DATA_DIR, 'cabins.geojson'),
@@ -137,8 +176,10 @@ async function createGeojsonPois() {
       'type',
       'name',
     )
+    .eager('poiTypes')
     .whereNotNull('coordinates')
     .where('status', '=', 'public')
+    .where('provider', '=', 'DNT')
     .orderBy('id');
 
   const pois = instances.map((instance) => ({
@@ -146,8 +187,12 @@ async function createGeojsonPois() {
     properties: {
       id: instance.id,
       icon: instance.type.replace(' ', '_'),
-      name: instance.name,
-      type: instance.type,
+      name: instance.name.substr(0, 200),
+      ...(instance.poiTypes || [])
+        .reduce((agg, cur) => {
+          agg[`type__${cur.name.replace(' ', '_')}`] = true;
+          return agg;
+        }, {}),
     },
     geometry: instance.coordinates,
   }));
@@ -174,7 +219,7 @@ async function createGeojsonTrips() {
     .query()
     .select(
       'id',
-      knex.raw('ST_AsGeoJSON(path) path'),
+      knex.raw('ST_AsGeoJSON(starting_point) point'),
       'activityType',
       'grading',
       'distance',
@@ -186,33 +231,51 @@ async function createGeojsonTrips() {
       'htgtCarSummer',
       'htgtBicycle',
     )
-    .whereNotNull('path')
+    .whereNotNull('startingPoint')
     .where('status', '=', 'public')
+    .where('provider', '=', 'DNT')
     .orderBy('id');
 
-  const trips = instances.map((instance) => ({
-    type: 'Feature',
-    properties: {
-      id: instance.id,
-      icon: `${instance.activityType.replace(' ', '_')}__${
-        instance.grading.replace(' ', '_')}`,
-      activity_type: instance.activityType,
-      name: instance.name,
-      type: instance.type,
-      grading: instance.grading,
-      htgt: {
-        public_transport_available: instance.htgtPublicTransportAvailable,
-        boat_transport_available: instance.htgtBoatTransportAvailable,
-        car_all_year: instance.htgtCarAllYear,
-        car_summer: instance.htgtCarSummer,
-        bicycle: instance.htgtCarBicycle,
+  const trips = instances.map((instance) => {
+    const trip = {
+      type: 'Feature',
+      properties: {
+        id: instance.id,
+        icon: `${instance.activityType.replace(' ', '_')}__${
+          instance.grading.replace(' ', '_')}`,
+        activity_type: instance.activityType,
+        name: instance.name.substr(0, 200),
+        type: instance.type,
+        grading: instance.grading,
       },
-    },
-    geometry: instance.path,
-  }));
+      geometry: JSON.parse(instance.point),
+    };
+
+    if (instance.htgtPublicTransportAvailable) {
+      trip.properties.htgt_public_transport_available = true;
+    }
+
+    if (instance.htgtBoatTransportAvailable) {
+      trip.properties.htgt_boat_transport_available = true;
+    }
+
+    if (instance.htgtCarAllYear) {
+      trip.properties.htgt_car_all_year = true;
+    }
+
+    if (instance.htgtCarSummer) {
+      trip.properties.htgt_car_summer = true;
+    }
+
+    if (instance.htgtCarBicycle) {
+      trip.properties.htgt_bicycle = true;
+    }
+
+    return trip;
+  });
 
   fs.writeFileSync(
-    path.resolve(DATA_DIR, 'trips.geojson'),
+    path.resolve(DATA_DIR, 'trips-all.geojson'),
     JSON.stringify({
       type: 'FeatureCollection',
       features: trips,
@@ -221,6 +284,70 @@ async function createGeojsonTrips() {
   );
 
   logger.info('Done');
+  endDuration(durationId);
+}
+
+
+async function createGeojsonTripClusters() {
+  logger.info('Creating trip clusters');
+  const durationId = startDuration();
+
+  const readStream = fs.createReadStream(
+    path.resolve(DATA_DIR, 'trips-all.geojson'),
+  );
+  const features = [];
+  const maxDistance = 25; // meters
+
+  readStream.on('end', () => {
+    const collection = { type: 'FeatureCollection', features };
+    let numClusters = 0;
+
+    logger.info(`- Number of features: ${features.length}`);
+
+    // http://turfjs.org/docs#clustersDbscan
+    clustersDbscan(
+      collection,
+      maxDistance / 1000,
+      { mutate: true, minPoints: 2 }
+    );
+
+    clusterEach(collection, 'cluster', (cluster, clusterValue) => {
+      const count = cluster.features.length;
+      const { geometry } = center(cluster);
+
+      cluster.features.forEach((feature) => {
+        feature.properties.cluster = clusterValue;
+        feature.properties.count = count;
+        feature.geometry = geometry;
+      });
+
+      numClusters += 1;
+    });
+
+    logger.info(`- Number of clustered features: ${numClusters}`);
+
+    features.forEach((feature) => {
+      if (!feature.properties.count) {
+        delete feature.properties.cluster;
+      }
+      delete feature.properties.dbscan;
+    });
+
+    fs.writeFile(
+      path.resolve(DATA_DIR, 'trips.geojson'),
+      JSON.stringify(collection),
+      (err) => {
+        if (err) throw err;
+        logger.info('Trip clusters saved');
+      }
+    );
+  });
+
+  await readStream
+    .pipe(JSONStream.parse('features.*'))
+    .pipe(eventStream.mapSync((trip) => features.push(trip)));
+
+  logger.info('Trip clusters done');
   endDuration(durationId);
 }
 
@@ -236,13 +363,9 @@ async function createGeojsonRoutes(type) {
       knex.raw('ST_AsGeoJSON(path) path'),
       'calculatedDistance',
     )
-    .eager('routes(routesFilter)', {
-      routesFilter: (builder) => {
-        builder.select('id', 'name', 'calculatedDistance');
-      },
-    })
     .whereNotNull('path')
     .where('type', '=', type)
+    .where('calculatedDistance', '>', 0)
     .orderBy('id');
 
   const routes = instances.map((instance) => ({
@@ -251,11 +374,6 @@ async function createGeojsonRoutes(type) {
       id: instance.id,
       type,
       calculated_distance: instance.calculatedDistance,
-      routes: (instance.routes || []).map((r) => ({
-        id: r.id,
-        calculated_distance: r.calculatedDistance,
-        name: r.name,
-      })),
     },
     geometry: instance.path,
   }));
@@ -294,7 +412,7 @@ async function createGeojsonRoutePoints(type) {
       id: instance.id,
       type,
     },
-    geometry: instance.pointA,
+    geometry: JSON.parse(instance.pointA),
   }));
 
   fs.writeFileSync(
@@ -330,54 +448,92 @@ async function joinTiles() {
   const durationId = startDuration();
 
   try {
-    fs.unlinkSync(path.resolve(DATA_DIR, 'with-tilestats.mbtiles'));
+    fs.unlinkSync(path.resolve(DATA_DIR, 'ntb.mbtiles'));
   }
   catch (error) {
     // Ignore missing file
   }
 
-  const status = spawnSync('tile-join', [
+  spawnSync('tile-join', [
     '-o',
-    path.resolve(DATA_DIR, 'with-tilestats.mbtiles'),
+    path.resolve(DATA_DIR, 'ntb.mbtiles'),
     path.resolve(DATA_DIR, 'cabins.mbtiles'),
     path.resolve(DATA_DIR, 'pois.mbtiles'),
-    path.resolve(DATA_DIR, 'trips.mbtiles'),
     path.resolve(DATA_DIR, 'routes.mbtiles'),
+    path.resolve(DATA_DIR, 'trips.mbtiles'),
   ]);
 
-  let error = false;
-  if (status.status !== 0 || status.stderr) {
-    logger.warn(`ogr2ogr failed - status ${status.status}!`);
-    error = true;
+  endDuration(durationId);
+}
+
+
+async function fixMbtilesName() {
+  logger.info('Doing a fix on the mbtiles-internal name');
+  const durationId = startDuration();
+
+  // eslint-disable-next-line
+  const sqliteKnex = Knex({
+    client: 'sqlite3',
+    connection: {
+      filename: path.resolve(DATA_DIR, 'ntb.mbtiles'),
+    },
+  });
+
+  await sqliteKnex.raw(`
+    UPDATE metadata SET value='ntb.mbtiles' WHERE name='name';
+  `);
+
+  endDuration(durationId);
+}
+
+
+async function uploadToMapbox() {
+  if (!settings.MAPBOX_TOKEN) {
+    logger.info('Mapbox token is not set - no upload will be executed');
   }
 
-  logger.info('ogr2ogr output start:');
+  logger.info('Uploading to mapbox');
+  const durationId = startDuration();
+
+  const status = spawnSync('mapbox', [
+    '--access-token',
+    settings.MAPBOX_TOKEN,
+    'upload',
+    '--name',
+    `NTB - v${VERSION}`,
+    `turistforeningen.ntb-v${VERSION}`,
+    path.resolve(DATA_DIR, 'ntb.mbtiles'),
+  ]);
+
+  logger.info('mapbox output start:');
   status.output.filter((o) => o).forEach((o) => {
     logger.info(o);
   });
-  logger.info('ogr2ogr output end');
+  logger.info('mapbox output end');
 
   endDuration(durationId);
-  return error;
 }
 
 
 async function main() {
-  // await createGeojsonCabins();
-  // await createGeojsonPois();
-  // await createGeojsonTrips();
-  // await createGeojsonRoutes('ski');
-  // await createGeojsonRoutes('foot');
-  // await createGeojsonRoutePoints('ski');
-  // await createGeojsonRoutePoints('foot');
+  await createGeojsonCabins();
+  await createGeojsonPois();
+  await createGeojsonTrips();
+  await createGeojsonTripClusters();
+  await createGeojsonRoutes('ski');
+  await createGeojsonRoutes('foot');
+  await createGeojsonRoutePoints('ski');
+  await createGeojsonRoutePoints('foot');
 
-  // // eslint-disable-next-line
-  // for (let name of Object.keys(TIPPECANOE_OPTIONS)) {
-  //   // eslint-disable-next-line
-  //   await tippecanoe(name);
-  // }
+  // eslint-disable-next-line
+  for (let name of Object.keys(TIPPECANOE_OPTIONS)) {
+    // eslint-disable-next-line
+    await tippecanoe(name);
+  }
 
   await joinTiles();
+  await fixMbtilesName();
+  await uploadToMapbox();
 }
 
 

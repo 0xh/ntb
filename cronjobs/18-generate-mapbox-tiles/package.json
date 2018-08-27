@@ -3,8 +3,15 @@
   "name": "@turistforeningen/ntb-cronjobs-18",
   "version": "0.0.0",
   "dependencies": {
-    "@turistforeningen/ntb-shared-models": "*",
+    "@turf/center": "^6.0.1",
+    "@turf/clusters": "^6.0.1",
+    "@turf/clusters-dbscan": "^6.0.1",
     "@turistforeningen/ntb-shared-db-utils": "*",
-    "@turistforeningen/ntb-shared-utils": "*"
+    "@turistforeningen/ntb-shared-models": "*",
+    "@turistforeningen/ntb-shared-utils": "*",
+    "@turistforeningen/ntb-shared-settings": "*",
+    "JSONStream": "^1.3.4",
+    "event-stream": "^3.3.4",
+    "sqlite3": "^4.0.2"
   }
 }
