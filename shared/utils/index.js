@@ -1,10 +1,11 @@
-// eslint-disable-next-line
-import { PerformanceObserver, performance } from 'perf_hooks';
-import uuid4 from 'uuid/v4';
 import winston from 'winston';
 import _ from 'lodash';
 
 import settings from '@turistforeningen/ntb-shared-settings';
+
+
+let DURATION_DATA_AUTO_ID = 0;
+const DURATION_DATA = {};
 
 
 /**
@@ -34,46 +35,57 @@ const logger = createLogger();
 
 
 /**
- * Prints the duration between performance measurement marks.
- * As default, it will clear the marks.
+ * Prints the duration of a durationId of from a specified date up until 'now'
  */
-const obs = new PerformanceObserver((items) => {
-  const time = items.getEntries()[0].duration / 1000;
-  logger.info(
-    `- done ${time.toFixed(3)} s`
-  );
-});
-obs.observe({ entryTypes: ['measure'] });
+export function printDuration(
+  dateOrDurationId,
+  messageFormat = '- done: %duration',
+  level = 'info'
+) {
+  // Set date from key or submitted date object
+  const date = typeof dateOrDurationId === 'string'
+    ? DURATION_DATA[dateOrDurationId]
+    : dateOrDurationId;
 
-
-export function printDone(m1 = 'a', m2 = 'b', clearMarks = true, comment) {
-  const label = `${m1} to ${m2}`;
-  performance.measure(label, m1, m2);
-
-  if (clearMarks) {
-    performance.clearMarks(m1);
-    performance.clearMarks(m2);
+  // Make sure we found the date object
+  if (!date) {
+    throw new Error('Unable to determine the duration start date');
   }
+
+  // Remove from DURATION_DATA if using key
+  if (typeof dateOrDurationId === 'string') {
+    delete DURATION_DATA[dateOrDurationId];
+  }
+
+  // Format and pretty print
+  const seconds = ((new Date().getTime() - date.getTime()) / 1000).toFixed(3);
+  const durationText = `${seconds} s`;
+  const message = messageFormat.replace('%duration', durationText);
+  logger[level](message);
 }
 
 
 /**
- * Start a duration timer and return the mark id
+ * Start a duration timer and return the id
  */
-export function startDuration(mark) {
-  const markId = mark || uuid4();
-  performance.mark(markId);
-  return markId;
+export function startDuration(id) {
+  let durationId = id;
+  if (!durationId) {
+    durationId = `__autoid__${DURATION_DATA_AUTO_ID}`;
+    DURATION_DATA_AUTO_ID += 1;
+  }
+
+  DURATION_DATA[durationId] = new Date();
+
+  return durationId;
 }
 
 
 /**
- * Given a starting mark id, end the duration timer and print the results
+ * Alias for printDuration()
  */
-export function endDuration(startMark, comment) {
-  const endMark = uuid4();
-  performance.mark(endMark);
-  printDone(startMark, endMark, true, comment);
+export function endDuration(durationId, messageFormat, level) {
+  printDuration(durationId, messageFormat, level);
 }
 
 
