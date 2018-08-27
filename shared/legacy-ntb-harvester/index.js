@@ -67,10 +67,14 @@ function verifyDocuments(handler, type) {
 /**
  * Harvest areas
  */
-export async function harvestAreas(limit = 2000) {
+export async function harvestAreas(limit = 2000, fullHarvest = false) {
   const durationId = startDuration();
   const handler = { documents: {} };
   const filter = { };
+  if (!fullHarvest) {
+    const now = new Date();
+    filter.endret = { $gte: now.setHours(now.getHours() - 2).toISOString() };
+  }
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
@@ -102,10 +106,14 @@ export async function harvestAreas(limit = 2000) {
 /**
  * Harvest groups
  */
-export async function harvestGroups(limit = 2000) {
+export async function harvestGroups(limit = 2000, fullHarvest = false) {
   const durationId = startDuration();
   const handler = { documents: {} };
   const filter = { };
+  if (!fullHarvest) {
+    const now = new Date();
+    filter.endret = { $gte: now.setHours(now.getHours() - 2).toISOString() };
+  }
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
@@ -137,10 +145,15 @@ export async function harvestGroups(limit = 2000) {
 /**
  * Harvest cabins
  */
-export async function harvestCabin(limit = 2000) {
+export async function harvestCabin(limit = 2000, fullHarvest = false) {
   const durationId = startDuration();
   const handler = { documents: {} };
   const filter = { 'tags.0': 'Hytte' };
+  if (!fullHarvest) {
+    const now = new Date();
+    filter.endret = { $gte: now.setHours(now.getHours() - 2).toISOString() };
+  }
+
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
@@ -169,7 +182,7 @@ export async function harvestCabin(limit = 2000) {
 }
 
 
-export async function harvestPoi(limit = 2000) {
+export async function harvestPoi(limit = 2000, fullHarvest = false) {
   const durationId = startDuration();
   const handler = { documents: {} };
   const filter = {
@@ -178,6 +191,10 @@ export async function harvestPoi(limit = 2000) {
       { tags: null },
     ],
   };
+  if (!fullHarvest) {
+    const now = new Date();
+    filter.endret = { $gte: now.setHours(now.getHours() - 2).toISOString() };
+  }
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
@@ -209,10 +226,14 @@ export async function harvestPoi(limit = 2000) {
 /**
  * Harvest routes
  */
-export async function harvestRoute(limit = 2000) {
+export async function harvestRoute(limit = 2000, fullHarvest = false) {
   const durationId = startDuration();
   const handler = { documents: {} };
   const filter = { 'rute.kode': { $ne: null } };
+  if (!fullHarvest) {
+    const now = new Date();
+    filter.endret = { $gte: now.setHours(now.getHours() - 2).toISOString() };
+  }
   const project = { geojson: 0 };
   let skip = 0;
   let first = true;
@@ -257,10 +278,14 @@ export async function harvestRoute(limit = 2000) {
 /**
  * Harvest trips
  */
-export async function harvestTrip(limit = 2000) {
+export async function harvestTrip(limit = 2000, fullHarvest = false) {
   const durationId = startDuration();
   const handler = { documents: {} };
   const filter = { 'rute.kode': null };
+  if (!fullHarvest) {
+    const now = new Date();
+    filter.endret = { $gte: now.setHours(now.getHours() - 2).toISOString() };
+  }
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
@@ -301,10 +326,14 @@ export async function harvestTrip(limit = 2000) {
 /**
  * Harvest pictures
  */
-export async function harvestPictures(limit = 2000) {
+export async function harvestPictures(limit = 2000, fullHarvest = false) {
   const durationId = startDuration();
   const handler = { documents: {} };
   const filter = { status: 'Offentlig' };
+  if (!fullHarvest) {
+    const now = new Date();
+    filter.endret = { $gte: now.setHours(now.getHours() - 2).toISOString() };
+  }
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
@@ -336,10 +365,14 @@ export async function harvestPictures(limit = 2000) {
 /**
  * Harvest lists
  */
-export async function harvestLists(limit = 2000) {
+export async function harvestLists(limit = 2000, fullHarvest = false) {
   const durationId = startDuration();
   const handler = { documents: {} };
   const filter = { };
+  if (!fullHarvest) {
+    const now = new Date();
+    filter.endret = { $gte: now.setHours(now.getHours() - 2).toISOString() };
+  }
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
