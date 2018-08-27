@@ -16,9 +16,6 @@ router.get('/forward', (req, res, next) => {
     `/verify?next=${req.query.next || ''}`
   );
 
-  console.log(redirectUri);
-  console.log(settings);
-
   return res.redirect(
     `${settings.SERVICES_ADMIN_OAUTH_DOMAIN}/o/authorize/?client_id=` +
     `${settings.SERVICES_ADMIN_OAUTH_CLIENT_ID}&response_type=code` +
