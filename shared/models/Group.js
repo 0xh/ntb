@@ -182,6 +182,7 @@ export default class Group extends BaseModel {
       ],
       validFilters: {
         id: {},
+        idLegacyNtb: { filterTypes: ['=', 'null', 'notnull', '$in', '$nin'] },
         groupType: {},
         groupSubType: {},
         name: {},
