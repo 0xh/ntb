@@ -24,19 +24,6 @@ export default class RouteSegment extends BaseModel {
         to: 'routes.id',
       },
     },
-    hazardRegions: {
-      relation: BaseModel.ManyToManyRelation,
-      modelClass: 'HazardRegion',
-      join: {
-        from: 'routeSegments.id',
-        through: {
-          modelClass: 'RouteSegmentToHazardRegion',
-          from: 'routeSegmentsToHazardRegions.routeSegmentId',
-          to: 'routeSegmentsToHazardRegions.hazardRegionId',
-        },
-        to: 'hazardRegions.id',
-      },
-    },
   };
 
 
