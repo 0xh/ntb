@@ -83,7 +83,7 @@ knex.on('query', (data) => {
 });
 
 
-knex.on('query-error', (status) => {
+knex.on('query-error', (err, status) => {
   logger.debug('Query failed');
   const durationId = status.__knexQueryUid || status.sql;
   endDuration(durationId);
