@@ -60,7 +60,9 @@ export function printDuration(
     }
 
     // Format and pretty print
-    const seconds = ((new Date().getTime() - date.getTime()) / 1000).toFixed(3);
+    const seconds = (
+      (new Date().getTime() - date.getTime()) / 1000
+    ).toFixed(3);
     const durationText = `${seconds} s`;
     const message = messageFormat.replace('%duration', durationText);
     logger[level](message);
