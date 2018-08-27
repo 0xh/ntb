@@ -49,19 +49,22 @@ export function printDuration(
 
   // Make sure we found the date object
   if (!date) {
-    throw new Error('Unable to determine the duration start date');
+    logger.warn(
+      'printDuration(): Unable to determine the duration start date'
+    );
   }
+  else {
+    // Remove from DURATION_DATA if using key
+    if (typeof dateOrDurationId === 'string') {
+      delete DURATION_DATA[dateOrDurationId];
+    }
 
-  // Remove from DURATION_DATA if using key
-  if (typeof dateOrDurationId === 'string') {
-    delete DURATION_DATA[dateOrDurationId];
+    // Format and pretty print
+    const seconds = ((new Date().getTime() - date.getTime()) / 1000).toFixed(3);
+    const durationText = `${seconds} s`;
+    const message = messageFormat.replace('%duration', durationText);
+    logger[level](message);
   }
-
-  // Format and pretty print
-  const seconds = ((new Date().getTime() - date.getTime()) / 1000).toFixed(3);
-  const durationText = `${seconds} s`;
-  const message = messageFormat.replace('%duration', durationText);
-  logger[level](message);
 }
 
 
