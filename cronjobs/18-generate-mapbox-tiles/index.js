@@ -72,11 +72,6 @@ const TIPPECANOE_OPTIONS = {
 };
 
 
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR);
-}
-
-
 async function createGeojsonCabins() {
   logger.info('Create geojson for cabins');
   const durationId = startDuration();
@@ -516,6 +511,10 @@ async function uploadToMapbox() {
 
 
 async function main() {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR);
+  }
+
   await createGeojsonCabins();
   await createGeojsonPois();
   await createGeojsonTrips();
