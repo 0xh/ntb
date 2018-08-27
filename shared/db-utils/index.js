@@ -78,19 +78,22 @@ knex.on('query', (data) => {
     }
   }
 
-  startDuration(data.__knexQueryUid);
+  const durationId = data.__knexQueryUid || data.sql;
+  startDuration(durationId);
 });
 
 
-knex.on('query-error', (data) => {
+knex.on('query-error', (status) => {
   logger.debug('Query failed');
-  endDuration(data.__knexQueryUid);
+  const durationId = status.__knexQueryUid || status.sql;
+  endDuration(durationId);
 });
 
 
-knex.on('query-response', (data) => {
+knex.on('query-response', (data, status) => {
   logger.debug('Query success');
-  endDuration(data.__knexQueryUid);
+  const durationId = status.__knexQueryUid || status.sql;
+  endDuration(durationId);
 });
 
 
