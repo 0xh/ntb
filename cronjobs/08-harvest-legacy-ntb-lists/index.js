@@ -6,12 +6,17 @@ import { harvestLists } from
 const logger = createLogger();
 
 
-let limit = 2000;
+let fullHarvest = true;
 if (process.argv.length > 2 && isNumber(process.argv[2])) {
-  limit = +process.argv[2];
+  fullHarvest = process.argv[2] === 'true';
 }
 
-harvestLists(limit)
+let limit = 2000;
+if (process.argv.length > 3 && isNumber(process.argv[3])) {
+  limit = +process.argv[3];
+}
+
+harvestLists(limit, fullHarvest)
   .then(() => process.exit(0))
   .catch((err) => {
     logger.error('UNCAUGHT ERROR');
