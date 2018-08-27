@@ -73,13 +73,20 @@ export async function harvestAreas(limit = 2000, fullHarvest = false) {
   const filter = { };
   if (!fullHarvest) {
     const now = new Date();
-    filter.endret = { $gte: now.setHours(now.getHours() - 2).toISOString() };
+    now.setHours(now.getHours() - 2);
+    filter.endret = { $gte: now.toISOString() };
   }
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
 
-  await getDocumentCountFromMongoDb('områder', filter);
+  logger.info(`Doing a ${fullHarvest ? 'full' : 'partial'} harvest of areas`);
+
+  const count = await getDocumentCountFromMongoDb('områder', filter);
+  if (!count) {
+    logger.info('No records found');
+    return;
+  }
 
   while (first || handler.documents.områder.length > 0) {
     // eslint-disable-next-line
@@ -96,7 +103,7 @@ export async function harvestAreas(limit = 2000, fullHarvest = false) {
     skip += limit;
   }
 
-  await processArea(handler);
+  await processArea(handler, fullHarvest);
 
   logger.info('Harvesting complete');
   endDuration(durationId);
@@ -112,13 +119,20 @@ export async function harvestGroups(limit = 2000, fullHarvest = false) {
   const filter = { };
   if (!fullHarvest) {
     const now = new Date();
-    filter.endret = { $gte: now.setHours(now.getHours() - 2).toISOString() };
+    now.setHours(now.getHours() - 2);
+    filter.endret = { $gte: now.toISOString() };
   }
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
 
-  await getDocumentCountFromMongoDb('grupper', filter);
+  logger.info(`Doing a ${fullHarvest ? 'full' : 'partial'} harvest of groups`);
+
+  const count = await getDocumentCountFromMongoDb('grupper', filter);
+  if (!count) {
+    logger.info('No records found');
+    return;
+  }
 
   while (first || handler.documents.grupper.length > 0) {
     // eslint-disable-next-line
@@ -135,7 +149,7 @@ export async function harvestGroups(limit = 2000, fullHarvest = false) {
     skip += limit;
   }
 
-  await processGroup(handler);
+  await processGroup(handler, fullHarvest);
 
   logger.info('Harvesting complete');
   endDuration(durationId);
@@ -151,14 +165,21 @@ export async function harvestCabin(limit = 2000, fullHarvest = false) {
   const filter = { 'tags.0': 'Hytte' };
   if (!fullHarvest) {
     const now = new Date();
-    filter.endret = { $gte: now.setHours(now.getHours() - 2).toISOString() };
+    now.setHours(now.getHours() - 2);
+    filter.endret = { $gte: now.toISOString() };
   }
 
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
 
-  await getDocumentCountFromMongoDb('steder', filter);
+  logger.info(`Doing a ${fullHarvest ? 'full' : 'partial'} harvest of cabins`);
+
+  const count = await getDocumentCountFromMongoDb('steder', filter);
+  if (!count) {
+    logger.info('No records found');
+    return;
+  }
 
   while (first || handler.documents.steder.length > 0) {
     // eslint-disable-next-line
@@ -175,7 +196,7 @@ export async function harvestCabin(limit = 2000, fullHarvest = false) {
     skip += limit;
   }
 
-  await processCabin(handler);
+  await processCabin(handler, fullHarvest);
 
   logger.info('Harvesting complete');
   endDuration(durationId);
@@ -193,13 +214,20 @@ export async function harvestPoi(limit = 2000, fullHarvest = false) {
   };
   if (!fullHarvest) {
     const now = new Date();
-    filter.endret = { $gte: now.setHours(now.getHours() - 2).toISOString() };
+    now.setHours(now.getHours() - 2);
+    filter.endret = { $gte: now.toISOString() };
   }
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
 
-  await getDocumentCountFromMongoDb('steder', filter);
+  logger.info(`Doing a ${fullHarvest ? 'full' : 'partial'} harvest of pois`);
+
+  const count = await getDocumentCountFromMongoDb('steder', filter);
+  if (!count) {
+    logger.info('No records found');
+    return;
+  }
 
   while (first || handler.documents.steder.length > 0) {
     // eslint-disable-next-line
@@ -216,7 +244,7 @@ export async function harvestPoi(limit = 2000, fullHarvest = false) {
     skip += limit;
   }
 
-  await processPoi(handler);
+  await processPoi(handler, fullHarvest);
 
   logger.info('Harvesting complete');
   endDuration(durationId);
@@ -232,14 +260,21 @@ export async function harvestRoute(limit = 2000, fullHarvest = false) {
   const filter = { 'rute.kode': { $ne: null } };
   if (!fullHarvest) {
     const now = new Date();
-    filter.endret = { $gte: now.setHours(now.getHours() - 2).toISOString() };
+    now.setHours(now.getHours() - 2);
+    filter.endret = { $gte: now.toISOString() };
   }
   const project = { geojson: 0 };
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
 
-  await getDocumentCountFromMongoDb('turer', filter);
+  logger.info(`Doing a ${fullHarvest ? 'full' : 'partial'} harvest of routes`);
+
+  const count = await getDocumentCountFromMongoDb('turer', filter);
+  if (!count) {
+    logger.info('No records found');
+    return;
+  }
 
   while (first || handler.documents.turer.length > 0) {
     // eslint-disable-next-line
@@ -268,7 +303,7 @@ export async function harvestRoute(limit = 2000, fullHarvest = false) {
     skip += limit;
   }
 
-  await processRoute(handler);
+  await processRoute(handler, fullHarvest);
 
   logger.info('Harvesting complete');
   endDuration(durationId);
@@ -284,13 +319,20 @@ export async function harvestTrip(limit = 2000, fullHarvest = false) {
   const filter = { 'rute.kode': null };
   if (!fullHarvest) {
     const now = new Date();
-    filter.endret = { $gte: now.setHours(now.getHours() - 2).toISOString() };
+    now.setHours(now.getHours() - 2);
+    filter.endret = { $gte: now.toISOString() };
   }
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
 
-  await getDocumentCountFromMongoDb('turer', filter);
+  logger.info(`Doing a ${fullHarvest ? 'full' : 'partial'} harvest of trips`);
+
+  const count = await getDocumentCountFromMongoDb('turer', filter);
+  if (!count) {
+    logger.info('No records found');
+    return;
+  }
 
   while (first || handler.documents.turer.length > 0) {
     // eslint-disable-next-line
@@ -316,7 +358,7 @@ export async function harvestTrip(limit = 2000, fullHarvest = false) {
     skip += limit;
   }
 
-  await processTrip(handler);
+  await processTrip(handler, fullHarvest);
 
   logger.info('Harvesting complete');
   endDuration(durationId);
@@ -332,13 +374,22 @@ export async function harvestPictures(limit = 2000, fullHarvest = false) {
   const filter = { status: 'Offentlig' };
   if (!fullHarvest) {
     const now = new Date();
-    filter.endret = { $gte: now.setHours(now.getHours() - 2).toISOString() };
+    now.setHours(now.getHours() - 2);
+    filter.endret = { $gte: now.toISOString() };
   }
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
 
-  await getDocumentCountFromMongoDb('bilder', filter);
+  logger.info(
+    `Doing a ${fullHarvest ? 'full' : 'partial'} harvest of pictures`
+  );
+
+  const count = await getDocumentCountFromMongoDb('bilder', filter);
+  if (!count) {
+    logger.info('No records found');
+    return;
+  }
 
   while (first || handler.documents.bilder.length > 0) {
     // eslint-disable-next-line
@@ -371,13 +422,20 @@ export async function harvestLists(limit = 2000, fullHarvest = false) {
   const filter = { };
   if (!fullHarvest) {
     const now = new Date();
-    filter.endret = { $gte: now.setHours(now.getHours() - 2).toISOString() };
+    now.setHours(now.getHours() - 2);
+    filter.endret = { $gte: now.toISOString() };
   }
   let skip = 0;
   let first = true;
   handler.timeStamp = moment().format('YYYYMMDDHHmmssSSS');
 
-  await getDocumentCountFromMongoDb('lister', filter);
+  logger.info(`Doing a ${fullHarvest ? 'full' : 'partial'} harvest of lists`);
+
+  const count = await getDocumentCountFromMongoDb('lister', filter);
+  if (!count) {
+    logger.info('No records found');
+    return;
+  }
 
   while (first || handler.documents.lister.length > 0) {
     // eslint-disable-next-line
@@ -394,7 +452,7 @@ export async function harvestLists(limit = 2000, fullHarvest = false) {
     skip += limit;
   }
 
-  await processList(handler);
+  await processList(handler, fullHarvest);
 
   logger.info('Harvesting complete');
   endDuration(durationId);

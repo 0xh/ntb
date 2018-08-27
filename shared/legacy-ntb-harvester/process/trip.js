@@ -917,7 +917,7 @@ async function removeDepreactedTrip(handler) {
 /**
  * Process legacy trip data and merge it into the postgres database
  */
-const process = async (handler, first = false) => {
+const process = async (handler, fullHarvest = false) => {
   logger.info('Processing trips');
   handler.trips = {};
 
@@ -925,16 +925,16 @@ const process = async (handler, first = false) => {
   await mergeActivityType(handler);
   await mergeTrip(handler);
   await createTripToActivityTypes(handler);
-  await removeDepreactedTripToActivityTypes(handler);
+  if (fullHarvest) await removeDepreactedTripToActivityTypes(handler);
   await mergeTripLinks(handler);
-  await removeDepreactedTripLinks(handler);
+  if (fullHarvest) await removeDepreactedTripLinks(handler);
   await mergeTripToGroup(handler);
-  await removeDepreactedTripToGroup(handler);
+  if (fullHarvest) await removeDepreactedTripToGroup(handler);
   await mergeTripToPoi(handler);
-  await removeDepreactedTripToPoi(handler);
+  if (fullHarvest) await removeDepreactedTripToPoi(handler);
   await setTripPictures(handler);
-  await removeDepreactedTripPictures(handler);
-  await removeDepreactedTrip(handler);
+  if (fullHarvest) await removeDepreactedTripPictures(handler);
+  if (fullHarvest) await removeDepreactedTrip(handler);
   await dropTempTables(handler);
 };
 

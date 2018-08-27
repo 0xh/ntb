@@ -207,7 +207,7 @@ async function mergePictures(handler) {
 /**
  * Process legacy picture data and merge it into the postgres database
  */
-const process = async (handler, first = false) => {
+const process = async (handler) => {
   logger.info('Processing pictures');
   handler.pictures = {};
 

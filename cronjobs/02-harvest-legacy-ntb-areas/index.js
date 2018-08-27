@@ -5,9 +5,10 @@ import { harvestAreas } from
 
 const logger = createLogger();
 
+console.log(process.argv);  // eslint-disable-line
 
-let fullHarvest = true;
-if (process.argv.length > 2 && isNumber(process.argv[2])) {
+let fullHarvest = false;
+if (process.argv.length > 2) {
   fullHarvest = process.argv[2] === 'true';
 }
 

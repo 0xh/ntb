@@ -733,21 +733,21 @@ async function removeDepreactedList(handler) {
 /**
  * Process legacy list data and merge it into the postgres database
  */
-const process = async (handler, first = false) => {
+const process = async (handler, fullHarvest = false) => {
   logger.info('Processing lists');
   handler.lists = {};
 
   await createTempTables(handler, false);
   await mergeList(handler);
   await mergeListLinks(handler);
-  await removeDepreactedListLinks(handler);
+  if (fullHarvest) await removeDepreactedListLinks(handler);
   await mergeListToGroup(handler);
-  await removeDepreactedListToGroup(handler);
+  if (fullHarvest) await removeDepreactedListToGroup(handler);
   await setListPictures(handler);
-  await removeDepreactedListPictures(handler);
+  if (fullHarvest) await removeDepreactedListPictures(handler);
   await mergeListRelation(handler);
-  await removeDepreactedListRelations(handler);
-  await removeDepreactedList(handler);
+  if (fullHarvest) await removeDepreactedListRelations(handler);
+  if (fullHarvest) await removeDepreactedList(handler);
   await dropTempTables(handler);
 };
 

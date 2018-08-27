@@ -46,54 +46,102 @@ environment:
 
 cronJobs:
   # see https://kubernetes.io/docs/tasks/job/automated-tasks-with-cron-jobs/
-  - name: cron-01
+  - name: cron-01-partial
     schedule: 0,29 * * * *
     startingDeadlineSeconds: 400
     concurrencyPolicy: Replace # or Forbid or Allow
     cloudsqlProxy: true # add a cloudsql proxy container
     command: node cronjobs/01-harvest-legacy-ntb-pictures/index.js
-  - name: cron-02
+  - name: cron-01-full
+    schedule: 42 3 * * *
+    startingDeadlineSeconds: 400
+    concurrencyPolicy: Replace # or Forbid or Allow
+    cloudsqlProxy: true # add a cloudsql proxy container
+    command: node cronjobs/01-harvest-legacy-ntb-pictures/index.js true
+  - name: cron-02-partial
     schedule: 1,30 * * * *
     startingDeadlineSeconds: 400
     concurrencyPolicy: Replace # or Forbid or Allow
     cloudsqlProxy: true # add a cloudsql proxy container
     command: node cronjobs/02-harvest-legacy-ntb-areas/index.js
-  - name: cron-03
+  - name: cron-02-full
+    schedule: 43 3 * * *
+    startingDeadlineSeconds: 400
+    concurrencyPolicy: Replace # or Forbid or Allow
+    cloudsqlProxy: true # add a cloudsql proxy container
+    command: node cronjobs/02-harvest-legacy-ntb-areas/index.js true
+  - name: cron-03-partial
     schedule: 2,32 * * * *
     startingDeadlineSeconds: 400
     concurrencyPolicy: Replace # or Forbid or Allow
     cloudsqlProxy: true # add a cloudsql proxy container
     command: node cronjobs/03-harvest-legacy-ntb-groups/index.js
-  - name: cron-04
+  - name: cron-03-full
+    schedule: 44 3 * * *
+    startingDeadlineSeconds: 400
+    concurrencyPolicy: Replace # or Forbid or Allow
+    cloudsqlProxy: true # add a cloudsql proxy container
+    command: node cronjobs/03-harvest-legacy-ntb-groups/index.js true
+  - name: cron-04-partial
     schedule: 3,33 * * * *
     startingDeadlineSeconds: 400
     concurrencyPolicy: Replace # or Forbid or Allow
     cloudsqlProxy: true # add a cloudsql proxy container
     command: node cronjobs/04-harvest-legacy-ntb-cabins/index.js
-  - name: cron-05
+  - name: cron-04-full
+    schedule: 45 3 * * *
+    startingDeadlineSeconds: 400
+    concurrencyPolicy: Replace # or Forbid or Allow
+    cloudsqlProxy: true # add a cloudsql proxy container
+    command: node cronjobs/04-harvest-legacy-ntb-cabins/index.js true
+  - name: cron-05-partial
     schedule: 4,34 * * * *
     startingDeadlineSeconds: 400
     concurrencyPolicy: Replace # or Forbid or Allow
     cloudsqlProxy: true # add a cloudsql proxy container
     command: node cronjobs/05-harvest-legacy-ntb-pois/index.js
-  - name: cron-06
+  - name: cron-05-full
+    schedule: 46 3 * * *
+    startingDeadlineSeconds: 400
+    concurrencyPolicy: Replace # or Forbid or Allow
+    cloudsqlProxy: true # add a cloudsql proxy container
+    command: node cronjobs/05-harvest-legacy-ntb-pois/index.js true
+  - name: cron-06-partial
     schedule: 5,35 * * * *
     startingDeadlineSeconds: 400
     concurrencyPolicy: Replace # or Forbid or Allow
     cloudsqlProxy: true # add a cloudsql proxy container
     command: node cronjobs/06-harvest-legacy-ntb-routes/index.js
-  - name: cron-07
+  - name: cron-06-full
+    schedule: 45 3 * * *
+    startingDeadlineSeconds: 400
+    concurrencyPolicy: Replace # or Forbid or Allow
+    cloudsqlProxy: true # add a cloudsql proxy container
+    command: node cronjobs/06-harvest-legacy-ntb-routes/index.js true
+  - name: cron-07-partial
     schedule: 6,36 * * * *
     startingDeadlineSeconds: 400
     concurrencyPolicy: Replace # or Forbid or Allow
     cloudsqlProxy: true # add a cloudsql proxy container
     command: node cronjobs/07-harvest-legacy-ntb-trips/index.js
-  - name: cron-08
+  - name: cron-07-full
+    schedule: 46 3 * * *
+    startingDeadlineSeconds: 400
+    concurrencyPolicy: Replace # or Forbid or Allow
+    cloudsqlProxy: true # add a cloudsql proxy container
+    command: node cronjobs/07-harvest-legacy-ntb-trips/index.js true
+  - name: cron-08-partial
     schedule: 7,37 * * * *
     startingDeadlineSeconds: 400
     concurrencyPolicy: Replace # or Forbid or Allow
     cloudsqlProxy: true # add a cloudsql proxy container
     command: node cronjobs/08-harvest-legacy-ntb-lists/index.js
+  - name: cron-08-full
+    schedule: 48 3 * * *
+    startingDeadlineSeconds: 400
+    concurrencyPolicy: Replace # or Forbid or Allow
+    cloudsqlProxy: true # add a cloudsql proxy container
+    command: node cronjobs/08-harvest-legacy-ntb-lists/index.js true
   - name: cron-09
     schedule: 0 1 1 * * # Once every month
     startingDeadlineSeconds: 400
@@ -106,48 +154,48 @@ cronJobs:
     concurrencyPolicy: Replace # or Forbid or Allow
     cloudsqlProxy: true # add a cloudsql proxy container
     command: node cronjobs/10-harvest-route-geometry-wfs-data/index.js
-  - name: cron-11
-    schedule: 0 2 * * * # 02:00 every day
-    startingDeadlineSeconds: 400
-    concurrencyPolicy: Replace # or Forbid or Allow
-    cloudsqlProxy: true # add a cloudsql proxy container
-    command: node cronjobs/11-process-ski-route-segments/index.js
-  - name: cron-12
-    schedule: 0 3 * * * # 03:00 every day
-    startingDeadlineSeconds: 400
-    concurrencyPolicy: Replace # or Forbid or Allow
-    cloudsqlProxy: true # add a cloudsql proxy container
-    command: node cronjobs/12-process-bike-route-segments/index.js
-  - name: cron-13
-    schedule: 0 4 * * * # 04:00 every day
-    startingDeadlineSeconds: 400
-    concurrencyPolicy: Replace # or Forbid or Allow
-    cloudsqlProxy: true # add a cloudsql proxy container
-    command: node cronjobs/13-process-other-route-segments/index.js
-  - name: cron-14
-    schedule: 30 4 * * * # 04:30 every day
-    startingDeadlineSeconds: 400
-    concurrencyPolicy: Replace # or Forbid or Allow
-    cloudsqlProxy: true # add a cloudsql proxy container
-    command: node cronjobs/14-process-foot-route-segments/index.js
+  # - name: cron-11
+  #   schedule: 0 2 * * * # 02:00 every day
+  #   startingDeadlineSeconds: 400
+  #   concurrencyPolicy: Replace # or Forbid or Allow
+  #   cloudsqlProxy: true # add a cloudsql proxy container
+  #   command: node cronjobs/11-process-ski-route-segments/index.js
+  # - name: cron-12
+  #   schedule: 0 3 * * * # 03:00 every day
+  #   startingDeadlineSeconds: 400
+  #   concurrencyPolicy: Replace # or Forbid or Allow
+  #   cloudsqlProxy: true # add a cloudsql proxy container
+  #   command: node cronjobs/12-process-bike-route-segments/index.js
+  # - name: cron-13
+  #   schedule: 0 4 * * * # 04:00 every day
+  #   startingDeadlineSeconds: 400
+  #   concurrencyPolicy: Replace # or Forbid or Allow
+  #   cloudsqlProxy: true # add a cloudsql proxy container
+  #   command: node cronjobs/13-process-other-route-segments/index.js
+  # - name: cron-14
+  #   schedule: 30 4 * * * # 04:30 every day
+  #   startingDeadlineSeconds: 400
+  #   concurrencyPolicy: Replace # or Forbid or Allow
+  #   cloudsqlProxy: true # add a cloudsql proxy container
+  #   command: node cronjobs/14-process-foot-route-segments/index.js
   - name: cron-15
     schedule: 30 1 * * * # 01:30 every day
     startingDeadlineSeconds: 400
     concurrencyPolicy: Replace # or Forbid or Allow
     cloudsqlProxy: true # add a cloudsql proxy container
     command: node cronjobs/15-harvest-hazard-regions/index.js
-  - name: cron-16
-    schedule: 4,14,24,34,44,54 * * * * # Every 10 minutes
-    startingDeadlineSeconds: 400
-    concurrencyPolicy: Replace # or Forbid or Allow
-    cloudsqlProxy: true # add a cloudsql proxy container
-    command: node cronjobs/16-process-geometry-intersections/index.js
-  - name: cron-17
-    schedule: 9,19,29,39,49,59 * * * * # Every 10 minutes
-    startingDeadlineSeconds: 400
-    concurrencyPolicy: Replace # or Forbid or Allow
-    cloudsqlProxy: true # add a cloudsql proxy container
-    command: node cronjobs/17-process-geometry-distance-relation/index.js
+  # - name: cron-16
+  #   schedule: 4,14,24,34,44,54 * * * * # Every 10 minutes
+  #   startingDeadlineSeconds: 400
+  #   concurrencyPolicy: Replace # or Forbid or Allow
+  #   cloudsqlProxy: true # add a cloudsql proxy container
+  #   command: node cronjobs/16-process-geometry-intersections/index.js
+  # - name: cron-17
+  #   schedule: 9,19,29,39,49,59 * * * * # Every 10 minutes
+  #   startingDeadlineSeconds: 400
+  #   concurrencyPolicy: Replace # or Forbid or Allow
+  #   cloudsqlProxy: true # add a cloudsql proxy container
+  #   command: node cronjobs/17-process-geometry-distance-relation/index.js
 
 service:
   api:

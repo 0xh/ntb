@@ -903,7 +903,7 @@ async function removeDepreactedPoi(handler) {
 /**
  * Process legacy area data and merge it into the postgres database
  */
-const process = async (handler) => {
+const process = async (handler, fullHarvest = false) => {
   logger.info('Processing POIs');
   handler.pois = {};
 
@@ -911,17 +911,17 @@ const process = async (handler) => {
   await mergePoiTypes(handler);
   await mergePoi(handler);
   await mergePoiToPoiTypes(handler);
-  await removeDepreactedPoiToPoiTypes(handler);
+  if (fullHarvest) await removeDepreactedPoiToPoiTypes(handler);
   await mergePoiLinks(handler);
-  await removeDepreactedPoiLinks(handler);
+  if (fullHarvest) await removeDepreactedPoiLinks(handler);
   await createAccessabilities(handler);
   await createPoiAccessabilities(handler);
-  await removeDepreactedPoiAccessabilities(handler);
+  if (fullHarvest) await removeDepreactedPoiAccessabilities(handler);
   await mergePoiToGroup(handler);
-  await removeDepreactedPoiToGroup(handler);
+  if (fullHarvest) await removeDepreactedPoiToGroup(handler);
   await setPoiPictures(handler);
-  await removeDepreactedPoiPictures(handler);
-  await removeDepreactedPoi(handler);
+  if (fullHarvest) await removeDepreactedPoiPictures(handler);
+  if (fullHarvest) await removeDepreactedPoi(handler);
   await dropTempTables(handler);
 };
 

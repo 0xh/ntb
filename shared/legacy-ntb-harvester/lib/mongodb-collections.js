@@ -88,6 +88,8 @@ export async function getDocumentCountFromMongoDb(type, filter) {
 
   mongoClient.close();
   endDuration(durationId);
+
+  return count;
 }
 
 

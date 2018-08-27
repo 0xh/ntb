@@ -351,7 +351,7 @@ async function removeDepreactedArea(handler) {
 /**
  * Process legacy area data and merge it into the postgres database
  */
-const process = async (handler) => {
+const process = async (handler, fullHarvest = false) => {
   logger.info('Processing areas');
   handler.areas = {};
 
@@ -359,8 +359,8 @@ const process = async (handler) => {
   await createTempTables(handler, false);
   await mergeAreas(handler);
   await setAreaPictures(handler);
-  await removeDepreactedAreaPictures(handler);
-  await removeDepreactedArea(handler);
+  if (fullHarvest) await removeDepreactedAreaPictures(handler);
+  if (fullHarvest) await removeDepreactedArea(handler);
   await dropTempTables(handler);
 };
 

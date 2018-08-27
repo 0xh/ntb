@@ -6,8 +6,8 @@ import { harvestGroups } from
 const logger = createLogger();
 
 
-let fullHarvest = true;
-if (process.argv.length > 2 && isNumber(process.argv[2])) {
+let fullHarvest = false;
+if (process.argv.length > 2) {
   fullHarvest = process.argv[2] === 'true';
 }
 

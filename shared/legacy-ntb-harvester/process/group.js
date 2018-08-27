@@ -386,7 +386,7 @@ async function removeDepreactedGroups(handler) {
 /**
  * Process legacy group data and merge it into the postgres database
  */
-const process = async (handler) => {
+const process = async (handler, fullHarvest = false) => {
   logger.info('Processing groups');
   handler.groups = {};
 
@@ -394,8 +394,8 @@ const process = async (handler) => {
   await createGroupTypes(handler);
   await mergeGroups(handler);
   await mergeGroupLinks(handler);
-  await removeDepreactedGroupLinks(handler);
-  await removeDepreactedGroups(handler);
+  if (fullHarvest) await removeDepreactedGroupLinks(handler);
+  if (fullHarvest) await removeDepreactedGroups(handler);
   await dropTempTables(handler);
 };
 

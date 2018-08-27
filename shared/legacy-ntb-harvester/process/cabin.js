@@ -1319,7 +1319,7 @@ async function removeDepreactedCabin(handler) {
 /**
  * Process legacy cabin data and merge it into the postgres database
  */
-const process = async (handler) => {
+const process = async (handler, fullHarvest = false) => {
   logger.info('Processing cabins');
   handler.cabins = {};
 
@@ -1328,18 +1328,18 @@ const process = async (handler) => {
   await mergeCabin(handler);
   await mergeCabinTranslation(handler);
   await mergeCabinLinks(handler);
-  await removeDepreactedCabinLinks(handler);
+  if (fullHarvest) await removeDepreactedCabinLinks(handler);
   await createFacilities(handler);
   await createCabinFacilities(handler);
-  await removeDepreactedCabinFacilities(handler);
+  if (fullHarvest) await removeDepreactedCabinFacilities(handler);
   await createAccessabilities(handler);
   await createCabinAccessabilities(handler);
-  await removeDepreactedCabinAccessabilities(handler);
+  if (fullHarvest) await removeDepreactedCabinAccessabilities(handler);
   await mergeCabinOpeningHours(handler);
-  await removeDepreactedCabinOpeningHours(handler);
+  if (fullHarvest) await removeDepreactedCabinOpeningHours(handler);
   await setCabinPictures(handler);
-  await removeDepreactedCabinPictures(handler);
-  await removeDepreactedCabin(handler);
+  if (fullHarvest) await removeDepreactedCabinPictures(handler);
+  if (fullHarvest) await removeDepreactedCabin(handler);
   await dropTempTables(handler);
 };
 

@@ -1137,7 +1137,7 @@ async function removeDepreactedRoute(handler) {
 /**
  * Process legacy route data and merge it into the postgres database
  */
-const process = async (handler, first = false) => {
+const process = async (handler, fullHarvest = false) => {
   logger.info('Processing routes');
   handler.routes = {};
 
@@ -1147,18 +1147,18 @@ const process = async (handler, first = false) => {
   await mergeRoute(handler);
   await createRouteWaymarkTypes(handler);
   await createRouteToRouteWaymarkTypes(handler);
-  await removeDepreactedRouteToRouteWaymarkTypes(handler);
+  if (fullHarvest) await removeDepreactedRouteToRouteWaymarkTypes(handler);
   await createRouteToActivityTypes(handler);
-  await removeDepreactedRouteToActivityTypes(handler);
+  if (fullHarvest) await removeDepreactedRouteToActivityTypes(handler);
   await mergeRouteLinks(handler);
-  await removeDepreactedRouteLinks(handler);
+  if (fullHarvest) await removeDepreactedRouteLinks(handler);
   await mergeRouteToGroup(handler);
-  await removeDepreactedRouteToGroup(handler);
+  if (fullHarvest) await removeDepreactedRouteToGroup(handler);
   await mergeRouteToPoi(handler);
-  await removeDepreactedRouteToPoi(handler);
+  if (fullHarvest) await removeDepreactedRouteToPoi(handler);
   await setRoutePictures(handler);
-  await removeDepreactedRoutePictures(handler);
-  await removeDepreactedRoute(handler);
+  if (fullHarvest) await removeDepreactedRoutePictures(handler);
+  if (fullHarvest) await removeDepreactedRoute(handler);
   await dropTempTables(handler);
 };
 
