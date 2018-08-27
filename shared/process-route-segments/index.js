@@ -139,20 +139,6 @@ async function deleteOldData(routeType) {
     type: routeType,
   });
 
-  logger.info('Removing old route segments to hazard regions');
-  await knex.raw(`
-    DELETE FROM route_segments_to_hazard_regions a
-    USING route_segments_to_hazard_regions b
-    INNER JOIN route_segments s ON
-      s.id = b.route_segment_id
-      AND s."type" = :type
-    WHERE
-      s."type" = :type
-      AND a.route_segment_id = b.route_segment_id
-  `, {
-    type: routeType,
-  });
-
   logger.info('Removing old route segments');
   await knex.raw(`
       DELETE FROM route_segments WHERE
@@ -314,12 +300,118 @@ async function calculateRouteDistance(routeType, geometryTableName) {
       FROM route_segments rs
       INNER JOIN routes_to_route_segments rtrs ON
         rtrs.route_segment_id = rs.id
+      WHERE
+        rs."type" = :type
       GROUP BY
         rtrs.route_id
     ) c
     WHERE
       routes.id = c.route_id
-  `);
+  `, {
+    type: routeType,
+  });
+}
+
+
+async function resetRoutPaths(routeType) {
+  logger.info('Emptying current route paths');
+
+  await knex.raw(`
+    UPDATE routes SET
+      path = NULL,
+      path_buffer = NULL
+    WHERE
+      routes."type" = :type
+  `, {
+    type: routeType,
+  });
+}
+
+
+async function aggregateRoutePathBulk(
+  routeType,
+  geometryTableName,
+  offset,
+  large = false
+) {
+  logger.info(
+    `Aggregate ${large ? 'large' : ''} route path with offset ${offset}`
+  );
+  const largeClause = large
+    ? '>= 40000'
+    : '< 40000';
+  const limit = large
+    ? 1
+    : 100;
+
+  const result = await knex.raw(`
+    UPDATE routes SET
+      path = x.path,
+      path_buffer = ST_Buffer(x.path::GEOGRAPHY, 5000, 1)::GEOMETRY
+    FROM (
+      SELECT
+        r.id,
+        ST_LineMerge(ST_Collect(rs.path)) "path"
+      FROM routes r
+      INNER JOIN routes_to_route_segments rtrs ON
+        r.id = rtrs.route_id
+      INNER JOIN route_segments rs ON
+        rs.id = rtrs.route_segment_id
+      WHERE
+          r."type" = :type
+          AND r.calculated_distance > 0
+          AND r.calculated_distance ${largeClause}
+      GROUP BY
+        r.id
+      LIMIT ${limit}
+      OFFSET :offset
+    ) x
+    WHERE
+      routes.id = x.id
+  `, {
+    type: routeType,
+    offset,
+  })
+    .catch((err) => {
+      logger.error('Processing route path failed!');
+      logger.error(err);
+    });
+
+  logger.info(`- Updated ${result.rowCount} rows`);
+  return result.rowCount;
+}
+
+
+async function aggregateRoutePath(routeType, geometryTableName) {
+  logger.info('Aggregate route path');
+
+  await resetRoutPaths(routeType);
+
+  let rowCount = 1;
+  let offset = 0;
+  while (rowCount > 0) {
+    // eslint-disable-next-line
+    rowCount = await aggregateRoutePathBulk(
+      routeType,
+      geometryTableName,
+      offset
+    );
+    offset += 100;
+  }
+
+  // Do large paths one by one
+  rowCount = 1;
+  offset = 0;
+  while (rowCount > 0) {
+    // eslint-disable-next-line
+    rowCount = await aggregateRoutePathBulk(
+      routeType,
+      geometryTableName,
+      offset,
+      true
+    );
+    offset += 1;
+  }
 }
 
 
@@ -349,6 +441,7 @@ export default async function (
   await updateRouteTypes(type, geometryTableName);
   await createRoutesToRouteSegments(type, geometryTableName);
   await calculateRouteDistance(type);
+  await aggregateRoutePath(type);
   await deleteTempGeometryTable(geometryTableName);
 
   endDuration(durationId);
