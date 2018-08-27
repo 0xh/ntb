@@ -38,6 +38,7 @@ const variables = [
   { name: 'DB_POOL_MIN', default: 1, format: 'number' },
   { name: 'DB_POOL_MAX', default: 5, format: 'number' },
   { name: 'DB_MIN_QUERY_TIME_FOR_LOGGING', default: 30, format: 'number' },
+  { name: 'MAPBOX_TOKEN', default: null },
 
   // services/admin
   { name: 'SERVICES_ADMIN_PORT', default: 8080 },
