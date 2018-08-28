@@ -360,6 +360,7 @@ async function aggregateRoutePathBulk(
       WHERE
           r."type" = :type
           AND r.calculated_distance > 0
+          AND r.calculated_distance < 90000
           AND r.calculated_distance ${largeClause}
       GROUP BY
         r.id
@@ -377,8 +378,9 @@ async function aggregateRoutePathBulk(
       logger.error(err);
     });
 
-  logger.info(`- Updated ${result.rowCount} rows`);
-  return result.rowCount;
+  const rowCount = result ? result.rowCount : 0;
+  logger.info(`- Updated ${rowCount} rows`);
+  return rowCount;
 }
 
 
