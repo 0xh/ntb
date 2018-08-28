@@ -266,7 +266,7 @@ function processStructuredQueryObject(handler) {
 
 function createClause(handler, filter) {
   // Join filter
-  if (handler.validFilters.join.includes(filter.key)) {
+  if (Object.keys(handler.validFilters.join).includes(filter.key)) {
     const props = handler.relation.joinModelClass.validFilters[filter.key];
     filter.isJoinFilter = true;
     filter.type = props.type;
