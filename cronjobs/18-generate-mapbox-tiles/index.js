@@ -240,7 +240,6 @@ async function createGeojsonTrips() {
           instance.grading.replace(' ', '_')}`,
         activity_type: instance.activityType,
         name: instance.name.substr(0, 200),
-        type: instance.type,
         grading: instance.grading,
       },
       geometry: JSON.parse(instance.point),
@@ -367,7 +366,6 @@ async function createGeojsonRoutes(type) {
     type: 'Feature',
     id: instance.id,
     properties: {
-      type,
       calculated_distance_km: Math.round(instance.calculatedDistance / 1000),
     },
     geometry: instance.path,
