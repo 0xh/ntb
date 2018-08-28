@@ -100,8 +100,8 @@ async function createGeojsonCabins() {
   const cabins = instances.map((instance) => {
     const cabin = {
       type: 'Feature',
+      id: instance.id,
       properties: {
-        id: instance.id,
         icon: `${instance.dntCabin ? 'dnt' : 'private'}__${
           (instance.serviceLevel || 'unknown').replace(' ', '_')}`,
         name: instance.name.substr(0, 200),
@@ -179,8 +179,8 @@ async function createGeojsonPois() {
 
   const pois = instances.map((instance) => ({
     type: 'Feature',
+    id: instance.id,
     properties: {
-      id: instance.id,
       icon: instance.type.replace(' ', '_'),
       name: instance.name.substr(0, 200),
       ...(instance.poiTypes || [])
@@ -234,8 +234,8 @@ async function createGeojsonTrips() {
   const trips = instances.map((instance) => {
     const trip = {
       type: 'Feature',
+      id: instance.id,
       properties: {
-        id: instance.id,
         icon: `${instance.activityType.replace(' ', '_')}__${
           instance.grading.replace(' ', '_')}`,
         activity_type: instance.activityType,
@@ -365,10 +365,10 @@ async function createGeojsonRoutes(type) {
 
   const routes = instances.map((instance) => ({
     type: 'Feature',
+    id: instance.id,
     properties: {
-      id: instance.id,
       type,
-      calculated_distance: instance.calculatedDistance,
+      calculated_distance_km: Math.round(instance.calculatedDistance / 1000),
     },
     geometry: instance.path,
   }));
@@ -403,8 +403,8 @@ async function createGeojsonRoutePoints(type) {
 
   const points = instances.map((instance) => ({
     type: 'Feature',
+    id: instance.id,
     properties: {
-      id: instance.id,
       type,
     },
     geometry: JSON.parse(instance.pointA),
