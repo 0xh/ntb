@@ -46,6 +46,11 @@ app.use((err, req, res, next) => {
     }
   }
 
+  else {
+    logger.warn(err.message);
+    logger.warn(err.stack);
+  }
+
   // Add stack trace if it's the development environment
   if (ENV_IS_DEVELOPMENT) {
     data.debug = {
