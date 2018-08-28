@@ -16,6 +16,12 @@ RUN git clone https://github.com/mapbox/tippecanoe.git
 WORKDIR /tmp/tippecanoe-git/tippecanoe
 RUN make -j -s && make install
 
+# Install pip needed for installing mapbox
+RUN apt-get --assume-yes install python-pip
+
+# Install mapboxcli
+RUN pip install mapboxcli
+
 # install lerna globally
 RUN yarn global add lerna
 
@@ -66,4 +72,8 @@ RUN rm -rf /var/cache/apk/*
 # Change the ownership of the application code and switch to the unprivileged
 # user.
 RUN chown -R app:app /build
+
+RUN mkdir -p /home/app
+RUN chown -R app:app /home/app
+
 USER app
