@@ -238,6 +238,18 @@ cert:
   enabled: false
   issuer: "letsencrypt-production"
 
+
+nodeSelector:
+  ntbApi:
+    machineType: high-mem
+  ntbDocs:
+    machineType: high-mem
+  dbMigration:
+    machineType: high-mem
+  cronJobs:
+    machineType: high-mem
+
+
 resources:
   cloudsqlProxy:
       requests:
