@@ -33,7 +33,7 @@ const SPAWN_SYNC_OPTIONS = {
 const TIPPECANOE_OPTIONS = {
   cabins: [
     '-o',
-    path.resolve(DATA_DIR, 'cabins.mbtiles'),
+    path.resolve(DATA_DIR, `cabins-v${VERSION}.mbtiles`),
     '-f',
     '-B',
     7,
@@ -43,7 +43,7 @@ const TIPPECANOE_OPTIONS = {
   ],
   trips: [
     '-o',
-    path.resolve(DATA_DIR, 'trips.mbtiles'),
+    path.resolve(DATA_DIR, `trips-v${VERSION}.mbtiles`),
     '-f',
     '-B',
     7,
@@ -53,7 +53,7 @@ const TIPPECANOE_OPTIONS = {
   ],
   pois: [
     '-o',
-    path.resolve(DATA_DIR, 'pois.mbtiles'),
+    path.resolve(DATA_DIR, `pois-v${VERSION}.mbtiles`),
     '-f',
     '-B',
     7,
@@ -63,11 +63,11 @@ const TIPPECANOE_OPTIONS = {
   ],
   routes: [
     '-o',
-    path.resolve(DATA_DIR, 'routes.mbtiles'),
+    path.resolve(DATA_DIR, `routes-v${VERSION}.mbtiles`),
     '-f',
     '-B',
-    '--generate-ids',
     8,
+    '--generate-ids',
     path.resolve(DATA_DIR, 'routesfoot.geojson'),
     path.resolve(DATA_DIR, 'routesfootpoints.geojson'),
     path.resolve(DATA_DIR, 'routesski.geojson'),
@@ -230,6 +230,7 @@ async function createGeojsonTrips() {
       'htgtCarSummer',
       'htgtBicycle',
     )
+    .eager('accessabilities')
     .whereNotNull('startingPoint')
     .where('status', '=', 'public')
     .where('provider', '=', 'DNT')
@@ -245,6 +246,11 @@ async function createGeojsonTrips() {
         activity_type: instance.activityType,
         name: instance.name.substr(0, 200),
         grading: instance.grading,
+        ...(instance.accessabilities || [])
+          .reduce((agg, cur) => {
+            agg[`accessability__${cur.name.replace(' ', '_')}`] = true;
+            return agg;
+          }, {}),
       },
       geometry: JSON.parse(instance.point),
     };
@@ -474,10 +480,16 @@ async function fixMbtilesName() {
     connection: {
       filename: path.resolve(DATA_DIR, 'ntb.mbtiles'),
     },
+    useNullAsDefault: true,
   });
 
   await sqliteKnex.raw(`
-    UPDATE metadata SET value='ntb.mbtiles' WHERE name='name';
+    UPDATE metadata SET value='NTB - v${VERSION}' WHERE name='name';
+  `);
+
+  await sqliteKnex.raw(`
+    UPDATE metadata SET value='Mapbox tiles from NTB - nasjonalturbase.no'
+    WHERE name='description';
   `);
 
   endDuration(durationId);
