@@ -27,6 +27,20 @@ export default class Accessability extends BaseModel {
         to: 'cabins.id',
       },
     },
+    trips: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Trip',
+      join: {
+        from: 'accessabilities.name',
+        through: {
+          modelClass: 'TripAccessability',
+          extra: { tripAccessabilityDescription: 'description' },
+          from: 'tripAccessabilities.accessabilityName',
+          to: 'tripAccessabilities.tripId',
+        },
+        to: 'trips.id',
+      },
+    },
     pois: {
       relation: BaseModel.ManyToManyRelation,
       modelClass: 'Poi',
