@@ -186,7 +186,7 @@ cronJobs:
     cloudsqlProxy: true # add a cloudsql proxy container
     command: node cronjobs/15-harvest-hazard-regions/index.js
   - name: cron-16
-    schedule: */2 * * * * # Every 2 minutes
+    schedule: * * * * * # Every 2 minutes
     startingDeadlineSeconds: 400
     concurrencyPolicy: Replace # or Forbid or Allow
     cloudsqlProxy: true # add a cloudsql proxy container
@@ -196,7 +196,7 @@ cronJobs:
   #   startingDeadlineSeconds: 400
   #   concurrencyPolicy: Replace # or Forbid or Allow
   #   cloudsqlProxy: true # add a cloudsql proxy container
-  #   command: node cronjobs/17-process-geometry-distance-relation/index.js
+  #   command: node cronjobs/17-process-geometry-relations/index.js
 
 service:
   api:
