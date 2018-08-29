@@ -73,13 +73,11 @@ const TIPPECANOE_OPTIONS = {
     '-f',
     '-B',
     8,
-    '-l',
-    `routes-v${VERSION}`,
     '--generate-ids',
-    path.resolve(DATA_DIR, 'routesfoot.geojson'),
-    path.resolve(DATA_DIR, 'routesfootpoints.geojson'),
-    path.resolve(DATA_DIR, 'routesski.geojson'),
-    path.resolve(DATA_DIR, 'routesskipoints.geojson'),
+    path.resolve(DATA_DIR, `routesfoot-v${VERSION}.geojson`),
+    path.resolve(DATA_DIR, `routesfootpoints-v${VERSION}.geojson`),
+    path.resolve(DATA_DIR, `routesski-v${VERSION}.geojson`),
+    path.resolve(DATA_DIR, `routesskipoints-v${VERSION}.geojson`),
   ],
 };
 
@@ -390,7 +388,7 @@ async function createGeojsonRoutes(type) {
   }));
 
   fs.writeFileSync(
-    path.resolve(DATA_DIR, `routes${type}.geojson`),
+    path.resolve(DATA_DIR, `routes${type}-v${VERSION}.geojson`),
     JSON.stringify({
       type: 'FeatureCollection',
       features: routes,
@@ -427,7 +425,7 @@ async function createGeojsonRoutePoints(type) {
   }));
 
   fs.writeFileSync(
-    path.resolve(DATA_DIR, `routes${type}points.geojson`),
+    path.resolve(DATA_DIR, `routes${type}points-v${VERSION}.geojson`),
     JSON.stringify({
       type: 'FeatureCollection',
       features: points,
