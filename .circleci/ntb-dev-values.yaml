@@ -240,14 +240,7 @@ cert:
 
 
 nodeSelector:
-  ntbApi:
-    machineType: high-mem
-  ntbDocs:
-    machineType: high-mem
-  dbMigration:
-    machineType: high-mem
-  cronJobs:
-    machineType: high-mem
+  machineType: high-mem
 
 
 resources:
