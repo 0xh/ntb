@@ -460,10 +460,10 @@ async function joinTiles() {
   spawnSync('tile-join', [
     '-o',
     path.resolve(DATA_DIR, 'ntb.mbtiles'),
-    path.resolve(DATA_DIR, 'cabins.mbtiles'),
-    path.resolve(DATA_DIR, 'pois.mbtiles'),
-    path.resolve(DATA_DIR, 'routes.mbtiles'),
-    path.resolve(DATA_DIR, 'trips.mbtiles'),
+    path.resolve(DATA_DIR, `cabins-v${VERSION}.mbtiles`),
+    path.resolve(DATA_DIR, `pois-v${VERSION}.mbtiles`),
+    path.resolve(DATA_DIR, `routes-v${VERSION}.mbtiles`),
+    path.resolve(DATA_DIR, `trips-v${VERSION}.mbtiles`),
   ]);
 
   endDuration(durationId);
