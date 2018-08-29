@@ -214,7 +214,7 @@ function setAccessibility(obj, res, handler) {
 
   if (obj.tilrettelagt_for) {
     res.accessibility = obj.tilrettelagt_for.map((acc) => ({
-      name: mapAccessability(acc),
+      name: mapAccessability(acc, res),
       description: null,
     }));
   }

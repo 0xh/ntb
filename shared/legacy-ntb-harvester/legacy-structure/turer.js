@@ -192,6 +192,44 @@ function setSuitableForChildren(obj, res, handler) {
 }
 
 
+export function mapAccessability(type, res) {
+  switch ((type || '').toLowerCase().trim()) {
+    case 'barnevogn':
+      return 'stroller';
+    case 'barnevennlig':
+      return 'kid friendly';
+    case 'handikap':
+      return 'handicap';
+    case 'hund':
+      return 'dog';
+    case 'rullestol':
+    case 'rullestolbrukere':
+      return 'wheelchair';
+    case 'skolehytte':
+    case 'skoleklasser':
+      return 'school classes';
+    default:
+      logger.warn(
+        `Missing or unknown accessability type "${type}" on ` +
+        `trip.id_legacy_ntb=${res.trip.idLegacyNtb}`
+      );
+      return 'other';
+  }
+}
+
+
+function setAccessibility(obj, res, handler) {
+  res.accessibility = [];
+
+  if (obj.tilrettelagt_for) {
+    res.accessibility = obj.tilrettelagt_for.map((acc) => ({
+      name: mapAccessability(acc, res),
+      description: null,
+    }));
+  }
+}
+
+
 function getStartingPoint(obj) {
   if (obj.privat.startpunkt) {
     return obj.privat.startpunkt;
@@ -282,6 +320,9 @@ async function mapping(obj, handler) {
 
   // Set suitable for children
   setSuitableForChildren(obj, res, handler);
+
+  // Set accessabilities
+  setAccessibility(obj, res, handler);
 
   // Areas, groups and pictures
   res.areas = Array.from(new Set(obj.områder || []));

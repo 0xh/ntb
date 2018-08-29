@@ -174,6 +174,42 @@ async function createTempTables(handler, sync = false) {
   handler.trips.TempTripPicturesModel = TempTripPicturesModel;
 
 
+  // accessabilities
+  tableName = `${baseTableName}_trip_acc`;
+  if (sync) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.text('name')
+        .primary();
+    });
+  }
+
+  class TempAccessabilityModel extends Model {
+    static tableName = tableName;
+    static idColumn = 'name';
+  }
+  handler.trips.TempAccessabilityModel = TempAccessabilityModel;
+
+
+  // trip accessabilities
+  tableName = `${baseTableName}_trip_acc_2`;
+  if (sync) {
+    await knex.schema.createTable(tableName, (table) => {
+      table.text('name');
+      table.text('idTripLegacyNtb');
+      table.uuid('tripId');
+      table.text('description');
+
+      table.primary(['name', 'idTripLegacyNtb']);
+    });
+  }
+
+  class TempTripAccessabilityModel extends Model {
+    static tableName = tableName;
+    static idColumn = ['name', 'idTripLegacyNtb'];
+  }
+  handler.trips.TempTripAccessabilityModel = TempTripAccessabilityModel;
+
+
   endDuration(durationId);
 }
 
@@ -191,6 +227,8 @@ async function dropTempTables(handler) {
     .dropTableIfExists(handler.trips.TempTripLinkModel.tableName)
     .dropTableIfExists(handler.trips.TempTripToGroupModel.tableName)
     .dropTableIfExists(handler.trips.TempTripToPoiModel.tableName)
+    .dropTableIfExists(handler.trips.TempAccessabilityModel.tableName)
+    .dropTableIfExists(handler.trips.TempTripAccessabilityModel.tableName)
     .dropTableIfExists(handler.trips.TempTripPicturesModel.tableName);
 
   endDuration(durationId);
@@ -247,6 +285,9 @@ async function populateTempTables(handler) {
   const tripToGroup = [];
   const tripToPoi = [];
   const pictures = [];
+  const accessabilities = [];
+  const foundAccessabilities = [];
+  const tripAccessabilities = [];
   let links = [];
   let activitySubTypes = [];
   handler.trips.processed.forEach((p) => {
@@ -282,6 +323,24 @@ async function populateTempTables(handler) {
         tripLegacyId: p.trip.idLegacyNtb,
       }));
     }
+
+    if (p.accessibility) {
+      p.accessibility.forEach((accessability) => {
+        if (!foundAccessabilities.includes(accessability.name)) {
+          accessabilities.push({
+            name: accessability.name,
+          });
+          foundAccessabilities.push(accessability.name);
+        }
+      });
+
+      p.accessibility.forEach((accessability) => tripAccessabilities.push({
+        name: accessability.name,
+        nameLowerCase: accessability.nameLowerCase,
+        idTripLegacyNtb: p.trip.idLegacyNtb,
+        description: accessability.description,
+      }));
+    }
   });
 
   // Insert temp data for trip activity types
@@ -290,6 +349,22 @@ async function populateTempTables(handler) {
   await handler.trips.TempTripTypeModel
     .query()
     .insert(activitySubTypes);
+  endDuration(durationId);
+
+  // Insert temp data for Accessability
+  // logger.info('Inserting accessabilities to temporary table');
+  // durationId = startDuration();
+  // await handler.trips.TempAccessabilityModel
+  //   .query()
+  //   .insert(accessabilities);
+  // endDuration(durationId);
+
+  // Insert temp data for TripAccessability
+  logger.info('Inserting trip accessabilities to temporary table');
+  durationId = startDuration();
+  await handler.trips.TempTripAccessabilityModel
+    .query()
+    .insert(tripAccessabilities);
   endDuration(durationId);
 
   // Insert temp data for TripLink
@@ -387,100 +462,95 @@ async function mergeTrip(handler) {
   const { tableName } = handler.trips.TempTripModel;
 
   // Merge into prod table
-  const sql = [
-    'INSERT INTO trips (',
-    '  id,',
-    '  id_legacy_ntb,',
-    '  activity_type,',
-    '  name,',
-    '  name_lower_case,',
-    '  description,',
-    '  description_plain,',
-    '  grading,',
-    '  suitable_for_children,',
-    '  distance,',
-    '  direction,',
-    '  duration_minutes,',
-    '  duration_hours,',
-    '  duration_days,',
-    '  starting_point,',
-    '  path,',
-    '  path_buffer,',
-    '  path_polyline,',
-    '  season,',
-    '  htgt_general,',
-    '  htgt_public_transport,',
-    '  license,',
-    '  provider,',
-    '  status,',
-    '  data_source,',
-    '  updated_at,',
-    '  created_at,',
-    '  search_document_boost',
-    ')',
-    'SELECT',
-    '  id,',
-    '  id_legacy_ntb,',
-    '  activity_type,',
-    '  name,',
-    '  name_lower_case,',
-    '  description,',
-    '  description_plain,',
-    '  grading,',
-    '  suitable_for_children,',
-    '  distance,',
-    '  direction,',
-    '  duration_minutes,',
-    '  duration_hours,',
-    '  duration_days,',
-    '  starting_point,',
-    '  path,',
-    '  ST_Buffer(x.path::GEOGRAPHY, 5000, 1)::GEOMETRY,',
-    '  path_polyline,',
-    '  season,',
-    '  htgt_general,',
-    '  htgt_public_transport,',
-    '  license,',
-    '  provider,',
-    '  status,',
-    '  :data_source,',
-    '  updated_at,',
-    '  updated_at,',
-    '  1',
-    `FROM "public"."${tableName}"`,
-    'ON CONFLICT (id_legacy_ntb) DO UPDATE',
-    'SET',
-    '   "activity_type" = EXCLUDED."activity_type",',
-    '   "name" = EXCLUDED.name,',
-    '   "name_lower_case" = EXCLUDED.name_lower_case,',
-    '   "description" = EXCLUDED.description,',
-    '   "description_plain" = EXCLUDED.description_plain,',
-    '   "grading" = EXCLUDED.grading,',
-    '   "suitable_for_children" = EXCLUDED.suitable_for_children,',
-    '   "distance" = EXCLUDED.distance,',
-    '   "direction" = EXCLUDED.direction,',
-    '   "duration_minutes" = EXCLUDED.duration_minutes,',
-    '   "duration_hours" = EXCLUDED.duration_hours,',
-    '   "duration_days" = EXCLUDED.duration_days,',
-    '   "starting_point" = EXCLUDED.starting_point,',
-    '   "path" = EXCLUDED.path,',
-    '   "path_buffer" = EXCLUDED.path_buffer,',
-    '   "path_polyline" = EXCLUDED.path_polyline,',
-    '   "season" = EXCLUDED.season,',
-    '   "htgt_general" = EXCLUDED.htgt_general,',
-    '   "htgt_public_transport" = EXCLUDED.htgt_public_transport,',
-    '   "license" = EXCLUDED.license,',
-    '   "provider" = EXCLUDED.provider,',
-    '   "status" = EXCLUDED.status,',
-    '   "updated_at" = EXCLUDED.updated_at',
-  ].join('\n');
+  const sql = `
+    INSERT INTO trips (
+      id,
+      id_legacy_ntb,
+      activity_type,
+      name,
+      name_lower_case,
+      description,
+      description_plain,
+      grading,
+      suitable_for_children,
+      distance,
+      direction,
+      duration_minutes,
+      duration_hours,
+      duration_days,
+      starting_point,
+      path,
+      path_polyline,
+      season,
+      htgt_general,
+      htgt_public_transport,
+      license,
+      provider,
+      status,
+      data_source,
+      updated_at,
+      created_at,
+      search_document_boost
+    )
+    SELECT
+      id,
+      id_legacy_ntb,
+      activity_type,
+      name,
+      name_lower_case,
+      description,
+      description_plain,
+      grading,
+      suitable_for_children,
+      distance,
+      direction,
+      duration_minutes,
+      duration_hours,
+      duration_days,
+      starting_point,
+      path,
+      path_polyline,
+      season,
+      htgt_general,
+      htgt_public_transport,
+      license,
+      provider,
+      status,
+      :data_source,
+      updated_at,
+      updated_at,
+      1
+    FROM "public"."${tableName}"
+    ON CONFLICT (id_legacy_ntb) DO UPDATE
+    SET
+       "activity_type" = EXCLUDED."activity_type",
+       "name" = EXCLUDED.name,
+       "name_lower_case" = EXCLUDED.name_lower_case,
+       "description" = EXCLUDED.description,
+       "description_plain" = EXCLUDED.description_plain,
+       "grading" = EXCLUDED.grading,
+       "suitable_for_children" = EXCLUDED.suitable_for_children,
+       "distance" = EXCLUDED.distance,
+       "direction" = EXCLUDED.direction,
+       "duration_minutes" = EXCLUDED.duration_minutes,
+       "duration_hours" = EXCLUDED.duration_hours,
+       "duration_days" = EXCLUDED.duration_days,
+       "starting_point" = EXCLUDED.starting_point,
+       "path" = EXCLUDED.path,
+       "path_polyline" = EXCLUDED.path_polyline,
+       "season" = EXCLUDED.season,
+       "htgt_general" = EXCLUDED.htgt_general,
+       "htgt_public_transport" = EXCLUDED.htgt_public_transport,
+       "license" = EXCLUDED.license,
+       "provider" = EXCLUDED.provider,
+       "status" = EXCLUDED.status,
+       "updated_at" = EXCLUDED.updated_at
+  `;
 
   logger.info('Creating or updating trips');
-  const durationId = startDuration();
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
 }
 
 
@@ -652,6 +722,97 @@ async function removeDepreactedTripLinks(handler) {
   ].join('\n');
 
   logger.info('Deleting deprecated trip links');
+  const durationId = startDuration();
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Create new accessabilities
+ */
+async function createAccessabilities(handler) {
+  const { tableName } = handler.trips.TempTripAccessabilityModel;
+  const sql = [
+    'INSERT INTO accessabilities (name)',
+    'SELECT DISTINCT name',
+    `FROM "public"."${tableName}"`,
+    'ON CONFLICT (name) DO NOTHING',
+  ].join('\n');
+
+  logger.info('Create new accessabilities');
+  const durationId = startDuration();
+  await knex.raw(sql);
+  endDuration(durationId);
+}
+
+
+/**
+ * Create new trip accessabilities
+ */
+async function createTripAccessabilities(handler) {
+  let sql;
+  let durationId;
+  const { tableName } = handler.trips.TempTripAccessabilityModel;
+
+  // Set UUIDs on tripAccessability temp data
+  sql = [
+    `UPDATE "public"."${tableName}" gt1 SET`,
+    '  trip_id = g.id',
+    `FROM "public"."${tableName}" gt2`,
+    'INNER JOIN public.trips g ON',
+    '  g.id_legacy_ntb = gt2.id_trip_legacy_ntb',
+    'WHERE',
+    '  gt1.id_trip_legacy_ntb = gt2.id_trip_legacy_ntb',
+  ].join('\n');
+
+  logger.info('Update ids on trip accessability temp data');
+  durationId = startDuration();
+  await knex.raw(sql);
+  endDuration(durationId);
+
+  // Create trip accessability relations
+  sql = [
+    'INSERT INTO trip_accessabilities (',
+    '  accessability_name, trip_id, description, data_source',
+    ')',
+    'SELECT',
+    '  name, trip_id, description, :data_source',
+    `FROM "public"."${tableName}"`,
+    'ON CONFLICT (accessability_name, trip_id) DO NOTHING',
+  ].join('\n');
+
+  logger.info('Create new trip accessabilities');
+  durationId = startDuration();
+  await knex.raw(sql, {
+    data_source: DATASOURCE_NAME,
+  });
+  endDuration(durationId);
+}
+
+
+/**
+ * Remove trip accessabilities that no longer exist in legacy-ntb
+ */
+async function removeDepreactedTripAccessabilities(handler) {
+  const { tableName } = handler.trips.TempTripAccessabilityModel;
+  const sql = [
+    'DELETE FROM public.trip_accessabilities',
+    'USING public.trip_accessabilities cf',
+    `LEFT JOIN "public"."${tableName}" te ON`,
+    '  cf.accessability_name = te.name AND',
+    '  cf.trip_id = te.trip_id',
+    'WHERE',
+    '  te.id_trip_legacy_ntb IS NULL AND',
+    '  cf.data_source = :data_source AND',
+    '  public.trip_accessabilities.accessability_name =',
+    '    cf.accessability_name',
+    '  AND public.trip_accessabilities.trip_id = cf.trip_id',
+  ].join('\n');
+
+  logger.info('Deleting deprecated trip accessabilities');
   const durationId = startDuration();
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
@@ -932,6 +1093,9 @@ const process = async (handler, fullHarvest = false) => {
   if (fullHarvest) await removeDepreactedTripToGroup(handler);
   await mergeTripToPoi(handler);
   if (fullHarvest) await removeDepreactedTripToPoi(handler);
+  await createAccessabilities(handler);
+  await createTripAccessabilities(handler);
+  if (fullHarvest) await removeDepreactedTripAccessabilities(handler);
   await setTripPictures(handler);
   if (fullHarvest) await removeDepreactedTripPictures(handler);
   if (fullHarvest) await removeDepreactedTrip(handler);
