@@ -38,6 +38,7 @@ const TIPPECANOE_OPTIONS = {
     '-B',
     7,
     '-r2',
+    '--generate-ids',
     path.resolve(DATA_DIR, 'cabins.geojson'),
   ],
   trips: [
@@ -47,6 +48,7 @@ const TIPPECANOE_OPTIONS = {
     '-B',
     7,
     '-r2',
+    '--generate-ids',
     path.resolve(DATA_DIR, 'trips.geojson'),
   ],
   pois: [
@@ -56,6 +58,7 @@ const TIPPECANOE_OPTIONS = {
     '-B',
     7,
     '-r2',
+    '--generate-ids',
     path.resolve(DATA_DIR, 'pois.geojson'),
   ],
   routes: [
@@ -63,6 +66,7 @@ const TIPPECANOE_OPTIONS = {
     path.resolve(DATA_DIR, 'routes.mbtiles'),
     '-f',
     '-B',
+    '--generate-ids',
     8,
     path.resolve(DATA_DIR, 'routesfoot.geojson'),
     path.resolve(DATA_DIR, 'routesfootpoints.geojson'),
@@ -100,8 +104,8 @@ async function createGeojsonCabins() {
   const cabins = instances.map((instance) => {
     const cabin = {
       type: 'Feature',
-      id: instance.id,
       properties: {
+        ntb_id: instance.id,
         icon: `${instance.dntCabin ? 'dnt' : 'private'}__${
           (instance.serviceLevel || 'unknown').replace(' ', '_')}`,
         name: instance.name.substr(0, 200),
@@ -179,8 +183,8 @@ async function createGeojsonPois() {
 
   const pois = instances.map((instance) => ({
     type: 'Feature',
-    id: instance.id,
     properties: {
+      ntb_id: instance.id,
       icon: instance.type.replace(' ', '_'),
       name: instance.name.substr(0, 200),
       ...(instance.poiTypes || [])
@@ -234,8 +238,8 @@ async function createGeojsonTrips() {
   const trips = instances.map((instance) => {
     const trip = {
       type: 'Feature',
-      id: instance.id,
       properties: {
+        ntb_id: instance.id,
         icon: `${instance.activityType.replace(' ', '_')}__${
           instance.grading.replace(' ', '_')}`,
         activity_type: instance.activityType,
@@ -364,8 +368,8 @@ async function createGeojsonRoutes(type) {
 
   const routes = instances.map((instance) => ({
     type: 'Feature',
-    id: instance.id,
     properties: {
+      ntb_id: instance.id,
       calculated_distance_km: Math.round(instance.calculatedDistance / 1000),
     },
     geometry: instance.path,
