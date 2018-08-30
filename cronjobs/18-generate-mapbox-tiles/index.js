@@ -99,6 +99,12 @@ async function createGeojsonCabins() {
       'htgtCarAllYear',
       'htgtCarSummer',
       'htgtBicycle',
+      knex.raw(`
+        COALESCE(beds_extra, 0) +
+        COALESCE(beds_staffed, 0) +
+        COALESCE(beds_self_service, 0) +
+        COALESCE(beds_no_service, 0)
+      beds`),
     )
     .eager('facilities', 'accessabilities')
     .whereNotNull('coordinates')
@@ -117,6 +123,7 @@ async function createGeojsonCabins() {
         name: instance.name.substr(0, 200),
         dnt_cabin: instance.dntCabin,
         service_level: instance.serviceLevel,
+        beds: instance.beds,
         ...(instance.accessabilities || [])
           .reduce((agg, cur) => {
             agg[`accessability__${cur.name.replace(' ', '_')}`] = true;
