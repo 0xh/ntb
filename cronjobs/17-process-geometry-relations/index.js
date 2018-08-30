@@ -362,16 +362,16 @@ async function main() {
   await getIds();
 
   // eslint-disable-next-line
-  // for (const relationTable of RELATION_TABLES) {
-  //   // eslint-disable-next-line
-  //   await processRelation(relationTable);
-  // }
+  for (const relationTable of RELATION_TABLES) {
+    // eslint-disable-next-line
+    await processRelation(relationTable);
+  }
 
   await processRoutesToTrips();
   await processTripsToRoutes();
   await processRoutesToRoutes();
   await processTripsToTrips();
-  // await updateProccessedTimestamp();
+  await updateProccessedTimestamp();
 
   logger.info('ALL DONE');
   endDuration(durationId);
