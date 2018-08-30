@@ -173,6 +173,20 @@ export default class Route extends BaseModel {
         to: 'cabins.id',
       },
     },
+    tripsByDistance: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Trip',
+      join: {
+        from: 'routes.id',
+        through: {
+          modelClass: 'RouteToTripByDistance',
+          extra: { calculatedDistance: 'calculatedDistance' },
+          from: 'routesToTripsByDistance.routeId',
+          to: 'routesToTripsByDistance.tripId',
+        },
+        to: 'trips.id',
+      },
+    },
   };
 
 
@@ -382,6 +396,15 @@ export default class Route extends BaseModel {
 
     // Configuration when included through Cabin.routesByDistance
     config['Cabin.routesByDistance'] = {
+      ...config.default,
+      defaultFields: [
+        ...config.default.defaultFields,
+        'calculatedDistance',
+      ],
+    };
+
+    // Configuration when included through Trip.routesByDistance
+    config['Trip.routesByDistance'] = {
       ...config.default,
       defaultFields: [
         ...config.default.defaultFields,

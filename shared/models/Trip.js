@@ -164,6 +164,20 @@ export default class Trip extends BaseModel {
         to: 'pois.id',
       },
     },
+    routesByDistance: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Route',
+      join: {
+        from: 'trips.id',
+        through: {
+          modelClass: 'RouteToTripByDistance',
+          extra: { calculatedDistance: 'calculatedDistance' },
+          from: 'routesToTripsByDistance.tripId',
+          to: 'routesToTripsByDistance.routeId',
+        },
+        to: 'routes.id',
+      },
+    },
   };
 
 
