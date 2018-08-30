@@ -21,8 +21,8 @@ export default class Area extends BaseModel {
         from: 'areas.id',
         through: {
           modelClass: 'AreaToArea',
-          from: 'areasToAreas.areaAId',
-          to: 'areasToAreas.areaBId',
+          from: 'areasToAreas.parentId',
+          to: 'areasToAreas.childId',
         },
         to: 'areas.id',
       },
@@ -34,8 +34,8 @@ export default class Area extends BaseModel {
         from: 'areas.id',
         through: {
           modelClass: 'AreaToArea',
-          from: 'areasToAreas.areaBId',
-          to: 'areasToAreas.areaBId',
+          from: 'areasToAreas.childId',
+          to: 'areasToAreas.parentId',
         },
         to: 'areas.id',
       },
