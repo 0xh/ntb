@@ -18,7 +18,8 @@ jobs:
       - checkout
 
       # starts a remote docker environment to run docker commands
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
 
       - run:
           name: build ntb docker image and push to gcloud and push image to GCR
@@ -30,7 +31,7 @@ jobs:
             docker tag ntb eu.gcr.io/dnt-docker-registry-public/ntb:$TAG
             docker push eu.gcr.io/dnt-docker-registry-public/ntb:latest
             docker push eu.gcr.io/dnt-docker-registry-public/ntb:$TAG
-      
+
       - run:
            name: notify slack on failure
            when: on_fail
@@ -42,7 +43,7 @@ jobs:
            when: on_success
            command: |
              chmod +x .circleci/notify-slack.sh
-             ./.circleci/notify-slack.sh NTB build-and-publish true      
+             ./.circleci/notify-slack.sh NTB build-and-publish true
 
   deploy-to-dev:
     docker:
