@@ -2,7 +2,7 @@ import BaseModel from './BaseModel';
 
 
 export default class RouteToTripByDistance extends BaseModel {
-  static tableName = 'routesToTripByDistance';
+  static tableName = 'routesToTripsByDistance';
   static idColumn = ['routeId', 'tripId'];
 
   static validFilters = {
