@@ -14,8 +14,58 @@ export default class County extends BaseModel {
 
 
   static relationMappings = {
-    // Todo
-    // ...
+    areas: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Area',
+      join: {
+        from: 'counties.id',
+        through: {
+          modelClass: 'AreaToCounty',
+          from: 'areasToCounties.countyId',
+          to: 'areasToCounties.areaId',
+        },
+        to: 'areas.id',
+      },
+    },
+    hazardRegions: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'HazardRegion',
+      join: {
+        from: 'counties.id',
+        through: {
+          modelClass: 'CountyToHazardRegion',
+          from: 'countiesToHazardRegions.countyId',
+          to: 'countiesToHazardRegions.hazardRegionId',
+        },
+        to: 'hazardRegions.id',
+      },
+    },
+    routes: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Route',
+      join: {
+        from: 'counties.id',
+        through: {
+          modelClass: 'RouteToCounty',
+          from: 'routesToCounties.countyId',
+          to: 'routesToCounties.routeId',
+        },
+        to: 'routes.id',
+      },
+    },
+    trips: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Trip',
+      join: {
+        from: 'counties.id',
+        through: {
+          modelClass: 'TripToCounty',
+          from: 'tripsToCounties.countyId',
+          to: 'tripsToCounties.tripId',
+        },
+        to: 'trips.id',
+      },
+    },
   };
 
   static jsonSchema = {

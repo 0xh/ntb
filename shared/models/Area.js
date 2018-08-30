@@ -21,8 +21,8 @@ export default class Area extends BaseModel {
         from: 'areas.id',
         through: {
           modelClass: 'AreaToArea',
-          from: 'areasToAreas.parentId',
-          to: 'areasToAreas.childId',
+          from: 'areasToAreas.areaAId',
+          to: 'areasToAreas.areaBId',
         },
         to: 'areas.id',
       },
@@ -34,8 +34,8 @@ export default class Area extends BaseModel {
         from: 'areas.id',
         through: {
           modelClass: 'AreaToArea',
-          from: 'areasToAreas.childId',
-          to: 'areasToAreas.parentId',
+          from: 'areasToAreas.areaBId',
+          to: 'areasToAreas.areaBId',
         },
         to: 'areas.id',
       },
@@ -92,12 +92,51 @@ export default class Area extends BaseModel {
         to: 'pois.id',
       },
     },
+    routes: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Route',
+      join: {
+        from: 'areas.id',
+        through: {
+          modelClass: 'RouteToArea',
+          from: 'routesToAreas.areaId',
+          to: 'routesToAreas.routeId',
+        },
+        to: 'routes.id',
+      },
+    },
+    trips: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Trip',
+      join: {
+        from: 'areas.id',
+        through: {
+          modelClass: 'TripToArea',
+          from: 'tripsToAreas.areaId',
+          to: 'tripsToAreas.tripId',
+        },
+        to: 'trips.id',
+      },
+    },
     pictures: {
       relation: BaseModel.HasManyRelation,
       modelClass: 'Picture',
       join: {
         from: 'areas.id',
         to: 'pictures.areaId',
+      },
+    },
+    hazardRegions: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'HazardRegion',
+      join: {
+        from: 'areas.id',
+        through: {
+          modelClass: 'AreaToHazardRegion',
+          from: 'areasToHazardRegions.areaId',
+          to: 'areasToHazardRegions.hazardRegionId',
+        },
+        to: 'hazardRegions.id',
       },
     },
   };

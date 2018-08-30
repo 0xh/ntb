@@ -65,7 +65,45 @@ export default class HazardRegion extends BaseModel {
         to: 'pois.id',
       },
     },
-    // poi
+    areas: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Area',
+      join: {
+        from: 'hazardRegions.id',
+        through: {
+          modelClass: 'AreaToHazardRegion',
+          from: 'areasToHazardRegions.hazardRegionId',
+          to: 'areasToHazardRegions.areaId',
+        },
+        to: 'areas.id',
+      },
+    },
+    counties: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'County',
+      join: {
+        from: 'hazardRegions.id',
+        through: {
+          modelClass: 'CountyToHazardRegion',
+          from: 'countiesToHazardRegions.hazardRegionId',
+          to: 'countiesToHazardRegions.countyId',
+        },
+        to: 'counties.id',
+      },
+    },
+    municipalities: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Municipality',
+      join: {
+        from: 'hazardRegions.id',
+        through: {
+          modelClass: 'MunicipalityToHazardRegion',
+          from: 'municipalitiesToHazardRegions.hazardRegionId',
+          to: 'municipalitiesToHazardRegions.municipalityId',
+        },
+        to: 'municipalities.id',
+      },
+    },
   };
 
 

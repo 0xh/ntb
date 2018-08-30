@@ -158,6 +158,20 @@ export default class Cabin extends BaseModel {
         to: 'trips.id',
       },
     },
+    cabinsByDistance: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Cabin',
+      join: {
+        from: 'cabins.id',
+        through: {
+          modelClass: 'CabinToCabinByDistance',
+          extra: { calculatedDistance: 'calculatedDistance' },
+          from: 'cabinsToCabinsByDistance.cabinAId',
+          to: 'cabinsToCabinsByDistance.cabinBId',
+        },
+        to: 'cabins.id',
+      },
+    },
   };
 
 
@@ -427,6 +441,15 @@ export default class Cabin extends BaseModel {
 
     // Configuration when included through Trip.cabinsByDistance
     config['Trip.cabinsByDistance'] = {
+      ...config.default,
+      defaultFields: [
+        ...config.default.defaultFields,
+        'calculatedDistance',
+      ],
+    };
+
+    // Configuration when included through Trip.cabinsByDistance
+    config['Cabin.cabinsByDistance'] = {
       ...config.default,
       defaultFields: [
         ...config.default.defaultFields,

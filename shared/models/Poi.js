@@ -184,6 +184,20 @@ export default class Poi extends BaseModel {
         to: 'trips.id',
       },
     },
+    poisByDistance: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Poi',
+      join: {
+        from: 'pois.id',
+        through: {
+          modelClass: 'PoiToPoiByDistance',
+          extra: { calculatedDistance: 'calculatedDistance' },
+          from: 'poisToPoisByDistance.poiAId',
+          to: 'poisToPoisByDistance.poiBId',
+        },
+        to: 'pois.id',
+      },
+    },
   };
 
 
@@ -334,6 +348,15 @@ export default class Poi extends BaseModel {
 
     // Configuration when included through Trip.poisByDistance
     config['Trip.poisByDistance'] = {
+      ...config.default,
+      defaultFields: [
+        ...config.default.defaultFields,
+        'calculatedDistance',
+      ],
+    };
+
+    // Configuration when included through Poi.poisByDistance
+    config['Poi.poisByDistance'] = {
       ...config.default,
       defaultFields: [
         ...config.default.defaultFields,

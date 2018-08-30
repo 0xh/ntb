@@ -64,6 +64,19 @@ export default class Route extends BaseModel {
         to: 'counties.id',
       },
     },
+    municipalities: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Municipality',
+      join: {
+        from: 'routes.id',
+        through: {
+          modelClass: 'RouteToMunicipality',
+          from: 'routesToMunicipalities.routeId',
+          to: 'routesToMunicipalities.municipalityId',
+        },
+        to: 'municipalities.id',
+      },
+    },
     groups: {
       relation: BaseModel.ManyToManyRelation,
       modelClass: 'Group',
@@ -117,6 +130,19 @@ export default class Route extends BaseModel {
           to: 'routesToHazardRegions.hazardRegionId',
         },
         to: 'hazardRegions.id',
+      },
+    },
+    areas: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Area',
+      join: {
+        from: 'routes.id',
+        through: {
+          modelClass: 'RouteToArea',
+          from: 'routesToAreas.routeId',
+          to: 'routesToAreas.areaId',
+        },
+        to: 'areas.id',
       },
     },
     poisByDistance: {

@@ -68,6 +68,45 @@ export default class Trip extends BaseModel {
         to: 'pois.id',
       },
     },
+    counties: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'County',
+      join: {
+        from: 'trips.id',
+        through: {
+          modelClass: 'TripToCounty',
+          from: 'tripsToCounties.tripId',
+          to: 'tripsToCounties.countyId',
+        },
+        to: 'counties.id',
+      },
+    },
+    municipalities: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Municipality',
+      join: {
+        from: 'trips.id',
+        through: {
+          modelClass: 'TripToMunicipality',
+          from: 'tripsToMunicipalities.tripId',
+          to: 'tripsToMunicipalities.municipalityId',
+        },
+        to: 'municipalities.id',
+      },
+    },
+    areas: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Area',
+      join: {
+        from: 'trips.id',
+        through: {
+          modelClass: 'TripToArea',
+          from: 'tripsToAreas.tripId',
+          to: 'tripsToAreas.areaId',
+        },
+        to: 'areas.id',
+      },
+    },
     links: {
       relation: BaseModel.HasManyRelation,
       modelClass: 'TripLink',

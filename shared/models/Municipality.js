@@ -14,8 +14,58 @@ export default class Municipality extends BaseModel {
 
 
   static relationMappings = {
-    // Todo
-    // ...
+    areas: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Area',
+      join: {
+        from: 'municipalities.id',
+        through: {
+          modelClass: 'AreaToMunicipality',
+          from: 'areasToMunicipalities.municipalityId',
+          to: 'areasToMunicipalities.areaId',
+        },
+        to: 'areas.id',
+      },
+    },
+    hazardRegions: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'HazardRegion',
+      join: {
+        from: 'municipalities.id',
+        through: {
+          modelClass: 'MunicipalityToHazardRegion',
+          from: 'municipalitiesToHazardRegions.municipalityId',
+          to: 'municipalitiesToHazardRegions.hazardRegionId',
+        },
+        to: 'hazardRegions.id',
+      },
+    },
+    routes: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Route',
+      join: {
+        from: 'municipalities.id',
+        through: {
+          modelClass: 'RouteToMunicipality',
+          from: 'routesToMunicipalities.municipalityId',
+          to: 'routesToMunicipalities.routeId',
+        },
+        to: 'routes.id',
+      },
+    },
+    trips: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Trip',
+      join: {
+        from: 'municipalities.id',
+        through: {
+          modelClass: 'TripToMunicipality',
+          from: 'tripsToMunicipalities.municipalityId',
+          to: 'tripsToMunicipalities.tripId',
+        },
+        to: 'trips.id',
+      },
+    },
   };
 
   static jsonSchema = {
