@@ -20,8 +20,8 @@ async function resetTripPathBufferss(routeType) {
 }
 
 
-async function createTripPathBufferBulk(limit, offset) {
-  logger.info(`Create path buffer with offset ${offset}`);
+async function createTripPathBufferBulk(limit) {
+  logger.info('Create path buffer');
 
   const result = await knex.raw(`
     UPDATE trips SET
@@ -33,16 +33,15 @@ async function createTripPathBufferBulk(limit, offset) {
       FROM trips t
       WHERE
           t.path IS NOT NULL
+          AND t.path_buffer IS NULL
       ORDER BY
         t.id
       LIMIT :limit
-      OFFSET :offset
     ) x
     WHERE
       trips.id = x.id
   `, {
     limit,
-    offset,
   });
 
   logger.info(`- Updated ${result.rowCount} rows`);
@@ -55,13 +54,11 @@ async function createTripPathBuffer(routeType, geometryTableName) {
 
   const limit = 1;
   let rowCount = 1;
-  let offset = 0;
   let iterationIndex = 0;
-  const maxIterations = 20;
+  const maxIterations = 30;
   while (rowCount === limit && iterationIndex < maxIterations) {
     // eslint-disable-next-line
-    rowCount = await createTripPathBufferBulk(limit, offset);
-    offset += limit;
+    rowCount = await createTripPathBufferBulk(limit);
     iterationIndex += 1;
   }
 }
