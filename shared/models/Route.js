@@ -187,6 +187,20 @@ export default class Route extends BaseModel {
         to: 'trips.id',
       },
     },
+    routesByDistance: {
+      relation: BaseModel.ManyToManyRelation,
+      modelClass: 'Route',
+      join: {
+        from: 'routes.id',
+        through: {
+          modelClass: 'RouteToRouteByDistance',
+          extra: { calculatedDistance: 'calculatedDistance' },
+          from: 'routesToRoutesByDistance.routeAId',
+          to: 'routesToRoutesByDistance.routeBId',
+        },
+        to: 'routes.id',
+      },
+    },
   };
 
 
@@ -340,7 +354,7 @@ export default class Route extends BaseModel {
         'uri',
         'id',
         'code',
-        'isWinter',
+        'type',
         'name',
         'description',
         'descriptionAb',
