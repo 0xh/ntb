@@ -23,7 +23,6 @@ const DOCUMENT_TABLES = {
 };
 
 const RELATION_TABLES = [
-  'areas_to_areas',
   'cabins_to_areas',
   'areas_to_counties',
   'areas_to_hazard_regions',
@@ -33,25 +32,22 @@ const RELATION_TABLES = [
   'trips_to_areas',
   'cabins_to_trips_by_distance',
   'cabins_to_cabins_by_distance',
-  'cabins_to_counties',
   'cabins_to_hazard_regions',
-  'cabins_to_municipalities',
   'cabins_to_pois_by_distance',
   'routes_to_cabins_by_distance',
   'counties_to_hazard_regions',
-  'pois_to_counties',
   'routes_to_counties',
   'trips_to_counties',
   'municipalities_to_hazard_regions',
   'pois_to_hazard_regions',
   'routes_to_hazard_regions',
   'trips_to_hazard_regions',
-  'pois_to_municipalities',
   'routes_to_municipalities',
   'trips_to_municipalities',
   'pois_to_pois_by_distance',
   'routes_to_pois_by_distance',
   'trips_to_pois_by_distance',
+  'routes_to_trips_by_distance',
 ];
 
 
