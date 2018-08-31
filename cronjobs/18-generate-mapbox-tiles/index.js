@@ -71,12 +71,23 @@ const TIPPECANOE_OPTIONS = {
     '-o',
     path.resolve(DATA_DIR, `routes-v${VERSION}.mbtiles`),
     '-f',
-    '-B',
-    8,
+    '-M',
+    100000,
+    '-an',
     '--generate-ids',
     path.resolve(DATA_DIR, `routesfoot-v${VERSION}.geojson`),
-    path.resolve(DATA_DIR, `routesfootpoints-v${VERSION}.geojson`),
     path.resolve(DATA_DIR, `routesski-v${VERSION}.geojson`),
+  ],
+  routepoints: [
+    '-o',
+    path.resolve(DATA_DIR, `routepoints-v${VERSION}.mbtiles`),
+    '-f',
+    '-Z',
+    10,
+    '-B',
+    10,
+    '--generate-ids',
+    path.resolve(DATA_DIR, `routesfootpoints-v${VERSION}.geojson`),
     path.resolve(DATA_DIR, `routesskipoints-v${VERSION}.geojson`),
   ],
 };
@@ -425,9 +436,7 @@ async function createGeojsonRoutePoints(type) {
   const points = instances.map((instance) => ({
     type: 'Feature',
     id: instance.id,
-    properties: {
-      type,
-    },
+    properties: {},
     geometry: JSON.parse(instance.pointA),
   }));
 
@@ -475,8 +484,9 @@ async function joinTiles() {
     path.resolve(DATA_DIR, 'ntb.mbtiles'),
     path.resolve(DATA_DIR, `cabins-v${VERSION}.mbtiles`),
     path.resolve(DATA_DIR, `pois-v${VERSION}.mbtiles`),
-    path.resolve(DATA_DIR, `routes-v${VERSION}.mbtiles`),
     path.resolve(DATA_DIR, `trips-v${VERSION}.mbtiles`),
+    path.resolve(DATA_DIR, `routes-v${VERSION}.mbtiles`),
+    path.resolve(DATA_DIR, `routepoints-v${VERSION}.mbtiles`),
   ]);
 
   endDuration(durationId);
