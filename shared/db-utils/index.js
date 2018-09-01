@@ -64,19 +64,19 @@ knexPostgis(knex);
 knex.on('query', (data) => {
   logger.debug('Query start');
 
-  if (settings.ENV_IS_DEVELOPMENT) {
-    logger.debug(
-      data.sql.length > 1500
-        ? `${data.sql.substr(0, 1500)}... [TRUNCATED]`
-        : data.sql
-    );
-    if (data.bindings && data.bindings.length && data.bindings.length <= 20) {
-      logger.debug(data.bindings);
-    }
-    else if (data.bindings && data.bindings.length) {
-      logger.debug('[Too many sql bindings to log]');
-    }
-  }
+  // if (settings.ENV_IS_DEVELOPMENT) {
+  //   logger.debug(
+  //     data.sql.length > 1500
+  //       ? `${data.sql.substr(0, 1500)}... [TRUNCATED]`
+  //       : data.sql
+  //   );
+  //   if (data.bindings && data.bindings.length && data.bindings.length <= 20) {
+  //     logger.debug(data.bindings);
+  //   }
+  //   else if (data.bindings && data.bindings.length) {
+  //     logger.debug('[Too many sql bindings to log]');
+  //   }
+  // }
 
   const durationId = data.__knexQueryUid || data.sql;
   startDuration(durationId);
