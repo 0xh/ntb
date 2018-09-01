@@ -1,5 +1,6 @@
 
 export async function up(knex) {
+  await knex.schema.dropTableIfExists('tripsToTripsByDistance');
   await knex.schema.createTable('tripsToTripsByDistance', (table) => {
     table.uuid('tripAId')
       .notNullable()

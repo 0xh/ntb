@@ -106,12 +106,14 @@ export async function up(knex) {
     await createRelationTable(knex, relationTableName);
   }
 
-  knex.schema.dropTableIfExists('tripsToTripsByDistance');
-  knex.schema.dropTableIfExists('routeSegmentsToCabinsByDistance');
-  knex.schema.dropTableIfExists('routeSegmentsToHazardRegions');
-  knex.schema.dropTableIfExists('routeSegmentsToPoisByDistance');
-  knex.schema.dropTableIfExists('routeSegmentsToRouteSegmentsByDistance');
-  knex.schema.dropTableIfExists('routeSegmentsToTripsByDistance');
+  await knex.schema.dropTableIfExists('tripsToTripsByDistance');
+  await knex.schema.dropTableIfExists('routeSegmentsToCabinsByDistance');
+  await knex.schema.dropTableIfExists('routeSegmentsToHazardRegions');
+  await knex.schema.dropTableIfExists('routeSegmentsToPoisByDistance');
+  await knex.schema.dropTableIfExists(
+    'routeSegmentsToRouteSegmentsByDistance'
+  );
+  await knex.schema.dropTableIfExists('routeSegmentsToTripsByDistance');
 }
 
 
