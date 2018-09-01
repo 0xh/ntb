@@ -504,6 +504,19 @@ async function mergePoiToPoiTypes(handler) {
   await knex.raw(sql);
   endDuration(durationId);
 
+  // Remove existing poi to poi type relations
+  sql = (`
+    DELETE FROM pois_to_poi_types
+    WHERE poi_id IN (
+      SELECT DISTINCT poi_id FROM "public"."${tableName}"
+    )
+  `);
+
+  logger.info('Remove existing poi to poi type relations');
+  durationId = startDuration();
+  await knex.raw(sql);
+  endDuration(durationId);
+
   // Merge into prod table
   sql = [
     'INSERT INTO pois_to_poi_types (',
@@ -514,10 +527,6 @@ async function mergePoiToPoiTypes(handler) {
     '  type, poi_id, "primary",',
     '  sort_index, :data_source, now(), now()',
     `FROM "public"."${tableName}"`,
-    'ON CONFLICT (poi_id, sort_index) DO UPDATE',
-    'SET',
-    '  poi_type = EXCLUDED.poi_type,',
-    '  "primary" = EXCLUDED."primary"',
   ].join('\n');
 
   logger.info('Creating or updating pois to poi types');
