@@ -5,8 +5,8 @@
   "dependencies": {
     "@turistforeningen/ntb-shared-settings": "*",
     "@turistforeningen/ntb-shared-utils": "*",
-    "knex": "^0.14.6",
-    "knex-postgis": "^0.6.0",
+    "knex": "0.15.2",
+    "knex-postgis": "0.7.0",
     "lodash": "^4.17.10",
     "objection": "^1.1.8",
     "pg": "^7.4.3",

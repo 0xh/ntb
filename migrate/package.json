@@ -9,7 +9,6 @@
     "migrate:rollback": "npm run knex -- migrate:rollback"
   },
   "dependencies": {
-    "@turistforeningen/ntb-shared-counties-municipalities-harvester": "*",
     "@turistforeningen/ntb-shared-db-utils": "*",
     "@turistforeningen/ntb-shared-models": "*",
     "@turistforeningen/ntb-shared-utils": "*",

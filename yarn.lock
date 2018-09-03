@@ -2340,9 +2340,13 @@ command-join@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/command-join/-/command-join-2.0.0.tgz#52e8b984f4872d952ff1bdc8b98397d27c7144cf"
 
-commander@2.15.1, commander@2.15.x, commander@^2.11.0, commander@^2.13.0, commander@^2.15.1, commander@^2.7.1, commander@~2.15.0:
+commander@2.15.1, commander@2.15.x, commander@^2.11.0, commander@^2.13.0, commander@^2.7.1, commander@~2.15.0:
   version "2.15.1"
   resolved "https://registry.yarnpkg.com/commander/-/commander-2.15.1.tgz#df46e867d0fc2aec66a34662b406a9ccafff5b0f"
+
+commander@^2.16.0:
+  version "2.17.1"
+  resolved "https://registry.yarnpkg.com/commander/-/commander-2.17.1.tgz#bd77ab7de6de94205ceacc72f1716d29f20a77bf"
 
 commander@~2.13.0:
   version "2.13.0"
@@ -5545,34 +5549,32 @@ knex-migrate@^1.5.5:
     req-from "^1.0.1"
     umzug "^2.1.0"
 
-knex-postgis@^0.6.0:
-  version "0.6.0"
-  resolved "https://registry.yarnpkg.com/knex-postgis/-/knex-postgis-0.6.0.tgz#a7548d7aef685e4f08118686e17a4977d1c2a308"
+knex-postgis@0.7.0:
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/knex-postgis/-/knex-postgis-0.7.0.tgz#7a719964ea55ff73522c7810f31774c68b3a5223"
   dependencies:
     "@mapbox/geojsonhint" "^2.0.1"
 
-knex@^0.14.6:
-  version "0.14.6"
-  resolved "https://registry.yarnpkg.com/knex/-/knex-0.14.6.tgz#ad57c4ef8fa1b51ebc8c37c2c9b483f6fb34e41e"
+knex@0.15.2:
+  version "0.15.2"
+  resolved "https://registry.yarnpkg.com/knex/-/knex-0.15.2.tgz#6059b87489605f4cc87599a6d2a9d265709e9340"
   dependencies:
     babel-runtime "^6.26.0"
     bluebird "^3.5.1"
     chalk "2.3.2"
-    commander "^2.15.1"
+    commander "^2.16.0"
     debug "3.1.0"
     inherits "~2.0.3"
     interpret "^1.1.0"
     liftoff "2.5.0"
-    lodash "^4.17.5"
+    lodash "^4.17.10"
     minimist "1.2.0"
     mkdirp "^0.5.1"
     pg-connection-string "2.0.0"
-    readable-stream "2.3.6"
-    safe-buffer "^5.1.1"
     tarn "^1.1.4"
     tildify "1.2.0"
-    uuid "^3.2.1"
-    v8flags "^3.0.2"
+    uuid "^3.3.2"
+    v8flags "^3.1.1"
 
 kuler@0.0.x:
   version "0.0.0"
@@ -8344,7 +8346,7 @@ read-pkg@^3.0.0:
     normalize-package-data "^2.3.2"
     path-type "^3.0.0"
 
-"readable-stream@1 || 2", readable-stream@2.3.6, readable-stream@^2.0.0, readable-stream@^2.0.1, readable-stream@^2.0.2, readable-stream@^2.0.4, readable-stream@^2.0.5, readable-stream@^2.0.6, readable-stream@^2.1.5, readable-stream@^2.2.2, readable-stream@^2.2.9, readable-stream@^2.3.0, readable-stream@^2.3.3, readable-stream@^2.3.5, readable-stream@^2.3.6:
+"readable-stream@1 || 2", readable-stream@^2.0.0, readable-stream@^2.0.1, readable-stream@^2.0.2, readable-stream@^2.0.4, readable-stream@^2.0.5, readable-stream@^2.0.6, readable-stream@^2.1.5, readable-stream@^2.2.2, readable-stream@^2.2.9, readable-stream@^2.3.0, readable-stream@^2.3.3, readable-stream@^2.3.5, readable-stream@^2.3.6:
   version "2.3.6"
   resolved "https://registry.yarnpkg.com/readable-stream/-/readable-stream-2.3.6.tgz#b11c27d88b8ff1fbe070643cf94b0c79ae1b0aaf"
   dependencies:
@@ -10074,9 +10076,9 @@ v8flags@^2.1.1:
   dependencies:
     user-home "^1.1.1"
 
-v8flags@^3.0.2:
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/v8flags/-/v8flags-3.1.0.tgz#246a34a8158c0e1390dcb758e1140e5d004e230b"
+v8flags@^3.1.1:
+  version "3.1.1"
+  resolved "https://registry.yarnpkg.com/v8flags/-/v8flags-3.1.1.tgz#42259a1461c08397e37fe1d4f1cfb59cad85a053"
   dependencies:
     homedir-polyfill "^1.0.1"
 
