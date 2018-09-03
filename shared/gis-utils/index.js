@@ -36,8 +36,9 @@ export function geomFromGeoJSON(geojson) {
         'geometry object cannot contain a "properties" member'
       );
       if (message === invalidPropertiesKey) {
-        delete geojson.properties;
-        res = st.geomFromGeoJSON(geojson);
+        const newGeojson = geojson;
+        delete newGeojson.properties;
+        res = st.geomFromGeoJSON(newGeojson);
       }
     }
     else {
@@ -45,7 +46,7 @@ export function geomFromGeoJSON(geojson) {
     }
   }
 
-  return st.transform(res, 4326);
+  return st.setSRID(res, 4326);
 }
 
 
