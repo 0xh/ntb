@@ -302,14 +302,18 @@ async function createGeojsonTrips() {
       trip.properties.htgt_bicycle = true;
     }
 
-    if (instance.durationHours || instance.durationMinutes) {
+    if (
+      instance.duration &&
+      instance.duration.hours &&
+      instance.duration.minutes
+    ) {
       trip.properties.duration_minutes =
-        ((instance.durationHours || 0) * 60) +
-        (instance.durationMinutes || 0);
+        ((instance.duration.hours || 0) * 60) +
+        (instance.duration.minutes || 0);
     }
 
-    if (instance.durationDays) {
-      trip.properties.duration_days = instance.durationDays;
+    if (instance.duration && instance.duration.days) {
+      trip.properties.duration_days = instance.duration.days;
     }
 
     return trip;
