@@ -50,7 +50,7 @@ async function createTripPathBufferBulk(limit) {
 
 
 async function getRemainingCount(routeType) {
-  logger.info('Fetchin remaing trips to be updated');
+  logger.info('Fetch remaing trips to be updated');
 
   const result = await knex('trips')
     .whereNull('pathBuffer')
