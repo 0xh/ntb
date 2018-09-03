@@ -101,7 +101,7 @@ async function createGeojsonCabins() {
     .query()
     .select(
       'id',
-      knex.raw('ST_AsGeoJSON(coordinates) coordinates'),
+      knex.raw('ST_AsGeoJSON(ST_Transform(coordinates, 4326)) coordinates'),
       'name',
       'dntCabin',
       'serviceLevel',
@@ -195,7 +195,7 @@ async function createGeojsonPois() {
     .query()
     .select(
       'id',
-      knex.raw('ST_AsGeoJSON(coordinates) coordinates'),
+      knex.raw('ST_AsGeoJSON(ST_Transform(coordinates, 4326)) coordinates'),
       'type',
       'name',
     )
@@ -242,7 +242,7 @@ async function createGeojsonTrips() {
     .query()
     .select(
       'id',
-      knex.raw('ST_AsGeoJSON(starting_point) point'),
+      knex.raw('ST_AsGeoJSON(ST_Transform(starting_point, 4326)) point'),
       'activityType',
       'grading',
       'distance',
@@ -388,7 +388,7 @@ async function createGeojsonRoutes(type) {
     .query()
     .select(
       'id',
-      knex.raw('ST_AsGeoJSON(path) path'),
+      knex.raw('ST_AsGeoJSON(ST_Transform(path, 4326)) path'),
       'calculatedDistance',
     )
     .whereNotNull('path')
@@ -427,7 +427,7 @@ async function createGeojsonRoutePoints(type) {
     .query()
     .select(
       'id',
-      knex.raw('ST_AsGeoJSON(point_a) point_a'),
+      knex.raw('ST_AsGeoJSON(ST_Transform(point_a, 4326)) point_a'),
     )
     .whereNotNull('path')
     .where('type', '=', type)
