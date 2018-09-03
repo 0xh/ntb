@@ -1199,6 +1199,18 @@ function formatResults(handler, results) {
   // Remove null values
   documents = documents.map((doc) => formatDocument(doc));
 
+  // Fix geojson fields
+  if (handler.model.geometryAttributes) {
+    documents = documents.map((doc) => {
+      handler.model.geometryAttributes.forEach((geoField) => {
+        if (doc[geoField] && isString(doc[geoField])) {
+          doc[geoField] = JSON.parse(doc[geoField]);
+        }
+      });
+      return doc;
+    });
+  }
+
   // Return single document
   if (handler.id || singleDocument) {
     return documents[0];
