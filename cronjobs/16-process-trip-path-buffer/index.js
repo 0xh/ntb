@@ -5,7 +5,7 @@ import { knex } from '@turistforeningen/ntb-shared-db-utils';
 const logger = createLogger();
 
 
-async function resetTripPathBufferss(routeType) {
+async function resetTripPathBufferss() {
   logger.info('Emptying path buffers where path has been reset');
 
   const status = await knex.raw(`
@@ -25,7 +25,7 @@ async function createTripPathBufferBulk(limit) {
 
   const result = await knex.raw(`
     UPDATE trips SET
-      path_buffer = ST_Buffer(x.path::GEOGRAPHY, 5000, 1)::GEOMETRY
+      path_buffer = ST_Buffer(x.path, 5000, 1)
     FROM (
       SELECT
         t.id,
@@ -49,17 +49,39 @@ async function createTripPathBufferBulk(limit) {
 }
 
 
-async function createTripPathBuffer(routeType, geometryTableName) {
-  await resetTripPathBufferss(routeType);
+async function getRemainingCount(routeType) {
+  logger.info('Fetchin remaing trips to be updated');
+
+  const result = await knex('trips')
+    .whereNull('pathBuffer')
+    .whereNotNull('path')
+    .count();
+
+  if (result && result.length) {
+    logger.info(`- REMAINING ${result[0].count} trips`);
+  }
+  else {
+    logger.info('- NO REMAINING trips');
+  }
+}
+
+
+async function createTripPathBuffer() {
+  await resetTripPathBufferss();
 
   const limit = 1;
   let rowCount = 1;
   let iterationIndex = 0;
-  const maxIterations = 30;
-  while (rowCount === limit && iterationIndex < maxIterations) {
+  while (rowCount === limit) {
     // eslint-disable-next-line
     rowCount = await createTripPathBufferBulk(limit);
     iterationIndex += 1;
+
+    if (iterationIndex % 10 === 0) {
+      // eslint-disable-next-line
+      await getRemainingCount(limit);
+      iterationIndex = 0;
+    }
   }
 }
 
