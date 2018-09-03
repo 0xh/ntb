@@ -37,7 +37,7 @@ async function createTempTables(handler, first = false) {
       table.text('nameLowerCase');
       table.text('description');
       table.text('descriptionPlain');
-      table.specificType('coordinates', 'GEOMETRY');
+      table.specificType('coordinates', 'GEOMETRY(Point, 4326)');
       table.specificType('season', 'INTEGER[]');
       table.boolean('open');
       table.uuid('countyId');
@@ -441,7 +441,7 @@ async function mergePoi(handler) {
     '  name_lower_case,',
     '  description,',
     '  description_plain,',
-    '  coordinates,',
+    '  ST_Transform(coordinates, 25833),',
     '  season,',
     '  open,',
     '  license,',

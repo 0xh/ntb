@@ -33,7 +33,7 @@ async function createTempTables(handler, first = false) {
       table.text('nameLowerCase');
       table.text('description');
       table.text('descriptionPlain');
-      table.specificType('geometry', 'GEOMETRY');
+      table.specificType('geometry', 'GEOMETRY(Polygon, 4326)');
       table.text('map');
       table.text('url');
       table.text('license');
@@ -215,7 +215,7 @@ async function mergeAreas(handler) {
     '  name_lower_case,',
     '  description,',
     '  description_plain,',
-    '  geometry,',
+    '  ST_Transform(geometry, 25833),',
     '  map,',
     '  url,',
     '  license,',
