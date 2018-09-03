@@ -9,7 +9,7 @@ import { knex } from '@turistforeningen/ntb-shared-db-utils';
 const logger = createLogger();
 
 const MAX_DISTANCE = 5000;
-const LIMIT = 100;
+const LIMIT = 30;
 
 const DOCUMENT_TABLES = {
   areas: { geomField: 'geometry' },
@@ -47,21 +47,21 @@ const RELATION_TABLES = [
   'pois_to_pois_by_distance',
   'routes_to_pois_by_distance',
   'trips_to_pois_by_distance',
-  // 'routes_to_trips_by_distance', // Fixed in it's own function
-  // 'routes_to_routes_by_distance', // Fixed in it's own function
-  // 'trips_to_trips_by_distance', // Fixed in it's own function
+  'routes_to_trips_by_distance',
+  'trips_to_trips_by_distance',
+  'routes_to_routes_by_distance',
 ];
 
 
-const TABLE_IDS = {
+const TABLE_IDS = {};
 
-};
 
 async function getIds() {
   // eslint-disable-next-line
   for (let table of Object.keys(DOCUMENT_TABLES)) {
     logger.info(`Getting IDs for ${table}`);
     const { geomField, bufferField } = DOCUMENT_TABLES[table];
+    TABLE_IDS[table] = [];
 
     // eslint-disable-next-line
     const result = await knex.raw(`
@@ -106,14 +106,14 @@ async function processRelation(relationTable) {
       DOCUMENT_TABLES[tblA];
     const { geomField: geomB, bufferField: bufferFieldB } =
       DOCUMENT_TABLES[tblB];
-    const distance = relationTable === 'routes_to_trips_by_distance'
-      ? ',0'
-      : `,ST_Distance(a.${geomA}::GEOGRAPHY, b.${geomB}::GEOGRAPHY)::INTEGER`;
+    const intersectFieldA = bufferFieldA || geomA;
+    const intersectFieldB = bufferFieldA ? geomB : (bufferFieldB || geomB);
+    const distance = `,ST_Distance(a.${geomA}, b.${geomB})::INTEGER`;
 
     let geometryClause = `
       ST_Intersects(
-        a.${bufferFieldA || geomA},
-        b.${bufferFieldB || geomB}
+        a.${intersectFieldA},
+        b.${intersectFieldB}
       ) IS TRUE
     `;
     if (byDistance && !bufferFieldA) {
@@ -121,8 +121,7 @@ async function processRelation(relationTable) {
         ST_DWithin(
           a.${geomA},
           b.${geomB},
-          ${MAX_DISTANCE},
-          true
+          ${MAX_DISTANCE}
         ) IS TRUE
       `;
     }
@@ -130,15 +129,17 @@ async function processRelation(relationTable) {
     if (ids && ids.length) {
       logger.info(`Prossesing relations for ${tblA} to ${tblB}`);
       // eslint-disable-next-line
-      await knex.raw(`
+      const status = await knex.raw(`
         INSERT INTO ${relationTable} (
           ${singularA || tblA.slice(0, -1)}${selfReference ? selfA : ''}_id,
-          ${singularB || tblB.slice(0, -1)}${selfReference ? selfB : ''}_id
+          ${singularB || tblB.slice(0, -1)}${selfReference ? selfB : ''}_id,
+          processed_verified
           ${byDistance ? ',calculated_distance' : ''}
         )
         SELECT
           a.id aid,
-          b.id bid
+          b.id bid,
+          NOW()
           ${byDistance ? distance : ''}
         FROM ${tblA} a
         INNER JOIN ${tblB} b ON
@@ -150,195 +151,12 @@ async function processRelation(relationTable) {
           a.id
         ON CONFLICT DO NOTHING
       `, { ids });
+
+      return status.rowCount;
     }
   }
-}
 
-
-async function processRoutesToTrips() {
-  if (TABLE_IDS.trips && TABLE_IDS.trips.length) {
-    logger.info('Processing relations for routes to trips');
-
-    await knex.raw(`
-      INSERT INTO routes_to_trips_by_distance (
-        trip_id,
-        route_id,
-        calculated_distance
-      )
-      SELECT
-        t.id trip_id,
-        r.id route_id,
-        LEAST(
-          MIN(ST_Distance(t.path::GEOGRAPHY, rs.point_a::GEOGRAPHY)::INTEGER),
-          MIN(ST_Distance(t.path::GEOGRAPHY, rs.point_b::GEOGRAPHY)::INTEGER)
-        ) calculated_distance
-      FROM (
-        SELECT
-          id,
-          path_buffer,
-          path
-        FROM trips
-        WHERE
-          id = ANY(:ids)
-      ) t
-      INNER JOIN route_segments rs ON
-        ST_Intersects(t.path_buffer, rs.point_a) IS TRUE
-        OR ST_Intersects(t.path_buffer, rs.point_b) IS TRUE
-      INNER JOIN routes_to_route_segments rtrs ON
-        rtrs.route_segment_id = rs.id
-      INNER JOIN routes r ON
-        r.id = rtrs.route_id
-      GROUP BY
-        t.id,
-        r.id
-      ON CONFLICT DO NOTHING
-    `, { ids: TABLE_IDS.trips });
-  }
-}
-
-
-async function processTripsToRoutes() {
-  if (TABLE_IDS.routes && TABLE_IDS.routes.length) {
-    logger.info('Processing relations for routes to trips');
-
-    await knex.raw(`
-      INSERT INTO routes_to_trips_by_distance (
-        trip_id,
-        route_id,
-        calculated_distance
-      )
-      SELECT
-        t.id trip_id,
-        r.id route_id,
-        LEAST(
-          MIN(ST_Distance(t.path::GEOGRAPHY, rs.point_a::GEOGRAPHY)::INTEGER),
-          MIN(ST_Distance(t.path::GEOGRAPHY, rs.point_b::GEOGRAPHY)::INTEGER)
-        ) calculated_distance
-      FROM (
-        SELECT
-          route_segments.id,
-          point_a,
-          point_b
-        FROM route_segments
-        INNER JOIN routes_to_route_segments ON
-          routes_to_route_segments.route_segment_id = route_segments.id
-        INNER JOIN routes ON
-          routes.id = ANY(:ids)
-          AND routes_to_route_segments.route_id = routes.id
-      ) rs
-      INNER JOIN trips t ON
-        ST_Intersects(t.path_buffer, rs.point_a) IS TRUE
-        OR ST_Intersects(t.path_buffer, rs.point_b) IS TRUE
-      INNER JOIN routes_to_route_segments rtrs ON
-        rtrs.route_segment_id = rs.id
-      INNER JOIN routes r ON
-        r.id = rtrs.route_id
-      GROUP BY
-        t.id,
-        r.id
-      ON CONFLICT DO NOTHING
-    `, { ids: TABLE_IDS.routes });
-  }
-}
-
-
-async function processRoutesToRoutes() {
-  if (TABLE_IDS.routes && TABLE_IDS.routes.length) {
-    logger.info('Processing relations for routes to routes');
-
-    await knex.raw(`
-      INSERT INTO routes_to_routes_by_distance (
-        route_a_id,
-        route_b_id,
-        calculated_distance
-      )
-      SELECT
-        r.id route_a_id,
-        r2.id route_b_id,
-        LEAST(
-          MIN(
-            ST_Distance(rs.point_a::GEOGRAPHY, rs2.point_a::GEOGRAPHY)::INTEGER
-          ),
-          MIN(
-            ST_Distance(rs.point_a::GEOGRAPHY, rs2.point_b::GEOGRAPHY)::INTEGER
-          ),
-          MIN(
-            ST_Distance(rs.point_b::GEOGRAPHY, rs2.point_a::GEOGRAPHY)::INTEGER
-          ),
-          MIN(
-            ST_Distance(rs.point_b::GEOGRAPHY, rs2.point_b::GEOGRAPHY)::INTEGER
-          )
-        ) calculated_distance
-      FROM (
-        SELECT
-          route_segments.id,
-          point_a,
-          point_b
-        FROM route_segments
-        INNER JOIN routes_to_route_segments ON
-          routes_to_route_segments.route_segment_id = route_segments.id
-        INNER JOIN routes ON
-          routes.id = ANY(:ids)
-          AND routes_to_route_segments.route_id = routes.id
-        LIMIT 1
-      ) rs
-      INNER JOIN route_segments rs2 ON
-        rs2.id <> rs.id
-        AND (
-          ST_DWithin(rs2.point_a, rs.point_a, 5000, true) IS TRUE
-          OR ST_DWithin(rs2.point_a, rs.point_b, 5000, true) IS TRUE
-          OR ST_DWithin(rs2.point_b, rs.point_a, 5000, true) IS TRUE
-          OR ST_DWithin(rs2.point_b, rs.point_b, 5000, true) IS TRUE
-        )
-      INNER JOIN routes_to_route_segments rtrs ON
-        rtrs.route_segment_id = rs.id
-      INNER JOIN routes r ON
-        r.id = rtrs.route_id
-      INNER JOIN routes_to_route_segments rtrs2 ON
-        rtrs2.route_segment_id = rs2.id
-      INNER JOIN routes r2 ON
-        r2.id = rtrs2.route_id
-        AND r2.id <> r.id
-      GROUP BY
-        r.id,
-        r2.id
-    `, { ids: TABLE_IDS.routes });
-  }
-}
-
-
-async function processTripsToTrips() {
-  if (TABLE_IDS.trips && TABLE_IDS.trips.length) {
-    logger.info('Processing relations for trips to trips');
-
-    await knex.raw(`
-      INSERT INTO trips_to_trips_by_distance (
-        trip_a_id,
-        trip_b_id,
-        calculated_distance
-      )
-      SELECT
-        t.id trip_id,
-        t2.id route_id,
-        MIN(ST_Distance(t.path::GEOGRAPHY, t2.path::GEOGRAPHY)::INTEGER)
-          calculated_distance
-      FROM (
-        SELECT
-          id,
-          path_buffer,
-          path
-        FROM trips
-        WHERE
-          id = ANY(:ids)
-      ) t
-      INNER JOIN trips t2 ON
-        ST_Intersects(t.path_buffer, t2.path) IS TRUE
-        AND t.id <> t2.id
-      GROUP BY
-        t.id,
-        t2.id
-    `, { ids: TABLE_IDS.trips });
-  }
+  return 0;
 }
 
 
@@ -358,23 +176,28 @@ async function updateProccessedTimestamp() {
 
 
 async function main() {
-  const durationId = startDuration();
-  await getIds();
+  let rowCount = 1;
 
-  // eslint-disable-next-line
-  for (const relationTable of RELATION_TABLES) {
+  while (rowCount > 0) {
+    rowCount = 0;
+    const durationId = startDuration();
     // eslint-disable-next-line
-    await processRelation(relationTable);
+    await getIds();
+
+    // eslint-disable-next-line
+    for (const relationTable of RELATION_TABLES) {
+      // eslint-disable-next-line
+      rowCount += await processRelation(relationTable);
+    }
+
+    // eslint-disable-next-line
+    await updateProccessedTimestamp();
+
+    logger.info('************');
+    logger.info(`Iteration done. Updated ${rowCount} rows`);
+    endDuration(durationId);
+    logger.info('************');
   }
-
-  await processRoutesToTrips();
-  await processTripsToRoutes();
-  await processRoutesToRoutes();
-  await processTripsToTrips();
-  await updateProccessedTimestamp();
-
-  logger.info('ALL DONE');
-  endDuration(durationId);
 }
 
 
