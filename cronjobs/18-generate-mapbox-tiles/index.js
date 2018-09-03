@@ -253,6 +253,9 @@ async function createGeojsonTrips() {
       'htgtCarAllYear',
       'htgtCarSummer',
       'htgtBicycle',
+      'durationMinutes',
+      'durationHours',
+      'durationDays',
     )
     .eager('accessabilities')
     .whereNotNull('startingPoint')
@@ -297,6 +300,16 @@ async function createGeojsonTrips() {
 
     if (instance.htgtCarBicycle) {
       trip.properties.htgt_bicycle = true;
+    }
+
+    if (instance.durationHours || instance.durationMinutes) {
+      trip.properties.duration_minutes =
+        ((instance.durationHours || 0) * 60) +
+        (instance.durationMinutes || 0);
+    }
+
+    if (instance.durationDays) {
+      trip.properties.duration_days = instance.durationDays;
     }
 
     return trip;
