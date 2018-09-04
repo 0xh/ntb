@@ -19,12 +19,21 @@ export default function (handler, filter) {
     return [];
   }
 
+  // Add phrase to join
+  if (!handler.queryOptions.freeTextJoin) {
+    handler.queryOptions.freeTextJoin = [];
+  }
+  const name = `free_text_phrase_${handler.queryOptions.freeTextJoin.length}`;
+  handler.queryOptions.freeTextJoin.push([
+    `JOIN plainto_tsquery('norwegian', ?) AS ${name} ON TRUE`,
+    [rawValue],
+  ]);
+
   // Exact match
   return [{
     whereType: 'whereRaw',
     options: [
-      `${filter.snakeCasedAttribute} @@ to_tsquery('norwegian', ?)`,
-      [rawValue],
+      `${filter.snakeCasedAttribute} @@ ${name}`,
     ],
   }];
 }

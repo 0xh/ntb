@@ -418,6 +418,18 @@ function setOrdering(handler) {
         }
       }
     }
+
+    // Free text ordering if ordering is not specified
+    if (!queryOrder && config.fullTextSearch && requestObject.q) {
+      const freeTextOrder = [];
+      for (let i = 0; i < requestObject.q.length; i += 1) {
+        freeTextOrder.push([`free_text_rank_${i}`, 'DESC']);
+      }
+
+      if (freeTextOrder.length) {
+        queryOptions.order = freeTextOrder;
+      }
+    }
   }
 }
 
@@ -690,7 +702,10 @@ function setAttributes(handler) {
 
   // Make sure the order by key is always selected
   (handler.queryOptions.order || []).forEach((orderKey) => {
-    if (!handler.queryOptions.attributes.includes(orderKey[0])) {
+    if (
+      !orderKey[0].startsWith('free_text_rank_')
+      && !handler.queryOptions.attributes.includes(orderKey[0])
+    ) {
       handler.queryOptions.attributes.push(orderKey[0]);
     }
   });

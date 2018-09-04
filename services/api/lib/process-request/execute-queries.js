@@ -12,7 +12,7 @@ import { BaseModel } from '@turistforeningen/ntb-shared-models';
 const logger = createLogger();
 
 
-function addJoins(queryInstance, model, modelAlias, queryOptions) {
+function addRelationJoins(queryInstance, model, modelAlias, queryOptions) {
   let query = queryInstance;
   const relations = model.getRelations();
   queryOptions.relations.forEach((relationOptions) => {
@@ -63,6 +63,19 @@ function addJoins(queryInstance, model, modelAlias, queryOptions) {
       }
     );
   });
+
+  return query;
+}
+
+
+function addFreeTextJoins(queryInstance, queryOptions) {
+  let query = queryInstance;
+  const { freeTextJoin } = queryOptions;
+  if (freeTextJoin) {
+    freeTextJoin.forEach((opts) => {
+      query = query.joinRaw(...opts);
+    });
+  }
 
   return query;
 }
@@ -213,7 +226,12 @@ function createPaginatedMultiThroughMainQuery(handler, identifiersByProp) {
 
   // Add relations joins (for filters and eager loading)
   if (queryOptions.relations) {
-    subQuery = addJoins(subQuery, model, 'inner', queryOptions);
+    subQuery = addRelationJoins(subQuery, model, 'inner', queryOptions);
+  }
+
+  // Add free text joins
+  if (queryOptions.freeTextJoin) {
+    subQuery = addFreeTextJoins(subQuery, queryOptions);
   }
 
   // Filters
@@ -312,7 +330,12 @@ function createMultiThroughMainQuery(handler, identifiersByProp) {
 
   // Add relations joins (for filters and eager loading)
   if (queryOptions.relations) {
-    query = addJoins(query, model, 'inner', queryOptions);
+    query = addRelationJoins(query, model, 'inner', queryOptions);
+  }
+
+  // Add free text joins
+  if (queryOptions.freeTextJoin) {
+    query = addFreeTextJoins(query, queryOptions);
   }
 
   // Filters
@@ -381,7 +404,12 @@ function createPaginatedMultiThroughCountQuery(handler, identifiersByProp) {
 
   // Add relations joins (for filters and eager loading)
   if (queryOptions.relations) {
-    query = addJoins(query, model, 'inner', queryOptions);
+    query = addRelationJoins(query, model, 'inner', queryOptions);
+  }
+
+  // Add free text joins
+  if (queryOptions.freeTextJoin) {
+    query = addFreeTextJoins(query, queryOptions);
   }
 
   // Filters
@@ -431,7 +459,12 @@ function createPaginatedMultiMainQuery(handler, identifiersByProp) {
 
   // Add relations joins (for filters and eager loading)
   if (queryOptions.relations) {
-    subQuery = addJoins(subQuery, model, 'inner', queryOptions);
+    subQuery = addRelationJoins(subQuery, model, 'inner', queryOptions);
+  }
+
+  // Add free text joins
+  if (queryOptions.freeTextJoin) {
+    subQuery = addFreeTextJoins(subQuery, queryOptions);
   }
 
   // Filters
@@ -537,7 +570,12 @@ function createPaginatedMultiCountQuery(handler, identifiersByProp) {
 
   // Add relations joins (for filters and eager loading)
   if (queryOptions.relations) {
-    query = addJoins(query, model, 'inner', queryOptions);
+    query = addRelationJoins(query, model, 'inner', queryOptions);
+  }
+
+  // Add free text joins
+  if (queryOptions.freeTextJoin) {
+    query = addFreeTextJoins(query, queryOptions);
   }
 
   // Filters
@@ -778,7 +816,12 @@ async function executeSingleOrMultiRelation(
 
   // Add relations joins (for filters and eager loading)
   if (queryOptions.relations) {
-    query = addJoins(query, model, model.tableName, queryOptions);
+    query = addRelationJoins(query, model, model.tableName, queryOptions);
+  }
+
+  // Add free text joins
+  if (queryOptions.freeTextJoin) {
+    query = addFreeTextJoins(query, queryOptions);
   }
 
   // Filters
@@ -1031,6 +1074,14 @@ async function executeMainQueryPart(model, queryOptions, count = false) {
           : `${model.tableName}.${a}`
       ));
 
+    if (queryOptions.freeTextJoin) {
+      for (let i = 0; i < queryOptions.freeTextJoin.length; i += 1) {
+        attrs.push(knex.raw(
+          `ts_rank(search_nb, free_text_phrase_${i}) AS free_text_rank_${i}`
+        ));
+      }
+    }
+
     if (queryOptions.relations) {
       query = query.distinct(...attrs).select();
     }
@@ -1041,7 +1092,12 @@ async function executeMainQueryPart(model, queryOptions, count = false) {
 
   // Joins
   if (queryOptions.relations) {
-    query = addJoins(query, model, model.tableName, queryOptions);
+    query = addRelationJoins(query, model, model.tableName, queryOptions);
+  }
+
+  // Add free text joins
+  if (queryOptions.freeTextJoin) {
+    query = addFreeTextJoins(query, queryOptions);
   }
 
   // Filters
@@ -1185,7 +1241,10 @@ function formatResults(handler, results) {
 
     // Only return requested fields
     Object.keys(document).forEach((key) => {
-      if (!handler.fields.includes(key)) {
+      if (
+        !key.startsWith('freeTextRank')
+        && !handler.fields.includes(key)
+      ) {
         delete document[key];
       }
     });
