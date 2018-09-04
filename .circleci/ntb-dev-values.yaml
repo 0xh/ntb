@@ -192,7 +192,7 @@ cronJobs:
     cloudsqlProxy: true # add a cloudsql proxy container
     command: node cronjobs/16-process-trip-path-buffer/index.js
   - name: cron-17
-    schedule: "*/30 * * * *" # Every 30 minutes
+    schedule: "*/3 * * * *" # Every 3 minutes
     startingDeadlineSeconds: 400
     concurrencyPolicy: Forbid # or Forbid or Allow
     cloudsqlProxy: true # add a cloudsql proxy container
