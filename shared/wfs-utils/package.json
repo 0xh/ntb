@@ -1,10 +1,10 @@
 {
   "private": true,
-  "name": "@turistforeningen/ntb-shared-wfs-utils",
+  "name": "@ntb/shared-wfs-utils",
   "version": "0.0.0",
   "dependencies": {
-    "@turistforeningen/ntb-shared-settings": "*",
-    "@turistforeningen/ntb-shared-utils": "*",
+    "@ntb/shared-settings": "*",
+    "@ntb/shared-utils": "*",
     "ogr2ogr": "^1.2.1",
     "moment": "^2.20.1"
   }

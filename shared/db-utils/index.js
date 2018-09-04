@@ -1,11 +1,11 @@
 import _ from 'lodash';
 
-import settings from '@turistforeningen/ntb-shared-settings';
+import settings from '@ntb/shared-settings';
 import {
   startDuration,
   endDuration,
   createLogger,
-} from '@turistforeningen/ntb-shared-utils';
+} from '@ntb/shared-utils';
 
 import _Knex from 'knex';
 import { Model as _Model, AjvValidator as _AjvValidator } from 'objection';

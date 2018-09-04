@@ -1,4 +1,4 @@
-import { createLogger } from '@turistforeningen/ntb-shared-utils';
+import { createLogger } from '@ntb/shared-utils';
 
 
 const logger = createLogger();

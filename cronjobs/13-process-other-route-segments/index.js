@@ -1,6 +1,6 @@
 import processRouteSegments
-  from '@turistforeningen/ntb-shared-process-route-segments';
-import { createLogger } from '@turistforeningen/ntb-shared-utils';
+  from '@ntb/shared-process-route-segments';
+import { createLogger } from '@ntb/shared-utils';
 
 
 const logger = createLogger();

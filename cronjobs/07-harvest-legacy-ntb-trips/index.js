@@ -1,6 +1,6 @@
-import { createLogger, isNumber } from '@turistforeningen/ntb-shared-utils';
+import { createLogger, isNumber } from '@ntb/shared-utils';
 import { harvestTrip } from
-  '@turistforeningen/ntb-shared-legacy-ntb-harvester';
+  '@ntb/shared-legacy-ntb-harvester';
 
 
 const logger = createLogger();

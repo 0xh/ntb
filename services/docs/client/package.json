@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "@turistforeningen/ntb-services-docs-client",
+  "name": "@ntb/services-docs-client",
   "version": "0.0.0",
   "scripts": {
     "webpack:serve": "webpack-dev-server --env.development --color"

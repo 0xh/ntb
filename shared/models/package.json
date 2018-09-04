@@ -1,10 +1,10 @@
 {
   "private": true,
-  "name": "@turistforeningen/ntb-shared-models",
+  "name": "@ntb/shared-models",
   "version": "0.0.0",
   "dependencies": {
-    "@turistforeningen/ntb-shared-db-utils": "*",
-    "@turistforeningen/ntb-shared-gis-utils": "*",
+    "@ntb/shared-db-utils": "*",
+    "@ntb/shared-gis-utils": "*",
     "ajv": "^6.5.0",
     "ajv-keywords": "^3.2.0",
     "lodash": "^4.17.10",

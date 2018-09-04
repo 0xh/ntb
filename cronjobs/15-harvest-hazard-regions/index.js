@@ -1,9 +1,9 @@
 import fetch from 'isomorphic-fetch';
 import moment from 'moment';
 
-import { createLogger } from '@turistforeningen/ntb-shared-utils';
-import { knex, Model } from '@turistforeningen/ntb-shared-db-utils';
-import { geomFromGeoJSON } from '@turistforeningen/ntb-shared-gis-utils';
+import { createLogger } from '@ntb/shared-utils';
+import { knex, Model } from '@ntb/shared-db-utils';
+import { geomFromGeoJSON } from '@ntb/shared-gis-utils';
 
 
 const logger = createLogger();

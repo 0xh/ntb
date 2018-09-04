@@ -1,6 +1,6 @@
 import path from 'path';
 
-import { knexConfig } from '@turistforeningen/ntb-shared-db-utils';
+import { knexConfig } from '@ntb/shared-db-utils';
 
 
 const config = {

@@ -1,14 +1,14 @@
 {
   "private": true,
-  "name": "@turistforeningen/ntb-shared-legacy-ntb-harvester",
+  "name": "@ntb/shared-legacy-ntb-harvester",
   "version": "0.0.0",
   "dependencies": {
-    "@turistforeningen/ntb-shared-db-utils": "*",
-    "@turistforeningen/ntb-shared-gis-utils": "*",
-    "@turistforeningen/ntb-shared-models": "*",
-    "@turistforeningen/ntb-shared-settings": "*",
-    "@turistforeningen/ntb-shared-text-content-utils": "*",
-    "@turistforeningen/ntb-shared-utils": "*",
+    "@ntb/shared-db-utils": "*",
+    "@ntb/shared-gis-utils": "*",
+    "@ntb/shared-models": "*",
+    "@ntb/shared-settings": "*",
+    "@ntb/shared-text-content-utils": "*",
+    "@ntb/shared-utils": "*",
     "moment": "^2.20.1",
     "mongodb": "^3.0.1",
     "uuid": "^3.2.1"

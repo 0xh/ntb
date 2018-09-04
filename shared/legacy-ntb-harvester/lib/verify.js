@@ -1,4 +1,4 @@
-import { validateGeojson } from '@turistforeningen/ntb-shared-gis-utils';
+import { validateGeojson } from '@ntb/shared-gis-utils';
 
 import * as helpers from './helpers';
 

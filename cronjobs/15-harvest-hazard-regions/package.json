@@ -1,11 +1,11 @@
 {
   "private": true,
-  "name": "@turistforeningen/ntb-cronjobs-15",
+  "name": "@ntb/cronjobs-15",
   "version": "0.0.0",
   "dependencies": {
-    "@turistforeningen/ntb-shared-db-utils": "*",
-    "@turistforeningen/ntb-shared-gis-utils": "*",
-    "@turistforeningen/ntb-shared-utils": "*",
+    "@ntb/shared-db-utils": "*",
+    "@ntb/shared-gis-utils": "*",
+    "@ntb/shared-utils": "*",
     "isomorphic-fetch": "^2.2.1",
     "moment": "^2.20.1"
   }

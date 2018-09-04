@@ -1,9 +1,9 @@
-import { knex, Model } from '@turistforeningen/ntb-shared-db-utils';
+import { knex, Model } from '@ntb/shared-db-utils';
 import {
   createLogger,
   startDuration,
   endDuration,
-} from '@turistforeningen/ntb-shared-utils';
+} from '@ntb/shared-utils';
 
 import * as legacy from '../legacy-structure/';
 

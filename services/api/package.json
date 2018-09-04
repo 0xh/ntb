@@ -1,15 +1,15 @@
 {
  "private": true,
- "name": "@turistforeningen/ntb-services-api",
+ "name": "@ntb/services-api",
  "version": "0.0.0",
  "scripts": {
   "test": "ava"
  },
  "dependencies": {
-  "@turistforeningen/ntb-shared-db-utils": "*",
-  "@turistforeningen/ntb-shared-models": "*",
-  "@turistforeningen/ntb-shared-settings": "*",
-  "@turistforeningen/ntb-shared-utils": "*",
+  "@ntb/shared-db-utils": "*",
+  "@ntb/shared-models": "*",
+  "@ntb/shared-settings": "*",
+  "@ntb/shared-utils": "*",
   "body-parser": "^1.18.2",
   "express": "^4.16.2",
   "lodash": "^4.17.5",

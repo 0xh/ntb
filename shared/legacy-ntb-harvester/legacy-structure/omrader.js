@@ -3,7 +3,7 @@ import uuid4 from 'uuid/v4';
 import {
   sanitizeHtml,
   stripHtml,
-} from '@turistforeningen/ntb-shared-text-content-utils';
+} from '@ntb/shared-text-content-utils';
 
 import statusMapper from '../lib/statusMapper';
 

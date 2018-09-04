@@ -2,8 +2,8 @@ import { spawnSync } from 'child_process';
 
 import moment from 'moment';
 
-import settings from '@turistforeningen/ntb-shared-settings';
-import { createLogger } from '@turistforeningen/ntb-shared-utils';
+import settings from '@ntb/shared-settings';
+import { createLogger } from '@ntb/shared-utils';
 
 
 const logger = createLogger();

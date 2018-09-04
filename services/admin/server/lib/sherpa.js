@@ -1,6 +1,6 @@
 import fetch from 'isomorphic-fetch';
 
-import settings from '@turistforeningen/ntb-shared-settings';
+import settings from '@ntb/shared-settings';
 
 import redis from '../lib/redis';
 

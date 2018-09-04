@@ -4,9 +4,9 @@ import {
   isObject,
   isString,
   createLogger,
-} from '@turistforeningen/ntb-shared-utils';
-import { knex } from '@turistforeningen/ntb-shared-db-utils';
-import { BaseModel } from '@turistforeningen/ntb-shared-models';
+} from '@ntb/shared-utils';
+import { knex } from '@ntb/shared-db-utils';
+import { BaseModel } from '@ntb/shared-models';
 
 
 const logger = createLogger();

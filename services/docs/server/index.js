@@ -5,7 +5,7 @@ import express from 'express';
 import { Environment, FileSystemLoader } from 'nunjucks';
 import Raven from 'raven';
 
-import settings from '@turistforeningen/ntb-shared-settings';
+import settings from '@ntb/shared-settings';
 
 import NunjuckCustomWebLoader from './utils/nunjucks-custom-web-loader';
 import environment from './lib/environment';

@@ -1,6 +1,6 @@
 import moment from 'moment';
 
-import { Model, AjvValidator } from '@turistforeningen/ntb-shared-db-utils';
+import { Model, AjvValidator } from '@ntb/shared-db-utils';
 
 import geojsonPolygonSchema from './schemas/geojson-polygon';
 import documentStatusSchema from './schemas/document-status';

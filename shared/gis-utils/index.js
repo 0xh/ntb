@@ -2,7 +2,7 @@ import geoJSONRewind from 'geojson-rewind';
 import mapboxPolyline from '@mapbox/polyline';
 import GJV from 'geojson-validation';
 
-import { knex } from '@turistforeningen/ntb-shared-db-utils';
+import { knex } from '@ntb/shared-db-utils';
 
 
 const st = knex.postgis;

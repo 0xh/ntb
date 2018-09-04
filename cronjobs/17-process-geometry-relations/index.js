@@ -2,8 +2,8 @@ import {
   createLogger,
   startDuration,
   endDuration,
-} from '@turistforeningen/ntb-shared-utils';
-import { knex } from '@turistforeningen/ntb-shared-db-utils';
+} from '@ntb/shared-utils';
+import { knex } from '@ntb/shared-db-utils';
 
 
 const logger = createLogger();

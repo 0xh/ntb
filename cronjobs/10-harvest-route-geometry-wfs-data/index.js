@@ -2,10 +2,10 @@ import {
   createLogger,
   startDuration,
   endDuration,
-} from '@turistforeningen/ntb-shared-utils';
-import wfsDownload from '@turistforeningen/ntb-shared-wfs-utils/download';
-import { SystemSettings } from '@turistforeningen/ntb-shared-models';
-import { knex } from '@turistforeningen/ntb-shared-db-utils';
+} from '@ntb/shared-utils';
+import wfsDownload from '@ntb/shared-wfs-utils/download';
+import { SystemSettings } from '@ntb/shared-models';
+import { knex } from '@ntb/shared-db-utils';
 
 
 const logger = createLogger();

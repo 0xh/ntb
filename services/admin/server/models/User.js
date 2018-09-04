@@ -1,4 +1,4 @@
-import settings from '@turistforeningen/ntb-shared-settings';
+import settings from '@ntb/shared-settings';
 
 import sherpa from '../lib/sherpa';
 import removeObjectKeys from '../utils/removeObjectKeys';

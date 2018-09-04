@@ -163,7 +163,7 @@ lerna bootstrap
 
 # Lerna
 
-Uses Lerna and Yarn to handle cross dependencies between multiple internal modules. For instance, anything under `./shared/` can be «installed» as package dependencies in other modules. `shared/db-utils/package.json` has a reference to `@turistforeningen/ntb-shared-utils`
+Uses Lerna and Yarn to handle cross dependencies between multiple internal modules. For instance, anything under `./shared/` can be «installed» as package dependencies in other modules. `shared/db-utils/package.json` has a reference to `@ntb/shared-utils`
 
 ----
 

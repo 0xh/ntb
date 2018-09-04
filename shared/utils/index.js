@@ -1,7 +1,10 @@
 import winston from 'winston';
 import _ from 'lodash';
 
-import settings from '@turistforeningen/ntb-shared-settings';
+import settings from '@ntb/shared-settings';
+
+
+export { default as moment } from 'moment';
 
 
 let DURATION_DATA_AUTO_ID = 0;

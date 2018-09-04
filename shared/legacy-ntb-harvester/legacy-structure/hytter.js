@@ -3,8 +3,8 @@ import uuid4 from 'uuid/v4';
 import {
   sanitizeHtml,
   stripHtml,
-} from '@turistforeningen/ntb-shared-text-content-utils';
-import { createLogger } from '@turistforeningen/ntb-shared-utils';
+} from '@ntb/shared-text-content-utils';
+import { createLogger } from '@ntb/shared-utils';
 
 import statusMapper from '../lib/statusMapper';
 

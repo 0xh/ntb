@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "@turistforeningen/ntb-services-docs-server",
+  "name": "@ntb/services-docs-server",
   "version": "0.0.0",
   "scripts": {
     "lint": "eslint --ext .js,.jsx server/",
@@ -11,8 +11,8 @@
     "test:watch": "mocha -w -b -c -t 10000 --check-leaks -R progress -r server/test/*.js server/test/**/*.js"
   },
   "dependencies": {
-    "@turistforeningen/ntb-shared-models": "*",
-    "@turistforeningen/ntb-shared-settings": "*",
+    "@ntb/shared-models": "*",
+    "@ntb/shared-settings": "*",
     "body-parser": "^1.18.3",
     "camelcase-keys": "^4.2.0",
     "express": "^4.16.3",

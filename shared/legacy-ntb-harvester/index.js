@@ -4,7 +4,7 @@ import {
   createLogger,
   startDuration,
   endDuration,
-} from '@turistforeningen/ntb-shared-utils';
+} from '@ntb/shared-utils';
 
 import * as legacy from './legacy-structure';
 import verify from './lib/verify';

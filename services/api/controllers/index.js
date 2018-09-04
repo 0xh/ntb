@@ -3,7 +3,7 @@ import morgan from 'morgan';
 import _ from 'lodash';
 import uuidValidate from 'uuid-validate';
 
-import * as Models from '@turistforeningen/ntb-shared-models';
+import * as Models from '@ntb/shared-models';
 
 import processRequest from '../lib/process-request';
 import asyncHandler from '../lib/express-async-handler';

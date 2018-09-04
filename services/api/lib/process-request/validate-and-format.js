@@ -3,8 +3,8 @@ import _ from 'lodash';
 import {
   isNumber,
   isObject,
-} from '@turistforeningen/ntb-shared-utils';
-import { BaseModel } from '@turistforeningen/ntb-shared-models';
+} from '@ntb/shared-utils';
+import { BaseModel } from '@ntb/shared-models';
 
 import validateAndProcessFilters from './validate-and-process-filters';
 

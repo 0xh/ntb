@@ -1,8 +1,8 @@
 import bodyParser from 'body-parser';
 import express from 'express';
 
-import settings from '@turistforeningen/ntb-shared-settings';
-import { createLogger } from '@turistforeningen/ntb-shared-utils';
+import settings from '@ntb/shared-settings';
+import { createLogger } from '@ntb/shared-utils';
 
 import APIError from './lib/api-error';
 import controllers from './controllers';

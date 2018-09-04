@@ -3,12 +3,12 @@ import path from 'path';
 
 import { MongoClient } from 'mongodb';
 
-import settings from '@turistforeningen/ntb-shared-settings';
+import settings from '@ntb/shared-settings';
 import {
   createLogger,
   startDuration,
   endDuration,
-} from '@turistforeningen/ntb-shared-utils';
+} from '@ntb/shared-utils';
 
 
 const logger = createLogger();

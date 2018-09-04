@@ -1,6 +1,6 @@
 import Redis from 'ioredis';
 
-import settings from '@turistforeningen/ntb-shared-settings';
+import settings from '@ntb/shared-settings';
 
 
 export default new Redis(

@@ -2,8 +2,8 @@ import path from 'path';
 
 import knexMigrate from 'knex-migrate';
 
-import { knex } from '@turistforeningen/ntb-shared-db-utils';
-import { createLogger } from '@turistforeningen/ntb-shared-utils';
+import { knex } from '@ntb/shared-db-utils';
+import { createLogger } from '@ntb/shared-utils';
 
 
 const logger = createLogger();
