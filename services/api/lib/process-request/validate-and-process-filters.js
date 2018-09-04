@@ -1,5 +1,6 @@
 import _ from 'lodash';
 
+import processFreeTextClause from './filter-free-text';
 import processStringClause from './filter-string';
 import processUuidClause from './filter-uuid';
 import processBooleanClause from './filter-boolean';
@@ -26,11 +27,18 @@ function processExpressJSQueryObjectDeepFilter(
 
     if (
       (
-        !handler.validFilters.self.includes(key)
+        key === 'q'
+        && !handler.config.fullTextSearch
+      )
+      ||
+      (
+        key !== 'q'
+        && !handler.validFilters.self.includes(key)
         && !Object.keys(handler.validFilters.relations).includes(key)
       )
       || (
-        handler.validFilters.self.includes(key)
+        key !== 'q'
+        && handler.validFilters.self.includes(key)
         && subKey !== null
       )
     ) {
@@ -55,9 +63,12 @@ function processExpressJSQueryObjectDeepFilter(
         ? rawQueryValue
         : [rawQueryValue];
 
-      const options = subKey
-        ? handler.config.validRelationFilters[key][subKey]
-        : handler.config.validFilters[key];
+      let options = {};
+      if (key !== 'q') {
+        options = subKey
+          ? handler.config.validRelationFilters[key][subKey]
+          : handler.config.validFilters[key];
+      }
 
       let filterKey = subKey || key;
       let relationKey = subKey ? key : null;
@@ -142,6 +153,18 @@ function processExpressJSQueryObject(handler) {
         options,
       })));
     });
+
+    // Free text query
+    if (queryKeys.includes('q')) {
+      filters.$and = filters.$and.concat(handler.requestObject.q
+        .map((rawValue) => ({
+          key: 'q',
+          query: {
+            rawValue,
+            trace: 'q',
+          },
+        })));
+    }
   }
 
   return filters.$and.length
@@ -265,8 +288,15 @@ function processStructuredQueryObject(handler) {
 
 
 function createClause(handler, filter) {
+  // Free text filter
+  if (filter.key && filter.key === 'q') {
+    filter.type = 'free-text';
+    filter.options = {
+      attribute: 'searchNb',
+    };
+  }
   // Join filter
-  if (Object.keys(handler.validFilters.join).includes(filter.key)) {
+  else if (Object.keys(handler.validFilters.join).includes(filter.key)) {
     const props = handler.relation.joinModelClass.validFilters[filter.key];
     filter.isJoinFilter = true;
     filter.type = props.type;
@@ -338,6 +368,10 @@ function createClause(handler, filter) {
     filter.attribute = `[[${tbl}]].${options.attribute || key}`;
     filter.snakeCasedAttribute =
       `"[[${tbl}]]"."${_.snakeCase(options.attribute || key)}"`;
+  }
+
+  if (filter.type === 'free-text') {
+    return processFreeTextClause(handler, filter);
   }
 
   // Relation existance
