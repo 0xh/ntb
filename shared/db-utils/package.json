@@ -7,7 +7,7 @@
     "@ntb/shared-utils": "*",
     "knex": "0.15.2",
     "knex-postgis": "0.7.0",
-    "objection": "^1.1.8",
-    "pg": "^7.4.3"
+    "objection": "1.2.6",
+    "pg": "7.4.3"
   }
 }

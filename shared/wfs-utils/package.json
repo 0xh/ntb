@@ -5,6 +5,6 @@
   "dependencies": {
     "@ntb/shared-settings": "*",
     "@ntb/shared-utils": "*",
-    "ogr2ogr": "^1.2.1"
+    "ogr2ogr": "1.2.1"
   }
 }

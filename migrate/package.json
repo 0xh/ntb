@@ -12,6 +12,6 @@
     "@ntb/shared-db-utils": "*",
     "@ntb/shared-models": "*",
     "@ntb/shared-utils": "*",
-    "knex-migrate": "^1.5.5"
+    "knex-migrate": "1.5.5"
   }
 }
