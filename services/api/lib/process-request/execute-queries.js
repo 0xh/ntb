@@ -216,7 +216,7 @@ function createPaginatedMultiThroughMainQuery(handler, identifiersByProp) {
         // GeoJSON
         if ((model.geometryAttributes || []).includes(a)) {
           return knex.postgis.asGeoJSON(
-            knex.raw(`ST_Transform(inner.${a}, 4326)`)
+            knex.raw(`ST_Transform(inner.${_.snakeCase(a)}, 4326)`)
           ).as(a);
         }
         return `inner.${a}`;
@@ -324,7 +324,7 @@ function createMultiThroughMainQuery(handler, identifiersByProp) {
         // GeoJSON
         if ((model.geometryAttributes || []).includes(a)) {
           return knex.postgis.asGeoJSON(
-            knex.raw(`ST_Transform(inner.${a}, 4326)`)
+            knex.raw(`ST_Transform(inner.${_.snakeCase(a)}, 4326)`)
           ).as(a);
         }
         return `inner.${a}`;
@@ -459,7 +459,7 @@ function createPaginatedMultiMainQuery(handler, identifiersByProp) {
         // GeoJSON
         (model.geometryAttributes || []).includes(a)
           ? knex.postgis.asGeoJSON(
-            knex.raw(`ST_Transform(inner.${a}, 4326)`)
+            knex.raw(`ST_Transform(inner.${_.snakeCase(a)}, 4326)`)
           ).as(a)
           : `"inner".${a}`
       ));
@@ -1078,7 +1078,8 @@ async function executeMainQueryPart(model, queryOptions, count = false) {
       .map((a) => (
         (model.geometryAttributes || []).includes(a)
           ? knex.postgis.asGeoJSON(
-            knex.raw(`ST_Transform(${model.tableName}.${a}, 4326)`)
+            knex.raw(`ST_Transform(${
+              _.snakeCase(model.tableName)}.${_.snakeCase(a)}, 4326)`)
           ).as(a)
           : `${model.tableName}.${a}`
       ));
