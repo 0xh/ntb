@@ -223,6 +223,16 @@ export default class Cabin extends BaseModel {
           postalName: { type: 'string', maxLength: 100 },
         },
       },
+      beds: {
+        type: 'object',
+        properties: {
+          extra: { type: 'number' },
+          staffed: { type: 'number' },
+          selfService: { type: 'number' },
+          noService: { type: 'number' },
+          winter: { type: 'number' },
+        },
+      },
       htgt: {
         type: 'object',
         properties: {
@@ -277,6 +287,22 @@ export default class Cabin extends BaseModel {
     delete json.address2;
     delete json.postalCode;
     delete json.postalName;
+
+    // Create beds object
+    json.beds = {
+      extra: databaseJson.bedsExtra || null,
+      staffed: databaseJson.bedsStaffed || null,
+      selfService: databaseJson.bedsSelfService || null,
+      noService: databaseJson.bedsNoService || null,
+      winter: databaseJson.bedsWinter || null,
+    };
+
+    // Remove from databaseJson
+    delete json.bedsExtra;
+    delete json.bedsStaffed;
+    delete json.bedsSelfService;
+    delete json.bedsNoService;
+    delete json.bedsWinter;
 
     // Create htgt object
     json.htgt = {
@@ -357,6 +383,7 @@ export default class Cabin extends BaseModel {
         'description',
         'serviceLevel',
         'contact',
+        'beds',
         'map',
         'url',
         'license',
@@ -487,6 +514,13 @@ export default class Cabin extends BaseModel {
         'address2',
         'postalCode',
         'postalName',
+      ],
+      beds: [
+        'bedsExtra',
+        'bedsStaffed',
+        'bedsSelfService',
+        'bedsNoService',
+        'bedsWinter',
       ],
       htgt: [
         'htgtGeneral',
