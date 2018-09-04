@@ -221,6 +221,15 @@ function createPaginatedMultiThroughMainQuery(handler, identifiersByProp) {
         }
         return `inner.${a}`;
       });
+
+    if (queryOptions.freeTextJoin) {
+      for (let i = 0; i < queryOptions.freeTextJoin.length; i += 1) {
+        attrs.push(knex.raw(
+          `ts_rank(search_nb, free_text_phrase_${i}) AS free_text_rank_${i}`
+        ));
+      }
+    }
+
     subQuery = subQuery.select(...attrs);
   }
 

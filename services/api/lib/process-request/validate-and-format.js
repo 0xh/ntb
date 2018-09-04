@@ -420,9 +420,10 @@ function setOrdering(handler) {
     }
 
     // Free text ordering if ordering is not specified
-    if (!queryOrder && config.fullTextSearch && requestObject.q) {
+    const q = handler.relation ? requestObject['df.q'] : requestObject.q;
+    if (!queryOrder && config.fullTextSearch && q) {
       const freeTextOrder = [];
-      for (let i = 0; i < requestObject.q.length; i += 1) {
+      for (let i = 0; i < q.length; i += 1) {
         freeTextOrder.push([`free_text_rank_${i}`, 'DESC']);
       }
 
