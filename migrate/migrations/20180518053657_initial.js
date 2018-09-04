@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import { _ } from '@ntb/shared-utils';
 
 
 const uuidTables = [

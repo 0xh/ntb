@@ -1,9 +1,7 @@
 import { spawnSync } from 'child_process';
 
-import moment from 'moment';
-
 import settings from '@ntb/shared-settings';
-import { createLogger } from '@ntb/shared-utils';
+import { createLogger, moment } from '@ntb/shared-utils';
 
 
 const logger = createLogger();

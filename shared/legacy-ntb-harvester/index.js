@@ -1,9 +1,8 @@
-import moment from 'moment';
-
 import {
   createLogger,
   startDuration,
   endDuration,
+  moment,
 } from '@ntb/shared-utils';
 
 import * as legacy from './legacy-structure';

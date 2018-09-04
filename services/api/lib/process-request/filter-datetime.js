@@ -1,6 +1,4 @@
-import moment from 'moment';
-
-import { isString } from '@ntb/shared-utils';
+import { isString, moment } from '@ntb/shared-utils';
 
 
 export default function (handler, filter) {

@@ -1,9 +1,8 @@
-import moment from 'moment';
-
 import {
   createLogger,
   startDuration,
   endDuration,
+  moment,
 } from '@ntb/shared-utils';
 import { knex } from '@ntb/shared-db-utils';
 import wfsDownload from '@ntb/shared-wfs-utils/download';

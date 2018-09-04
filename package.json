@@ -12,6 +12,7 @@
     "cronjobs/*",
     "services/*",
     "services/admin/*",
+    "services/docs/*",
     "shared/*"
   ],
   "dependencies": {

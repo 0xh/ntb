@@ -9,7 +9,6 @@
     "@ntb/shared-settings": "*",
     "@ntb/shared-text-content-utils": "*",
     "@ntb/shared-utils": "*",
-    "moment": "^2.20.1",
     "mongodb": "^3.0.1",
     "uuid": "^3.2.1"
   }

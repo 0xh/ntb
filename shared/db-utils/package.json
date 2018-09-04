@@ -7,7 +7,6 @@
     "@ntb/shared-utils": "*",
     "knex": "0.15.2",
     "knex-postgis": "0.7.0",
-    "lodash": "^4.17.10",
     "objection": "^1.1.8",
     "pg": "^7.4.3",
     "uuid": "^3.2.1"

@@ -4,7 +4,6 @@
   "version": "0.0.0",
   "dependencies": {
     "@ntb/shared-db-utils": "*",
-    "@ntb/shared-utils": "*",
-    "moment": "^2.20.1"
+    "@ntb/shared-utils": "*"
   }
 }

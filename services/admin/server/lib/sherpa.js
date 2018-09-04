@@ -1,5 +1,4 @@
-import fetch from 'isomorphic-fetch';
-
+import { fetch } from '@ntb/shared-utils';
 import settings from '@ntb/shared-settings';
 
 import redis from '../lib/redis';

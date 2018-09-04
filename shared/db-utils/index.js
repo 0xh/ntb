@@ -1,10 +1,9 @@
-import _ from 'lodash';
-
 import settings from '@ntb/shared-settings';
 import {
   startDuration,
   endDuration,
   createLogger,
+  _,
 } from '@ntb/shared-utils';
 
 import _Knex from 'knex';

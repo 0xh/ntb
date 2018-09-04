@@ -1,5 +1,4 @@
-import moment from 'moment';
-
+import { moment } from '@ntb/shared-utils';
 import { Model, AjvValidator } from '@ntb/shared-db-utils';
 
 import geojsonPolygonSchema from './schemas/geojson-polygon';

@@ -1,8 +1,7 @@
-import _ from 'lodash';
-
 import {
   isNumber,
   isObject,
+  _,
 } from '@ntb/shared-utils';
 import { BaseModel } from '@ntb/shared-models';
 

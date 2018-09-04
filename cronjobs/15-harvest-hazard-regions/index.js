@@ -1,7 +1,4 @@
-import fetch from 'isomorphic-fetch';
-import moment from 'moment';
-
-import { createLogger } from '@ntb/shared-utils';
+import { createLogger, moment, fetch } from '@ntb/shared-utils';
 import { knex, Model } from '@ntb/shared-db-utils';
 import { geomFromGeoJSON } from '@ntb/shared-gis-utils';
 

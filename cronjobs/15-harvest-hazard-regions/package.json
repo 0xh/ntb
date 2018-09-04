@@ -5,8 +5,6 @@
   "dependencies": {
     "@ntb/shared-db-utils": "*",
     "@ntb/shared-gis-utils": "*",
-    "@ntb/shared-utils": "*",
-    "isomorphic-fetch": "^2.2.1",
-    "moment": "^2.20.1"
+    "@ntb/shared-utils": "*"
   }
 }

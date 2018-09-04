@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import morgan from 'morgan';
-import _ from 'lodash';
 import uuidValidate from 'uuid-validate';
 
+import { _ } from '@ntb/shared-utils';
 import * as Models from '@ntb/shared-models';
 
 import processRequest from '../lib/process-request';

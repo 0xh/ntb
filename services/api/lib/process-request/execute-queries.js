@@ -1,9 +1,8 @@
-import _ from 'lodash';
-
 import {
   isObject,
   isString,
   createLogger,
+  _,
 } from '@ntb/shared-utils';
 import { knex } from '@ntb/shared-db-utils';
 import { BaseModel } from '@ntb/shared-models';

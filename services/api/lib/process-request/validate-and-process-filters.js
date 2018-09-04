@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import { _ } from '@ntb/shared-utils';
 
 import processFreeTextClause from './filter-free-text';
 import processStringClause from './filter-string';
