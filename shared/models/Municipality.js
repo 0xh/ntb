@@ -95,7 +95,7 @@ export default class Municipality extends BaseModel {
     // Configuration when it's the entry model
     config['*list'] = {
       paginate: true,
-      fullTextSearch: true,
+      fullTextSearch: false,
       ordering: true,
 
       defaultLimit: 10,
