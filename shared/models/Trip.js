@@ -224,7 +224,7 @@ export default class Trip extends BaseModel {
           days: { type: 'number' },
         },
       },
-      starting_point: { type: 'object' },
+      startingPoint: { type: 'object' },
       path: { type: 'object' },
       pathPolyline: { type: 'string' },
       season: {
@@ -305,6 +305,7 @@ export default class Trip extends BaseModel {
 
   static geometryAttributes = [
     'path',
+    'startingPoint',
   ];
 
 
