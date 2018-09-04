@@ -1279,8 +1279,9 @@ function formatResults(handler, results) {
   if (handler.model.geometryAttributes) {
     documents = documents.map((doc) => {
       handler.model.geometryAttributes.forEach((geoField) => {
-        if (doc[geoField] && isString(doc[geoField])) {
-          doc[geoField] = JSON.parse(doc[geoField]);
+        const casedGeoField = _.snakeCase(geoField);
+        if (doc[casedGeoField] && isString(doc[casedGeoField])) {
+          doc[casedGeoField] = JSON.parse(doc[casedGeoField]);
         }
       });
       return doc;
