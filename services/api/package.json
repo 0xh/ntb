@@ -10,11 +10,7 @@
   "@ntb/shared-models": "*",
   "@ntb/shared-settings": "*",
   "@ntb/shared-utils": "*",
-  "body-parser": "^1.18.2",
-  "express": "^4.16.2",
-  "morgan": "^1.9.0",
-  "response-time": "^2.3.2",
-  "swagger-jsdoc": "^1.9.7",
+  "@ntb/shared-web-server-utils": "*",
   "uuid-validate": "^0.0.3"
  }
 }

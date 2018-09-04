@@ -1,15 +1,14 @@
-import { Router } from 'express';
-import morgan from 'morgan';
 import uuidValidate from 'uuid-validate';
 
 import { _ } from '@ntb/shared-utils';
+import { express, morgan } from '@ntb/shared-web-server-utils';
 import * as Models from '@ntb/shared-models';
 
 import processRequest from '../lib/process-request';
 import asyncHandler from '../lib/express-async-handler';
 import APIError from '../lib/api-error';
 
-
+const { Router } = express;
 const router = new Router();
 
 

@@ -1,8 +1,6 @@
-import bodyParser from 'body-parser';
-import express from 'express';
-
 import settings from '@ntb/shared-settings';
 import { createLogger } from '@ntb/shared-utils';
+import { express, bodyParser } from '@ntb/shared-web-server-utils';
 
 import APIError from './lib/api-error';
 import controllers from './controllers';

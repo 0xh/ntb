@@ -1,11 +1,12 @@
 import path from 'path';
 
-import bodyParser from 'body-parser';
-import express from 'express';
-import { Environment, FileSystemLoader } from 'nunjucks';
-import Raven from 'raven';
-
-import settings from '@ntb/shared-settings';
+import { settings } from '@ntb/shared-settings';
+import {
+  express,
+  bodyParser,
+  nunjucks as _nunjucks,
+  Raven,
+} from '@ntb/shared-web-server-utils';
 
 import NunjuckCustomWebLoader from './utils/nunjucks-custom-web-loader';
 import environment from './lib/environment';
@@ -13,6 +14,7 @@ import version from './version';
 import controllers from './controllers';
 
 
+const { Environment, FileSystemLoader } = _nunjucks;
 const useRaven = environment.production && settings.SERVICES_ADMIN_SENTRY_DSN;
 
 

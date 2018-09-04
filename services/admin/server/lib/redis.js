@@ -1,6 +1,5 @@
-import Redis from 'ioredis';
-
 import settings from '@ntb/shared-settings';
+import { Redis } from '@ntb/shared-web-server-utils';
 
 
 export default new Redis(

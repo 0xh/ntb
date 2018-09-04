@@ -7,6 +7,7 @@ import settings from '@ntb/shared-settings';
 export { default as _ } from 'lodash';
 export { default as moment } from 'moment';
 export { default as fetch } from 'isomorphic-fetch';
+export { default as uuid4 } from 'uuid/v4';
 
 
 let DURATION_DATA_AUTO_ID = 0;

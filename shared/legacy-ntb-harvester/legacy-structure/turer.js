@@ -1,11 +1,9 @@
-import uuid4 from 'uuid/v4';
-
 import { geojsonToPolyline } from '@ntb/shared-gis-utils';
 import {
   sanitizeHtml,
   stripHtml,
 } from '@ntb/shared-text-content-utils';
-import { createLogger } from '@ntb/shared-utils';
+import { createLogger, uuid4 } from '@ntb/shared-utils';
 
 import statusMapper from '../lib/statusMapper';
 

@@ -1,6 +1,9 @@
-import { Loader } from 'nunjucks';
+import { nunjucks } from '@ntb/shared-web-server-utils';
 
 import loadFromWebpackDevServer from './load-from-webpack-dev-server';
+
+
+const { Loader } = nunjucks;
 
 
 export default class NunjuckCustomWebLoader extends Loader {

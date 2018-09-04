@@ -1,11 +1,14 @@
-import { Router } from 'express';
-import morgan from 'morgan';
+import {
+  express,
+  morgan,
+} from '@ntb/shared-web-server-utils';
 
 import authController from './auth';
 import apiController from './api';
 import environment from '../lib/environment';
 
 
+const { Router } = express;
 const router = new Router();
 
 // Access logs

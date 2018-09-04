@@ -1,5 +1,4 @@
-import { Router } from 'express';
-import responseTime from 'response-time';
+import { express, responseTime } from '@ntb/shared-web-server-utils';
 
 import version from '../../version';
 
@@ -7,6 +6,7 @@ import modelsController from './models';
 import versionController from './version';
 
 
+const { Router } = express;
 const router = new Router();
 
 // Log request count and response time to librato
