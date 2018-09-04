@@ -303,6 +303,10 @@ export default class Trip extends BaseModel {
 
   static APIEntryModel = true;
 
+  static geometryAttributes = [
+    'path',
+  ];
+
 
   static getAPIConfig() {
     const config = {};
