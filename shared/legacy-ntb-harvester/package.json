@@ -9,6 +9,6 @@
     "@ntb/shared-settings": "*",
     "@ntb/shared-text-content-utils": "*",
     "@ntb/shared-utils": "*",
-    "mongodb": "3.0.1"
+    "mongodb": "3.1.4"
   }
 }
