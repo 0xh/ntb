@@ -202,7 +202,9 @@ function createPaginatedMultiThroughMainQuery(handler, identifiersByProp) {
 
         // GeoJSON
         if ((model.geometryAttributes || []).includes(a)) {
-          return knex.postgis.asGeoJSON(`inner.${a}`).as(a);
+          return knex.postgis.asGeoJSON(
+            knex.postgis.transform(`inner.${a}`, 4326)
+          ).as(a);
         }
         return `inner.${a}`;
       });
@@ -294,7 +296,9 @@ function createMultiThroughMainQuery(handler, identifiersByProp) {
 
         // GeoJSON
         if ((model.geometryAttributes || []).includes(a)) {
-          return knex.postgis.asGeoJSON(`inner.${a}`).as(a);
+          return knex.postgis.asGeoJSON(
+            knex.postgis.transform(`inner.${a}`, 4326)
+          ).as(a);
         }
         return `inner.${a}`;
       });
@@ -417,7 +421,9 @@ function createPaginatedMultiMainQuery(handler, identifiersByProp) {
       .map((a) => (
         // GeoJSON
         (model.geometryAttributes || []).includes(a)
-          ? knex.postgis.asGeoJSON(`inner.${a}`).as(a)
+          ? knex.postgis.asGeoJSON(
+            knex.postgis.transform(`inner.${a}`, 4326)
+          ).as(a)
           : `"inner".${a}`
       ));
     subQuery = subQuery.select(...attrs);
@@ -1019,7 +1025,9 @@ async function executeMainQueryPart(model, queryOptions, count = false) {
     const attrs = queryOptions.attributes
       .map((a) => (
         (model.geometryAttributes || []).includes(a)
-          ? knex.postgis.asGeoJSON(`${model.tableName}.${a}`).as(a)
+          ? knex.postgis.asGeoJSON(
+            knex.postgis.transform(`${model.tableName}.${a}`, 4326)
+          ).as(a)
           : `${model.tableName}.${a}`
       ));
 

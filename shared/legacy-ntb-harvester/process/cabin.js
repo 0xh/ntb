@@ -56,7 +56,7 @@ async function createTempTables(handler, first = false) {
       table.text('postalName');
       table.text('url');
       table.integer('yearOfConstruction');
-      table.specificType('coordinates', 'GEOMETRY');
+      table.specificType('coordinates', 'GEOMETRY(Point, 4326)');
       table.uuid('countyId');
       table.uuid('municipalityId');
       table.text('serviceLevel');
@@ -700,7 +700,7 @@ async function mergeCabin(handler) {
     '  postal_name,',
     '  url,',
     '  year_of_construction,',
-    '  coordinates,',
+    '  ST_Transform(coordinates, 25833),',
     '  service_level,',
     '  beds_extra,',
     '  beds_staffed,',

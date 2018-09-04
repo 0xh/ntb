@@ -43,8 +43,8 @@ async function createTempTables(handler, sync = false) {
       table.integer('durationMinutes');
       table.integer('durationHours');
       table.integer('durationDays');
-      table.specificType('startingPoint', 'GEOMETRY');
-      table.specificType('path', 'GEOMETRY');
+      table.specificType('startingPoint', 'GEOMETRY(Point, 4326)');
+      table.specificType('path', 'GEOMETRY(LineString, 4326)');
       table.text('pathPolyline');
       table.specificType('season', 'INTEGER[]');
       table.text('htgtGeneral');
@@ -507,8 +507,8 @@ async function mergeTrip(handler) {
       duration_minutes,
       duration_hours,
       duration_days,
-      starting_point,
-      path,
+      ST_Transform(starting_point, 25833),
+      ST_Transform(path, 25833),
       path_polyline,
       season,
       htgt_general,

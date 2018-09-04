@@ -35,7 +35,7 @@ async function createTempTables(handler, first = false) {
       table.text('nameLowerCase');
       table.text('description');
       table.text('descriptionPlain');
-      table.specificType('coordinates', 'GEOMETRY');
+      table.specificType('coordinates', 'GEOMETRY(MultiPoint, 4326)');
       table.timestamp('startDate');
       table.timestamp('endDate');
       table.text('license');
@@ -306,7 +306,7 @@ async function mergeList(handler) {
     '  name_lower_case,',
     '  description,',
     '  description_plain,',
-    '  coordinates,',
+    '  ST_Transform(coordinates, 25833),',
     '  start_date,',
     '  end_date,',
     '  license,',

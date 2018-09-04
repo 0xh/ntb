@@ -1,7 +1,6 @@
 import geoJSONRewind from 'geojson-rewind';
 import mapboxPolyline from '@mapbox/polyline';
 import GJV from 'geojson-validation';
-import { stringify } from 'wellknown';
 
 import { knex } from '@turistforeningen/ntb-shared-db-utils';
 
@@ -11,10 +10,9 @@ const st = knex.postgis;
 
 export function geomFromGeoJSON(geojson) {
   let res;
-  let wkt = stringify(geojson);
 
   try {
-    res = st.geomFromText(wkt, 4326);
+    res = st.geomFromGeoJSON(geojson);
   }
   catch (err) {
     if (
@@ -30,9 +28,7 @@ export function geomFromGeoJSON(geojson) {
         'Polygons and MultiPolygons should follow the right-hand rule'
       );
       if (message === rightHandErr) {
-        const newGeojson = geoJSONRewind(geojson);
-        wkt = stringify(newGeojson);
-        res = st.geomFromText(wkt, 4326);
+        res = st.geomFromGeoJSON(geoJSONRewind(geojson));
       }
 
       // GeoJSON contains an invalid 'properties'-key
@@ -40,10 +36,9 @@ export function geomFromGeoJSON(geojson) {
         'geometry object cannot contain a "properties" member'
       );
       if (message === invalidPropertiesKey) {
-        delete geojson.properties;
-        const newGeojson = geoJSONRewind(geojson);
-        wkt = stringify(newGeojson);
-        res = st.geomFromText(wkt, 4326);
+        const newGeojson = geojson;
+        delete newGeojson.properties;
+        res = st.geomFromGeoJSON(newGeojson);
       }
     }
     else {
@@ -51,7 +46,7 @@ export function geomFromGeoJSON(geojson) {
     }
   }
 
-  return res;
+  return st.setSRID(res, 4326);
 }
 
 

@@ -37,17 +37,19 @@ async function createTempGeometryTable(type) {
     table.specificType('codes', 'TEXT[]');
     table.specificType('maintainers', 'TEXT[]');
     table.integer('meters');
-    table.specificType('geom', 'GEOMETRY');
-    table.specificType('pointA', 'GEOMETRY');
-    table.specificType('pointB', 'GEOMETRY');
+    table.specificType('geom', 'GEOMETRY(LineString, 25833)');
+    table.specificType('pointA', 'GEOMETRY(Point, 25833)');
+    table.specificType('pointB', 'GEOMETRY(Point, 25833)');
 
     table.index('geom', null, 'GIST');
+    table.index('pointA', null, 'GIST');
+    table.index('pointB', null, 'GIST');
   });
 
   // Set correct SRID
-  await Promise.all(['geom', 'point_a', 'point_b'].map((c) => (
-    knex.raw(`SELECT UpdateGeometrySRID('${tableName}', '${c}', 25833);`)
-  )));
+  // await Promise.all(['geom', 'point_a', 'point_b'].map((c) => (
+  //   knex.raw(`SELECT UpdateGeometrySRID('${tableName}', '${c}', 25833);`)
+  // )));
 
   endDuration(durationId);
   return tableName;
@@ -77,10 +79,10 @@ async function insertRouteDataToTempTable(geometryTableName, wfsTableName) {
       FROM (
         SELECT
           ST_LineMerge(ST_Union(r.wkb_geometry)) AS routes,
-          ST_Collect(ST_Transform(c.coordinates, 25833)) AS cabins
+          ST_Collect(c.coordinates) AS cabins
         FROM "${wfsTableName}" r
         LEFT JOIN cabins c
-        ON ST_DWithin(r.wkb_geometry, ST_Transform(c.coordinates, 25833), 100)
+        ON ST_DWithin(r.wkb_geometry, c.coordinates, 100)
       ) sq1
     ) sq2
   `);
@@ -170,9 +172,9 @@ async function populateRouteSegments(routeType, geometryTableName) {
       t.gml_ids,
       t.maintainers,
       t.meters,
-      ST_Transform(t.geom, 4326),
-      ST_Transform(ST_StartPoint(t.geom), 4326),
-      ST_Transform(ST_EndPoint(t.geom), 4326),
+      t.geom,
+      ST_StartPoint(t.geom),
+      ST_EndPoint(t.geom),
       :data_source
     FROM "${geometryTableName}" t
     WHERE
@@ -331,15 +333,14 @@ async function resetRoutPaths(routeType) {
 async function aggregateRoutePathBulk(
   routeType,
   geometryTableName,
-  offset,
   large = false
 ) {
   logger.info(
-    `Aggregate ${large ? 'large' : ''} route path with offset ${offset}`
+    `Aggregate ${large ? 'large' : ''} route path`
   );
   const largeClause = large
-    ? '>= 40000'
-    : '< 40000';
+    ? '>= 100000'
+    : '< 100000';
   const limit = large
     ? 1
     : 100;
@@ -347,7 +348,7 @@ async function aggregateRoutePathBulk(
   const result = await knex.raw(`
     UPDATE routes SET
       path = x.path,
-      path_buffer = ST_Buffer(x.path::GEOGRAPHY, 5000, 1)::GEOMETRY
+      path_buffer = ST_Buffer(x.path, 5000, 1)
     FROM (
       SELECT
         r.id,
@@ -358,20 +359,18 @@ async function aggregateRoutePathBulk(
       INNER JOIN route_segments rs ON
         rs.id = rtrs.route_segment_id
       WHERE
-          r."type" = :type
-          AND r.calculated_distance > 0
-          AND r.calculated_distance < 90000
-          AND r.calculated_distance ${largeClause}
+        r."type" = :type
+        AND r.calculated_distance > 0
+        AND r.calculated_distance ${largeClause}
+        AND r.path IS NULL
       GROUP BY
         r.id
       LIMIT ${limit}
-      OFFSET :offset
     ) x
     WHERE
       routes.id = x.id
   `, {
     type: routeType,
-    offset,
   })
     .catch((err) => {
       logger.error('Processing route path failed!');
@@ -390,29 +389,23 @@ async function aggregateRoutePath(routeType, geometryTableName) {
   await resetRoutPaths(routeType);
 
   let rowCount = 1;
-  let offset = 0;
   while (rowCount > 0) {
     // eslint-disable-next-line
     rowCount = await aggregateRoutePathBulk(
       routeType,
       geometryTableName,
-      offset
     );
-    offset += 100;
   }
 
   // Do large paths one by one
   rowCount = 1;
-  offset = 0;
   while (rowCount > 0) {
     // eslint-disable-next-line
     rowCount = await aggregateRoutePathBulk(
       routeType,
       geometryTableName,
-      offset,
       true
     );
-    offset += 1;
   }
 }
 

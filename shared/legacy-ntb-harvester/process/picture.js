@@ -40,7 +40,7 @@ async function createTempTables(handler, first = false) {
       table.text('photographerEmail');
       table.text('photographerCredit');
       table.text('description');
-      table.specificType('coordinates', 'GEOMETRY');
+      table.specificType('coordinates', 'GEOMETRY(Point, 4326)');
       table.jsonb('original');
       table.jsonb('exif');
       table.jsonb('versions');
@@ -165,7 +165,7 @@ async function mergePictures(handler) {
     '  photographer_email,',
     '  photographer_credit,',
     '  description,',
-    '  coordinates,',
+    '  ST_Transform(coordinates, 25833),',
     '  original,',
     '  exif,',
     '  versions,',

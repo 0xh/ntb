@@ -71,15 +71,10 @@ async function createTempGeometryTable() {
     table.text('type');
     table.specificType('names', 'TEXT[]');
     table.specificType('languages', 'TEXT[]');
-    table.specificType('geometry', 'GEOMETRY');
+    table.specificType('geometry', 'GEOMETRY(MultiPolygon, 25833)');
 
     table.index('geometry', null, 'GIST');
   });
-
-  // Set correct SRID
-  await Promise.all(['geometry'].map((c) => (
-    knex.raw(`SELECT UpdateGeometrySRID('${tableName}', '${c}', 25833);`)
-  )));
 
   endDuration(durationId);
   return tableName;
@@ -140,7 +135,7 @@ async function updateCounties(geometryTableName) {
       'kartverket',
       now(),
       now(),
-      ST_Transform(c.geometry, 4326)
+      c.geometry
     FROM "${geometryTableName}" c
     WHERE "type" = ANY ('{fylke,region}'::TEXT[])
     ON CONFLICT (code) DO UPDATE SET
@@ -325,7 +320,7 @@ async function updateMunicipalities(geometryTableName) {
       'kartverket',
       now(),
       now(),
-      ST_Transform(c.geometry, 4326)
+      c.geometry
     FROM "${geometryTableName}" c
     WHERE "type" = ANY ('{municipality,kommune}'::TEXT[])
     ON CONFLICT (code) DO UPDATE SET
