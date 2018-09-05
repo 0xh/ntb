@@ -76,7 +76,10 @@ export async function getDocumentCountFromMongoDb(type, filter) {
   logger.info(`Fetching document count from mongodb of "${type}"`);
   const durationId = startDuration();
 
-  const mongoClient = await MongoClient.connect(settings.LEGACY_MONGO_DB_URI)
+  const mongoClient = await MongoClient.connect(
+    settings.LEGACY_MONGO_DB_URI,
+    { useNewUrlParser: true }
+  )
     .catch((err) => {
       logger.error('ERROR - some mongodb error occured');
       throw err;
@@ -101,7 +104,10 @@ async function getAllDocumentsFromMongoDb(handler, types) {
   const durationId = startDuration();
   const documents = {};
 
-  const mongoClient = await MongoClient.connect(settings.LEGACY_MONGO_DB_URI)
+  const mongoClient = await MongoClient.connect(
+    settings.LEGACY_MONGO_DB_URI,
+    { useNewUrlParser: true }
+  )
     .catch((err) => {
       logger.error('ERROR - some mongodb error occured');
       throw err;
@@ -140,7 +146,10 @@ export async function getDocumentsFromMongoDb(
   logger.info(
     `Fetching "${type}" from mongodb (limit: ${limit}, skip: ${skip})`
   );
-  const mongoClient = await MongoClient.connect(settings.LEGACY_MONGO_DB_URI)
+  const mongoClient = await MongoClient.connect(
+    settings.LEGACY_MONGO_DB_URI,
+    { useNewUrlParser: true }
+  )
     .catch((err) => {
       logger.error('ERROR - some mongodb error occured');
       throw err;
