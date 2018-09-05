@@ -586,7 +586,7 @@ async function main() {
 
   await joinTiles();
   await fixMbtilesName();
-  // await uploadToMapbox();
+  await uploadToMapbox();
 }
 
 
