@@ -109,14 +109,14 @@ module.exports = (env) => {
             options: {
               babelrc: false,
               presets: [
-                ['env', { modules: false }],
-                'stage-0',
-                'react',
+                ['@babel/env', { modules: false }],
+                '@babel/react',
               ],
               plugins: [
                 'react-hot-loader/babel',
-                'syntax-dynamic-import',
-                'transform-decorators-legacy',
+                '@babel/syntax-dynamic-import',
+                '@babel/plugin-proposal-function-bind',
+                ['@babel/plugin-proposal-decorators', { legacy: true }],
                 ['import', { libraryName: 'antd', style: true }],
                 'universal-import',
               ],

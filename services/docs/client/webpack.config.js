@@ -64,7 +64,7 @@ module.exports = (env) => {
     devtool: ifDevelopment('eval-source-map', 'nosources-source-map'),
     entry: {
       app: removeEmpty([
-        'babel-polyfill',
+        '@babel/polyfill',
         'whatwg-fetch',
         ifDevelopment(`webpack-dev-server/client?http://${hostname}`),
         ifDevelopment('webpack/hot/only-dev-server'),
@@ -109,14 +109,14 @@ module.exports = (env) => {
             options: {
               babelrc: false,
               presets: [
-                ['env', { modules: false }],
-                'stage-0',
-                'react',
+                ['@babel/env', { modules: false }],
+                '@babel/react',
               ],
               plugins: [
                 'react-hot-loader/babel',
-                'syntax-dynamic-import',
-                'transform-decorators-legacy',
+                '@babel/syntax-dynamic-import',
+                '@babel/plugin-proposal-function-bind',
+                ['@babel/plugin-proposal-decorators', { legacy: true }],
                 ['import', { libraryName: 'antd', style: true }],
                 'universal-import',
               ],

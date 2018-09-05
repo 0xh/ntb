@@ -130,19 +130,19 @@ async function createGeojsonCabins() {
       properties: {
         id: instance.id,
         icon: `${instance.dntCabin ? 'dnt' : 'private'}__${
-          (instance.serviceLevel || 'unknown').replace(' ', '_')}`,
+          (instance.serviceLevel || 'unknown').replace(/ /g, '_')}`,
         name: instance.name.substr(0, 200),
         dnt_cabin: instance.dntCabin,
         service_level: instance.serviceLevel,
         beds: instance.beds,
         ...(instance.accessabilities || [])
           .reduce((agg, cur) => {
-            agg[`accessability__${cur.name.replace(' ', '_')}`] = true;
+            agg[`accessability__${cur.name.replace(/ /g, '_')}`] = true;
             return agg;
           }, {}),
         ...(instance.facilities || [])
           .reduce((agg, cur) => {
-            agg[`facility__${cur.name.replace(' ', '_')}`] = true;
+            agg[`facility__${cur.name.replace(/ /g, '_')}`] = true;
             return agg;
           }, {}),
       },
@@ -209,11 +209,11 @@ async function createGeojsonPois() {
     type: 'Feature',
     properties: {
       id: instance.id,
-      icon: instance.type.replace(' ', '_'),
+      icon: instance.type.replace(/ /g, '_'),
       name: instance.name.substr(0, 200),
       ...(instance.poiTypes || [])
         .reduce((agg, cur) => {
-          agg[`type__${cur.name.replace(' ', '_')}`] = true;
+          agg[`type__${cur.name.replace(/ /g, '_')}`] = true;
           return agg;
         }, {}),
     },
@@ -268,14 +268,14 @@ async function createGeojsonTrips() {
       type: 'Feature',
       properties: {
         id: instance.id,
-        icon: `${instance.activityType.replace(' ', '_')}__${
-          instance.grading.replace(' ', '_')}`,
+        icon: `${instance.activityType.replace(/ /g, '_')}__${
+          instance.grading.replace(/ /g, '_')}`,
         activity_type: instance.activityType,
         name: instance.name.substr(0, 200),
         grading: instance.grading,
         ...(instance.accessabilities || [])
           .reduce((agg, cur) => {
-            agg[`accessability__${cur.name.replace(' ', '_')}`] = true;
+            agg[`accessability__${cur.name.replace(/ /g, '_')}`] = true;
             return agg;
           }, {}),
       },
@@ -586,7 +586,7 @@ async function main() {
 
   await joinTiles();
   await fixMbtilesName();
-  await uploadToMapbox();
+  // await uploadToMapbox();
 }
 
 
