@@ -7,7 +7,7 @@ COPY services/docs/. services/docs/
 COPY cronjobs/. cronjobs/
 COPY migrate/. migrate/
 COPY shared/. shared/
-COPY .babelrc lerna.json package.json yarn.lock ./
+COPY babel.config.js lerna.json package.json yarn.lock ./
 
 # Install module dependencies
 RUN lerna bootstrap
