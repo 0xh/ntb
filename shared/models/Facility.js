@@ -6,6 +6,14 @@ export default class Facility extends BaseModel {
   static idColumn = 'name';
   static virtualAttributes = ['uri'];
 
+  static modelDescription = `
+    Facilities are related to Cabins and describes what kind of amenities
+    the given Cabin has.
+
+    You can use the /facility endpoint to list the valid and available
+    facilities. Which facilities are available can be changed in the future,
+    and is controlled by the Nasjonal Turbase admins, mainly DNT.
+  `;
 
   get uri() {
     return `facility/${this.name}`;
