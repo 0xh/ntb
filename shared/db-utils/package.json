@@ -5,6 +5,9 @@
   "dependencies": {
     "@ntb/settings": "*",
     "@ntb/utils": "*",
+    "@types/knex": "^0.14.23",
+    "@types/knex-postgis": "^0.2.2",
+    "@types/pg": "^7.4.10",
     "knex": "0.15.2",
     "knex-postgis": "0.7.0",
     "objection": "1.2.6",
