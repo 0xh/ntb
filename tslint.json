@@ -1,0 +1,26 @@
+{
+  "defaultSeverity": "error",
+  "extends": [
+    "tslint-eslint-rules",
+    "tslint-config-airbnb"
+  ],
+  "jsRules": {
+    "variable-name": true
+  },
+  "rules": {
+    "no-consecutive-blank-lines": [true, 2],
+    "max-line-length": [true, {"limit": 79, "ignore-pattern": "^import |^export {(.*?)}"}],
+    "no-unused-variable": false,
+    "ter-arrow-parens": [true, "always"],
+    "brace-style": [2, "stroustrup", { "allowSingleLine": true }],
+    "import-name": [ true, {
+      "lodash": "_",
+      "knex": "Knex",
+      "v4": "uuid4"
+    }]
+  },
+  "rulesDirectory": [
+    "node_modules/tslint-origin-ordered-imports-rule/dist",
+    "node_modules/tslint-consistent-codestyle/rules"
+  ]
+}
