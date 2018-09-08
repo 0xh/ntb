@@ -1,13 +1,16 @@
 {
   "private": true,
-  "name": "@ntb/shared-utils",
+  "name": "@ntb/utils",
   "version": "0.0.0",
   "dependencies": {
-    "@ntb/shared-settings": "*",
+    "@ntb/settings": "*",
+    "@types/isomorphic-fetch": "^0.0.34",
+    "@types/lodash": "^4.14.116",
+    "@types/uuid": "^3.4.4",
+    "@types/winston": "^2.4.4",
     "isomorphic-fetch": "2.2.1",
     "lodash": "4.17.10",
     "moment": "2.22.2",
-    "performance-now": "2.1.0",
     "uuid": "3.3.2",
     "winston": "3.0.0"
   }
