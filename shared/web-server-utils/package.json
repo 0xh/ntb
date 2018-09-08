@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "@ntb/shared-web-server-utils",
+  "name": "@ntb/web-server-utils",
   "version": "0.0.0",
   "dependencies": {
     "@types/body-parser": "^1.17.0",
