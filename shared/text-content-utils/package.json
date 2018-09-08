@@ -3,6 +3,7 @@
   "name": "@ntb/text-content-utils",
   "version": "0.0.0",
   "dependencies": {
+    "@types/sanitize-html": "^1.18.2",
     "he": "1.1.1",
     "normalize-url": "3.3.0",
     "sanitize-html": "1.18.4"

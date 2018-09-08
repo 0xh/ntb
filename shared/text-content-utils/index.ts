@@ -6,7 +6,7 @@ import he from 'he';
  * Sanetize html string. Remove unnecessary and unallowed html formatting
  * @param {string} html  html string to sanetize
  */
-export function sanitizeHtml(html) {
+export function sanitizeHtml(html: string): string {
   const res = _sanitizeHtml(html)
     .replace(/\r?\n|\r/g, '') // remove line breaks
     .replace(/\u00a0/g, ' ') // replace nbsp-character
@@ -23,7 +23,7 @@ export function sanitizeHtml(html) {
  * Strips all html-tags and converts any htmlentities from string
  * @param {string} html   html string to strip
  */
-export function stripHtml(html) {
+export function stripHtml(html: string): string {
   let res = html
     .replace(/<{1}[^<>]{1,}>{1}/g, ' '); // replace html-tags
 
