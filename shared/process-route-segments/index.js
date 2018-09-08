@@ -3,8 +3,8 @@ import {
   startDuration,
   endDuration,
   moment,
-} from '@ntb/shared-utils';
-import { knex } from '@ntb/shared-db-utils';
+} from '@ntb/utils';
+import { knex } from '@ntb/db-utils';
 
 
 const logger = createLogger();

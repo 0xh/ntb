@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "@ntb/shared-hunspell",
+  "name": "@ntb/hunspell",
   "version": "0.0.0",
   "dependencies": {}
 }

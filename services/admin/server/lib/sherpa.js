@@ -1,5 +1,5 @@
-import { fetch } from '@ntb/shared-utils';
-import settings from '@ntb/shared-settings';
+import { fetch } from '@ntb/utils';
+import settings from '@ntb/settings';
 
 import redis from '../lib/redis';
 

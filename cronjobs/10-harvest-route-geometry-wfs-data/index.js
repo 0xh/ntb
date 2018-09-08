@@ -2,10 +2,10 @@ import {
   createLogger,
   startDuration,
   endDuration,
-} from '@ntb/shared-utils';
-import wfsDownload from '@ntb/shared-wfs-utils/download';
-import { SystemSettings } from '@ntb/shared-models';
-import { knex } from '@ntb/shared-db-utils';
+} from '@ntb/utils';
+import wfsDownload from '@ntb/wfs-utils/download';
+import { SystemSettings } from '@ntb/models';
+import { knex } from '@ntb/db-utils';
 
 
 const logger = createLogger();

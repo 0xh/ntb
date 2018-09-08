@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import querystring from 'querystring';
 
-import settings from '@ntb/shared-settings';
+import settings from '@ntb/settings';
 
 import sherpa from '../lib/sherpa';
 

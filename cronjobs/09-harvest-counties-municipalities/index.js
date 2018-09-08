@@ -3,9 +3,9 @@ import {
   startDuration,
   endDuration,
   moment,
-} from '@ntb/shared-utils';
-import { knex } from '@ntb/shared-db-utils';
-import wfsDownload from '@ntb/shared-wfs-utils/download';
+} from '@ntb/utils';
+import { knex } from '@ntb/db-utils';
+import wfsDownload from '@ntb/wfs-utils/download';
 
 
 const logger = createLogger();

@@ -1,10 +1,10 @@
 {
   "private": true,
-  "name": "@ntb/shared-db-utils",
+  "name": "@ntb/db-utils",
   "version": "0.0.0",
   "dependencies": {
-    "@ntb/shared-settings": "*",
-    "@ntb/shared-utils": "*",
+    "@ntb/settings": "*",
+    "@ntb/utils": "*",
     "knex": "0.15.2",
     "knex-postgis": "0.7.0",
     "objection": "1.2.6",

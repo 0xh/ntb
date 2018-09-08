@@ -1,4 +1,4 @@
-import { _ } from '@ntb/shared-utils';
+import { _ } from '@ntb/utils';
 
 
 const uuidTables = [

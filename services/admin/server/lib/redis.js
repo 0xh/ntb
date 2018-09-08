@@ -1,5 +1,5 @@
-import settings from '@ntb/shared-settings';
-import { Redis } from '@ntb/shared-web-server-utils';
+import settings from '@ntb/settings';
+import { Redis } from '@ntb/web-server-utils';
 
 
 export default new Redis(

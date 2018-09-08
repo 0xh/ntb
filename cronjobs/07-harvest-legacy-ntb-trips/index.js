@@ -1,6 +1,6 @@
-import { createLogger, isNumber } from '@ntb/shared-utils';
+import { createLogger, isNumber } from '@ntb/utils';
 import { harvestTrip } from
-  '@ntb/shared-legacy-ntb-harvester';
+  '@ntb/legacy-ntb-harvester';
 
 
 const logger = createLogger();

@@ -1,4 +1,4 @@
-import { express, responseTime } from '@ntb/shared-web-server-utils';
+import { express, responseTime } from '@ntb/web-server-utils';
 
 
 import version from '../../version';

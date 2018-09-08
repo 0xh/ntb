@@ -1,6 +1,6 @@
-import { createLogger, moment, fetch } from '@ntb/shared-utils';
-import { knex, Model } from '@ntb/shared-db-utils';
-import { geomFromGeoJSON } from '@ntb/shared-gis-utils';
+import { createLogger, moment, fetch } from '@ntb/utils';
+import { knex, Model } from '@ntb/db-utils';
+import { geomFromGeoJSON } from '@ntb/gis-utils';
 
 
 const logger = createLogger();

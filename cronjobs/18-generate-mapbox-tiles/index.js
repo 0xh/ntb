@@ -12,10 +12,10 @@ import {
   createLogger,
   startDuration,
   endDuration,
-} from '@ntb/shared-utils';
-import { knex, Knex } from '@ntb/shared-db-utils';
-import * as models from '@ntb/shared-models';
-import settings from '@ntb/shared-settings';
+} from '@ntb/utils';
+import { knex, Knex } from '@ntb/db-utils';
+import * as models from '@ntb/models';
+import settings from '@ntb/settings';
 
 
 // Bump this if you change or delete properties (not if you only add new ones)

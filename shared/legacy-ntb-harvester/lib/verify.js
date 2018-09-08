@@ -1,4 +1,4 @@
-import { validateGeojson } from '@ntb/shared-gis-utils';
+import { validateGeojson } from '@ntb/gis-utils';
 
 import * as helpers from './helpers';
 

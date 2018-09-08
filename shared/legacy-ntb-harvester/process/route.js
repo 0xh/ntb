@@ -2,8 +2,8 @@ import {
   createLogger,
   startDuration,
   endDuration,
-} from '@ntb/shared-utils';
-import { knex, Model } from '@ntb/shared-db-utils';
+} from '@ntb/utils';
+import { knex, Model } from '@ntb/db-utils';
 
 import * as legacy from '../legacy-structure/';
 

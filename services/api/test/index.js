@@ -1,6 +1,6 @@
 import test from 'ava';
 
-import db from '@ntb/shared-models';
+import db from '@ntb/models';
 
 
 test('foo', (t) => {

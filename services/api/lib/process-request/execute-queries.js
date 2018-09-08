@@ -3,9 +3,9 @@ import {
   isString,
   createLogger,
   _,
-} from '@ntb/shared-utils';
-import { knex } from '@ntb/shared-db-utils';
-import { BaseModel } from '@ntb/shared-models';
+} from '@ntb/utils';
+import { knex } from '@ntb/db-utils';
+import { BaseModel } from '@ntb/models';
 
 
 const logger = createLogger();

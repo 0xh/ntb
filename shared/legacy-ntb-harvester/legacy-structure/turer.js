@@ -1,9 +1,9 @@
-import { geojsonToPolyline } from '@ntb/shared-gis-utils';
+import { geojsonToPolyline } from '@ntb/gis-utils';
 import {
   sanitizeHtml,
   stripHtml,
-} from '@ntb/shared-text-content-utils';
-import { createLogger, uuid4 } from '@ntb/shared-utils';
+} from '@ntb/text-content-utils';
+import { createLogger, uuid4 } from '@ntb/utils';
 
 import statusMapper from '../lib/statusMapper';
 

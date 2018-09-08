@@ -2,9 +2,9 @@ import {
   createLogger,
   startDuration,
   endDuration,
-} from '@ntb/shared-utils';
-import { knex, Model } from '@ntb/shared-db-utils';
-import { geomFromGeoJSON } from '@ntb/shared-gis-utils';
+} from '@ntb/utils';
+import { knex, Model } from '@ntb/db-utils';
+import { geomFromGeoJSON } from '@ntb/gis-utils';
 
 import * as legacy from '../legacy-structure/';
 

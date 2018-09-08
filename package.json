@@ -27,6 +27,7 @@
     "@babel/polyfill": "^7.0.0",
     "@babel/preset-env": "^7.0.0",
     "@babel/preset-react": "^7.0.0",
+    "@babel/preset-typescript": "^7.0.0",
     "@types/node": "^10.9.4",
     "babel-eslint": "9.0.0",
     "babel-loader": "8.0.2",

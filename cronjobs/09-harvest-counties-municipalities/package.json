@@ -3,8 +3,8 @@
   "name": "@ntb/cronjobs-09",
   "version": "0.0.0",
   "dependencies": {
-    "@ntb/shared-db-utils": "*",
-    "@ntb/shared-utils": "*",
-    "@ntb/shared-wfs-utils": "*"
+    "@ntb/db-utils": "*",
+    "@ntb/utils": "*",
+    "@ntb/wfs-utils": "*"
   }
 }

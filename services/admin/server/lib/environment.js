@@ -1,4 +1,4 @@
-import settings from '@ntb/shared-settings';
+import settings from '@ntb/settings';
 
 const environment = {
   production: settings.NODE_ENV === 'production',

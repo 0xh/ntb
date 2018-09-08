@@ -1,8 +1,8 @@
 import uuidValidate from 'uuid-validate';
 
-import { _ } from '@ntb/shared-utils';
-import { express, morgan } from '@ntb/shared-web-server-utils';
-import * as Models from '@ntb/shared-models';
+import { _ } from '@ntb/utils';
+import { express, morgan } from '@ntb/web-server-utils';
+import * as Models from '@ntb/models';
 
 import processRequest from '../lib/process-request';
 import asyncHandler from '../lib/express-async-handler';

@@ -2,8 +2,8 @@ import {
   isNumber,
   isObject,
   _,
-} from '@ntb/shared-utils';
-import { BaseModel } from '@ntb/shared-models';
+} from '@ntb/utils';
+import { BaseModel } from '@ntb/models';
 
 import validateAndProcessFilters from './validate-and-process-filters';
 

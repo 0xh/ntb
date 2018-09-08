@@ -3,7 +3,7 @@ import {
   startDuration,
   endDuration,
   moment,
-} from '@ntb/shared-utils';
+} from '@ntb/utils';
 
 import * as legacy from './legacy-structure';
 import verify from './lib/verify';

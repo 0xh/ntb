@@ -1,4 +1,4 @@
-import { createLogger } from '@ntb/shared-utils';
+import { createLogger } from '@ntb/utils';
 
 
 const logger = createLogger();

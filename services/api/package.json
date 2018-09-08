@@ -6,11 +6,11 @@
   "test": "ava"
  },
  "dependencies": {
-  "@ntb/shared-db-utils": "*",
-  "@ntb/shared-models": "*",
-  "@ntb/shared-settings": "*",
-  "@ntb/shared-utils": "*",
-  "@ntb/shared-web-server-utils": "*",
+  "@ntb/db-utils": "*",
+  "@ntb/models": "*",
+  "@ntb/settings": "*",
+  "@ntb/utils": "*",
+  "@ntb/web-server-utils": "*",
   "uuid-validate": "0.0.3"
  }
 }

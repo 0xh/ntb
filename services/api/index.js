@@ -1,6 +1,6 @@
-import settings from '@ntb/shared-settings';
-import { createLogger } from '@ntb/shared-utils';
-import { express, bodyParser } from '@ntb/shared-web-server-utils';
+import settings from '@ntb/settings';
+import { createLogger } from '@ntb/utils';
+import { express, bodyParser } from '@ntb/web-server-utils';
 
 import APIError from './lib/api-error';
 import controllers from './controllers';

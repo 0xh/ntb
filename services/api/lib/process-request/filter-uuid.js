@@ -1,6 +1,6 @@
 import uuidValidate from 'uuid-validate';
 
-import { isString } from '@ntb/shared-utils';
+import { isString } from '@ntb/utils';
 
 
 function whereNotNull(handler, filter) {

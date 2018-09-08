@@ -1,4 +1,4 @@
-import { uuid4 } from '@ntb/shared-utils';
+import { uuid4 } from '@ntb/utils';
 
 import statusMapper from '../lib/statusMapper';
 
