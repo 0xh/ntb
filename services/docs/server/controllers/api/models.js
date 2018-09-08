@@ -30,11 +30,20 @@ router.get('/', (req, res, next) => {
         }
       });
 
+      let { modelDescription } = model;
+      if (modelDescription) {
+        modelDescription = modelDescription.trim();
+        while (modelDescription.indexOf('\n ') !== -1) {
+          modelDescription = modelDescription.replace('\n ', '\n');
+        }
+      }
+
       data[model.name] = {
         relations,
         idColumn: model.idColumn,
         config: model.getAPIConfig(),
         schema: model.jsonSchema,
+        modelDescription: modelDescription || null,
       };
     });
 

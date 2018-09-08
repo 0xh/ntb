@@ -1,20 +1,24 @@
 import React, { Component } from 'react';
 import { replace as routerReplace } from 'react-router-redux';
+import universal from 'react-universal-component';
 
 import connect from 'lib/wrappedConnect';
 import fetchModels from 'core/actions/models/fetch';
 import { getPath, getQueryParams } from 'core/selectors/router';
-import { getIsFetching as getIsFetchingModels } from 'core/selectors/models';
+import {
+  getIsFetching as getIsFetchingModels,
+  getModelNames,
+} from 'core/selectors/models';
 
 import { Route } from 'react-router';
 import { Layout } from 'antd';
 
-import Main from 'modules/main';
+import About from 'modules/About';
 import CoreLayout from './layout/CoreLayout.jsx';
 import Loading from './layout/Loading.jsx';
 
-
 const { Content } = Layout;
+const LazyModel = universal((props) => import('modules/Model'));
 
 
 class App extends Component {
@@ -26,6 +30,7 @@ class App extends Component {
   render() {
     const {
       isFetchingModels,
+      modelNames,
     } = this.props;
 
     if (isFetchingModels) {
@@ -41,7 +46,18 @@ class App extends Component {
     return (
       <CoreLayout>
         <div>
-          <Route exact path="/" component={Main}/>
+          <Route exact path="/" component={About}/>
+
+          {modelNames.map((modelName) => (
+            <Route
+              exact
+              path={`/${modelName.toLowerCase()}`}
+              key={modelName}
+              render={(props) => (
+                <LazyModel modelName={modelName} />
+              )}
+            />
+          ))}
         </div>
       </CoreLayout>
     );
@@ -53,6 +69,7 @@ const mapStateToProps = (state) => ({
   isFetchingModels: getIsFetchingModels(state),
   path: getPath(state),
   queryParams: getQueryParams(state),
+  modelNames: getModelNames(state),
 });
 
 
