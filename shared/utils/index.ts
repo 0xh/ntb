@@ -15,6 +15,7 @@ const durationData: durationDataItem = {};
 
 // Export common dependencies
 export { default as _ } from 'lodash';
+export { default as moment } from 'moment';
 export { default as uuid4 } from 'uuid/v4';
 
 
