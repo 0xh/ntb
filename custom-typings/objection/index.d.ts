@@ -198,8 +198,7 @@ declare namespace Objection {
   }
 
   class Relation {
-    beforeInsert(queryContext: QueryContext): Promise<any> | void;
-    forbiddenMappingProperties: string[];
+    beforeInsert?: (queryContext: QueryContext) => Promise<any> | void;
     joinModelClass: null | typeof Model;
     joinTable: null | string;
     joinTableExtras: null | joinTableExtra[];
@@ -236,6 +235,8 @@ declare namespace Objection {
     join: RelationJoin;
     modify?: (queryBuilder: QueryBuilder<any>) => QueryBuilder<any>;
     filter?: (queryBuilder: QueryBuilder<any>) => QueryBuilder<any>;
+    beforeInsert?: (model: Model, queryContext: QueryContext) =>
+      Promise<any> | void;
   }
 
   export interface EagerAlgorithm {
@@ -482,11 +483,11 @@ declare namespace Objection {
     static raw: knex.RawBuilder;
     static fn: knex.FunctionHelper;
 
-    static BelongsToOneRelation: typeof Relation;
-    static HasOneRelation: typeof Relation;
-    static HasManyRelation: typeof Relation;
-    static ManyToManyRelation: typeof Relation;
-    static HasOneThroughRelation: typeof Relation;
+    static BelongsToOneRelation: Relation;
+    static HasOneRelation: Relation;
+    static HasManyRelation: Relation;
+    static ManyToManyRelation: Relation;
+    static HasOneThroughRelation: Relation;
 
     static JoinEagerAlgorithm: EagerAlgorithm;
     static WhereInEagerAlgorithm: EagerAlgorithm;
