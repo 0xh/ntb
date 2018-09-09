@@ -6,6 +6,9 @@ import { Knex, st } from '@ntb/db-utils';
 import { validateAndFixGeojson } from './validate';
 
 
+export { default as geojson } from 'geojson';
+
+
 export function geomFromGeoJSON(geojson: object): null | Knex.QueryBuilder {
   const validatedGeojson = validateAndFixGeojson(geojson);
 
