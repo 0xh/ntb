@@ -5,7 +5,7 @@ import {
   _,
 } from '@ntb/utils';
 import { knex } from '@ntb/db-utils';
-import { BaseModel } from '@ntb/models';
+import { Document } from '@ntb/models';
 
 
 const logger = Logger.getLogger();
@@ -997,8 +997,8 @@ async function executeRelationQueries(handler, outerInstances) {
       // Paginated relation to many using a through table
       if (
         relationHandler.config.paginate
-        && relation instanceof BaseModel.ManyToManyRelation
-        && !(relation instanceof BaseModel.HasOneThroughRelation)
+        && relation instanceof Document.ManyToManyRelation
+        && !(relation instanceof Document.HasOneThroughRelation)
       ) {
         logger.debug('Executing paginated multi through relation');
         relationInstances = await executePaginatedMultiThroughRelation(
@@ -1008,8 +1008,8 @@ async function executeRelationQueries(handler, outerInstances) {
       // Relation to many using a through table that is not paginated
       else if (
         !relationHandler.config.paginate
-        && relation instanceof BaseModel.ManyToManyRelation
-        && !(relation instanceof BaseModel.HasOneThroughRelation)
+        && relation instanceof Document.ManyToManyRelation
+        && !(relation instanceof Document.HasOneThroughRelation)
       ) {
         logger.debug('Executing multi through relation');
         relationInstances = await executeMultiThroughRelation(
@@ -1017,7 +1017,7 @@ async function executeRelationQueries(handler, outerInstances) {
         );
       }
       // Single instance relation
-      else if (relation instanceof BaseModel.BelongsToOneRelation) {
+      else if (relation instanceof Document.BelongsToOneRelation) {
         logger.debug('Executing single relation');
         relationInstances = await executeSingleOrMultiRelation(
           relationHandler, key, outerInstances, true
@@ -1026,8 +1026,8 @@ async function executeRelationQueries(handler, outerInstances) {
       // Relation to many not using av through table that is not paginated
       else if (
         !relationHandler.config.paginate
-        && relation instanceof BaseModel.HasManyRelation
-        && !(relation instanceof BaseModel.HasOneRelation)
+        && relation instanceof Document.HasManyRelation
+        && !(relation instanceof Document.HasOneRelation)
       ) {
         logger.debug('Executing multi relation');
         relationInstances = await executeSingleOrMultiRelation(
@@ -1037,8 +1037,8 @@ async function executeRelationQueries(handler, outerInstances) {
       // Paginated relation to many not using av through table
       else if (
         relationHandler.config.paginate
-        && relation instanceof BaseModel.HasManyRelation
-        && !(relation instanceof BaseModel.HasOneRelation)
+        && relation instanceof Document.HasManyRelation
+        && !(relation instanceof Document.HasOneRelation)
       ) {
         logger.debug('Executing paginated multi relation');
         relationInstances = await executePaginatedMultiRelation(
@@ -1236,7 +1236,7 @@ function formatResults(handler, results) {
     rows = [results.rows[0]];
   }
   // Single document
-  else if (results instanceof BaseModel) {
+  else if (results instanceof Document) {
     rows = [results];
     singleDocument = true;
   }

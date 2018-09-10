@@ -79,7 +79,7 @@ router.get('/robots.txt', (req, res, next) => {
 
 // Add entry models
 Object.values(Models).forEach((model) => {
-  if (model.APIEntryModel) {
+  if (model.apiEntryModel) {
     const name = _.snakeCase(model.name);
     router.use(`/${name}`, createModelRouter(model));
   }

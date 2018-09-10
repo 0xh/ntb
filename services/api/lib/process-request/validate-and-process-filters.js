@@ -67,7 +67,7 @@ function processExpressJSQueryObjectDeepFilter(
       if (key !== 'q') {
         options = subKey
           ? handler.config.validRelationFilters[key][subKey]
-          : handler.config.validFilters[key];
+          : handler.config.filters[key];
       }
 
       let filterKey = subKey || key;
@@ -140,7 +140,7 @@ function processExpressJSQueryObject(handler) {
       }
       else {
         key = _.camelCase(rawKey);
-        options = handler.config.validFilters[key];
+        options = handler.config.filters[key];
       }
 
       filters.$and = filters.$and.concat(rawValues.map((rawValue) => ({
@@ -211,7 +211,7 @@ function processStructuredQueryObjectFilters(
                 rawValue: value,
                 trace: `${trace}[${idx} - ${key}]`,
               },
-              options: handler.config.validFilters[camelCasedKey],
+              options: handler.config.filters[camelCasedKey],
             });
           }
           else {

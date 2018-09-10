@@ -3,7 +3,7 @@ import {
   isObject,
   _,
 } from '@ntb/utils';
-import { BaseModel } from '@ntb/models';
+import { Document } from '@ntb/models';
 
 import validateAndProcessFilters from './validate-and-process-filters';
 
@@ -20,7 +20,7 @@ function getNextReferrerId(handler, key) {
 
 
 function getAPIConfig(model, referrer) {
-  const apiConfig = model.getAPIConfig();
+  const apiConfig = model.getApiConfigPerReferrer();
   let selectedConfig;
 
   referrer.forEach((ref) => {
@@ -29,7 +29,7 @@ function getAPIConfig(model, referrer) {
     }
   });
   if (!selectedConfig) {
-    selectedConfig = apiConfig.default;
+    selectedConfig = apiConfig.standard;
   }
 
   // Set some defaults
@@ -73,7 +73,7 @@ function setValidKeys(handler) {
   const relations = model.getRelations();
 
   // Enable pagination if not relation, or a multiple-relation
-  if (!relation || !(relation instanceof BaseModel.BelongsToOneRelation)) {
+  if (!relation || !(relation instanceof Document.BelongsToOneRelation)) {
     // Pagination keys
     if (config.paginate) {
       validKeys.push('limit');
@@ -100,7 +100,7 @@ function setValidKeys(handler) {
   // Filter keys
   const validFilters = { self: [], relations: {}, join: {} };
   if (!handler.id) {
-    validFilters.self = Object.keys((handler.config.validFilters || {}));
+    validFilters.self = Object.keys((handler.config.filters || {}));
     // Valid relation filters
     Object.keys(relations || {}).forEach((key) => {
       const rel = relations[key];
@@ -212,12 +212,12 @@ function validateKeys(handler) {
 function validateLimit(requestObject, handler) {
   const { config, trace } = handler;
 
-  if (!config.defaultLimit) {
-    throw new Error('defaultLimit is not set in apiConfig');
+  if (!config.paginate || ! config.paginate.defaultLimit) {
+    throw new Error('paginate.defaultLimit is not set in apiConfig');
   }
 
-  if (!config.maxLimit) {
-    throw new Error('maxLimit is not set in apiConfig');
+  if (!config.paginate || ! config.paginate.maxLimit) {
+    throw new Error('paginate.maxLimit is not set in apiConfig');
   }
 
   const queryLimit = getKeyValue(requestObject, 'limit');
@@ -239,7 +239,7 @@ function validateLimit(requestObject, handler) {
 
     if (isNumber(value)) {
       const limit = +value;
-      if (limit >= 0 && limit <= config.maxLimit) {
+      if (limit >= 0 && limit <= config.paginate.maxLimit) {
         return limit;
       }
     }
@@ -251,7 +251,7 @@ function validateLimit(requestObject, handler) {
     }
   }
 
-  return config.defaultLimit;
+  return config.paginate.defaultLimit;
 }
 
 
@@ -322,17 +322,17 @@ function setOrdering(handler) {
     trace,
   } = handler;
 
-  if (!config.defaultOrder) {
-    throw new Error('defaultOrder is not set in apiConfig');
+  if (!config.ordering.default) {
+    throw new Error('ordering.default is not set in apiConfig');
   }
 
-  if (!config.validOrderFields) {
-    throw new Error('validOrderFields is not set in apiConfig');
+  if (!config.ordering.validFields) {
+    throw new Error('ordering.validFields is not set in apiConfig');
   }
 
-  queryOptions.order = config.defaultOrder;
+  queryOptions.order = config.ordering.default;
 
-  if (config.ordering) {
+  if (!config.disabled) {
     const queryOrder = getKeyValue(requestObject, 'order');
     if (queryOrder && queryOrder[0].value) {
       const qOrder = queryOrder[0];
@@ -389,7 +389,7 @@ function setOrdering(handler) {
             o[0] = _.camelCase(o[0].toLowerCase().trim());
             o[1] = o[1].toLowerCase().trim();
 
-            if (!config.validOrderFields.includes(o[0])) {
+            if (!config.ordering.validFields.includes(o[0])) {
               handler.errors.push(
                 `Invalid ${trace}${qOrder.originalKey} value ` +
                 `'${qOrder.errorReportingValue}'` +
