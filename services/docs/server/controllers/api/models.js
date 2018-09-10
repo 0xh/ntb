@@ -1,6 +1,6 @@
 import { Router } from 'express';
 
-import * as models from '@ntb/models';
+import * as models from '../../ntb-old-models';
 
 
 const router = new Router();
