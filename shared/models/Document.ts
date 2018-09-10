@@ -89,10 +89,12 @@ export interface apiFilters {
 export interface apiConfig {
   fullTextSearch?: boolean;
   ordering?: false | {
+    disabled?: boolean,
     default: orderField[],
     validFields: string[],
   };
   paginate?: false | {
+    disabled?: boolean,
     defaultLimit: number,
     maxLimit: number,
   };
