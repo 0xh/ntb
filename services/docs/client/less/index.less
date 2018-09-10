@@ -2,78 +2,51 @@
 
 
 
-@header-background-color: #333;
 @box-background-color: #fff;
 @page-max-width: 1000px;
 
 
-.logo {
-  color: #eee;
-  font-size: 1.4em;
+body {
+  background-color: @layout-body-background;
 }
 
-
-.field-list__header {
-  font-weight: 500;
+.page {
+  max-width: @page-max-width;
+  width: 100%;
+  margin: 0 auto;
   position: relative;
-  margin-top: 100px;
-  margin-bottom: 10px;
 }
 
-.field-list__header-label-rotated {
-  display: block;
-  width: 150px;
-  transform: rotate(-50deg);
-  transform-origin: left bottom 0;
+.box-bg {
+  background-color: @box-background-color;
+}
+
+.loading-container {
   position: absolute;
-  margin-left: 13px;
+  min-width: 100%;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: fade(@layout-body-background, .3);
+  text-align: center;
 }
 
-.field-row {
-  background-color: #fafafa;
-  padding: 8px 0;
+.loading-container {
+  position: absolute;
+  min-width: 100%;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: fade(@layout-body-background, .3);
+  text-align: center;
 }
 
-.field-row--even {
-  background-color: #eee;
+.hide-expand .ant-table-row-expand-icon {
+  display: none;
 }
 
-.field-row--hover {
-  &:hover {
-    background-color: fade(@primary-color, 20%);
-    cursor: pointer;
-  }
-}
-
-.field-row__subrow {
-  padding-bottom: 32px;
-  &:hover {
-    cursor: default;
-    background-color: #fafafa;
-  }
-}
-
-.field-row--even.field-row__subrow {
-  &:hover {
-    background-color: #eee;
-  }
-}
-
-.field-name {
-  font-weight: 500;
-}
-
-.field-name--subname {
-  display: block;
-  padding-left: 16px;
-  opacity: .8;
-}
-
-.field-filter-info {
-  border-bottom: 1px solid #ddd;
-  margin-bottom: 6px;
-
-  pre {
-    margin-bottom: 0;
-  }
+tr.ant-table-expanded-row:hover > td {
+  background: none;
 }

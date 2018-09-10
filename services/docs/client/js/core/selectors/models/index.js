@@ -39,12 +39,12 @@ export const getModelSchema = (state, modelName) =>
 export const getModelConfigByReferrer = (
   state,
   modelName,
-  referrers,
+  referrer,
 ) => {
   const modelConfig = getModelConfig(state, modelName);
   let config;
 
-  referrers.forEach((ref) => {
+  referrer.forEach((ref) => {
     if (!config && modelConfig[ref]) {
       config = modelConfig[ref];
     }

@@ -1,5 +1,6 @@
 // eslint-disable-next-line
 const path = require('path');
+const fs = require('fs');
 
 /* eslint-disable */
 const webpack = require('webpack');
@@ -112,17 +113,13 @@ module.exports = (env) => {
                 '@babel/react',
               ],
               plugins: [
-                ['@babel/plugin-proposal-decorators', { legacy: true }],
+                'react-hot-loader/babel',
                 '@babel/syntax-dynamic-import',
                 '@babel/plugin-proposal-function-bind',
+                ['@babel/plugin-proposal-decorators', { legacy: true }],
                 ['import', { libraryName: 'antd', style: true }],
                 'universal-import',
               ],
-              env: {
-                development: {
-                  plugins: ['react-hot-loader/babel'],
-                },
-              },
             },
           },
         },
