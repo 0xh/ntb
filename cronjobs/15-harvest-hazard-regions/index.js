@@ -1,9 +1,9 @@
-import { createLogger, moment, fetch } from '@ntb/utils';
+import { Logger, moment, fetch } from '@ntb/utils';
 import { knex, Model } from '@ntb/db-utils';
 import { geomFromGeoJSON } from '@ntb/gis-utils';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 
 const HAZARD_TYPES = [
   {

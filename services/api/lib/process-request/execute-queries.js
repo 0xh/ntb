@@ -1,14 +1,14 @@
 import {
   isObject,
   isString,
-  createLogger,
+  Logger,
   _,
 } from '@ntb/utils';
 import { knex } from '@ntb/db-utils';
 import { BaseModel } from '@ntb/models';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 
 
 function addRelationJoins(queryInstance, model, modelAlias, queryOptions) {

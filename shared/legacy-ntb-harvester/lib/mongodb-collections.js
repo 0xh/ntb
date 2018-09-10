@@ -5,13 +5,13 @@ import { MongoClient } from 'mongodb';
 
 import settings from '@ntb/settings';
 import {
-  createLogger,
+  Logger,
   startDuration,
-  endDuration,
+  printDuration,
 } from '@ntb/utils';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 const testFilesFolder = path.resolve(__dirname, '..', 'test-data');
 
 
@@ -27,7 +27,7 @@ async function getCollectionCount(mongoDb, collectionName, filter) {
       status: { $ne: 'Slettet' },
       ...(filter || {}),
     }).count();
-    endDuration(durationId);
+    printDuration(durationId);
     resolve(count);
   });
 }
@@ -58,7 +58,7 @@ function getCollectionDocuments(
     }
 
     query.toArray((err, items) => {
-      endDuration(
+      printDuration(
         durationId,
         `Fetching "${collectionName}" from mongodb done in`
       );
@@ -90,7 +90,7 @@ export async function getDocumentCountFromMongoDb(type, filter) {
   logger.info(`"${type}" count: ${count}`);
 
   mongoClient.close();
-  endDuration(durationId);
+  printDuration(durationId);
 
   return count;
 }
@@ -127,7 +127,7 @@ async function getAllDocumentsFromMongoDb(handler, types) {
   mongoClient.close();
 
   handler.documents = documents;
-  endDuration(durationId, 'Fetching all documents from mongodb done in');
+  printDuration(durationId, 'Fetching all documents from mongodb done in');
 }
 
 
@@ -185,7 +185,7 @@ async function getAllDocumentsFromTestFiles(handler, types) {
   });
 
   handler.documents = documents;
-  endDuration(durationId, 'Fetching all documents from test files done in');
+  printDuration(durationId, 'Fetching all documents from test files done in');
 }
 
 
@@ -221,5 +221,5 @@ export async function downloadTestData() {
   });
 
   logger.info('Creating test-data files done!');
-  endDuration(durationId);
+  printDuration(durationId);
 }

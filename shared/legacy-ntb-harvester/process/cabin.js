@@ -1,7 +1,7 @@
 import {
-  createLogger,
+  Logger,
   startDuration,
-  endDuration,
+  printDuration,
 } from '@ntb/utils';
 import { knex, Model } from '@ntb/db-utils';
 import { geomFromGeoJSON } from '@ntb/gis-utils';
@@ -9,7 +9,7 @@ import { geomFromGeoJSON } from '@ntb/gis-utils';
 import * as legacy from '../legacy-structure/';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 const DATASOURCE_NAME = 'legacy-ntb';
 
 
@@ -292,7 +292,7 @@ async function createTempTables(handler, first = false) {
   handler.cabins.TempCabinPicturesModel = TempCabinPicturesModel;
 
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 /**
@@ -315,7 +315,7 @@ async function dropTempTables(handler) {
     .dropTableIfExists(handler.cabins.TempCabinToAreaModel.tableName)
     .dropTableIfExists(handler.cabins.TempCabinPicturesModel.tableName);
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -335,7 +335,7 @@ async function mapData(handler) {
         cabins.push(m);
       })
   );
-  endDuration(durationId);
+  printDuration(durationId);
 
   handler.cabins.processed = cabins;
 }
@@ -359,7 +359,7 @@ async function populateTempTables(handler) {
   await handler.cabins.TempCabinModel
     .query()
     .insert(cabins);
-  endDuration(durationId);
+  printDuration(durationId);
 
 
   const foundServiceLevels = [];
@@ -463,7 +463,7 @@ async function populateTempTables(handler) {
   await handler.cabins.TempServiceLevelModel
     .query()
     .insert(serviceLevels);
-  endDuration(durationId);
+  printDuration(durationId);
 
 
   // Insert temp data for CabinTranslation
@@ -472,7 +472,7 @@ async function populateTempTables(handler) {
   await handler.cabins.TempTranslationModel
     .query()
     .insert(translations);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for CabinLink
   logger.info('Inserting cabin links to temporary table');
@@ -480,7 +480,7 @@ async function populateTempTables(handler) {
   await handler.cabins.TempCabinLinkModel
     .query()
     .insert(links);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for CabinOpeningHours
   logger.info('Inserting cabin opening hours to temporary table');
@@ -488,7 +488,7 @@ async function populateTempTables(handler) {
   await handler.cabins.TempCabinOHoursModel
     .query()
     .insert(openingHours);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for Facility
   logger.info('Inserting facilities to temporary table');
@@ -496,7 +496,7 @@ async function populateTempTables(handler) {
   await handler.cabins.TempFacilityModel
     .query()
     .insert(facilities);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for CabinFacility
   logger.info('Inserting cabin facilities to temporary table');
@@ -504,7 +504,7 @@ async function populateTempTables(handler) {
   await handler.cabins.TempCabinFacilityModel
     .query()
     .insert(cabinFacilities);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for Accessability
   logger.info('Inserting accessabilities to temporary table');
@@ -512,7 +512,7 @@ async function populateTempTables(handler) {
   await handler.cabins.TempAccessabilityModel
     .query()
     .insert(accessabilities);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for CabinAccessability
   logger.info('Inserting cabin accessabilities to temporary table');
@@ -520,7 +520,7 @@ async function populateTempTables(handler) {
   await handler.cabins.TempCabinAccessabilityModel
     .query()
     .insert(cabinAccessabilities);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for CabinAccessability
   logger.info('Inserting cabin to area temporary table');
@@ -528,7 +528,7 @@ async function populateTempTables(handler) {
   await handler.cabins.TempCabinToAreaModel
     .query()
     .insert(cabinToArea);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for CabinPicture
   logger.info('Inserting cabin picture temporary table');
@@ -536,7 +536,7 @@ async function populateTempTables(handler) {
   await handler.cabins.TempCabinPicturesModel
     .query()
     .insert(pictures);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -557,7 +557,7 @@ async function mergeServiceLevel(handler) {
   logger.info('Creating cabin service levels');
   const durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -583,7 +583,7 @@ async function mergeCabin(handler) {
   logger.info('Update ids on cabin maintainer temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Set ids on owner group on cabin temp data
   sql = [
@@ -599,7 +599,7 @@ async function mergeCabin(handler) {
   logger.info('Update ids on cabin owner temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Set ids on contact group on cabin temp data
   sql = [
@@ -615,7 +615,7 @@ async function mergeCabin(handler) {
   logger.info('Update ids on cabin contact temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -789,7 +789,7 @@ async function mergeCabin(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -816,7 +816,7 @@ async function mergeCabinTranslation(handler) {
   logger.info('Update ids on cabin in translation temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -841,7 +841,7 @@ async function mergeCabinTranslation(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -868,7 +868,7 @@ async function mergeCabinLinks(handler) {
   logger.info('Update ids on cabin links temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -892,7 +892,7 @@ async function mergeCabinLinks(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -919,7 +919,7 @@ async function removeDepreactedCabinLinks(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -938,7 +938,7 @@ async function createFacilities(handler) {
   logger.info('Create new facilities');
   const durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -964,7 +964,7 @@ async function createCabinFacilities(handler) {
   logger.info('Update ids on cabin facility temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Create cabin facility relations
   sql = [
@@ -982,7 +982,7 @@ async function createCabinFacilities(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -1009,7 +1009,7 @@ async function removeDepreactedCabinFacilities(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -1028,7 +1028,7 @@ async function createAccessabilities(handler) {
   logger.info('Create new accessabilities');
   const durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -1054,7 +1054,7 @@ async function createCabinAccessabilities(handler) {
   logger.info('Update ids on cabin accessability temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Create cabin accessability relations
   sql = [
@@ -1072,7 +1072,7 @@ async function createCabinAccessabilities(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -1100,7 +1100,7 @@ async function removeDepreactedCabinAccessabilities(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -1127,7 +1127,7 @@ async function mergeCabinOpeningHours(handler) {
   logger.info('Update ids on cabin opening hours temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -1171,7 +1171,7 @@ async function mergeCabinOpeningHours(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -1200,7 +1200,7 @@ async function removeDepreactedCabinOpeningHours(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -1227,7 +1227,7 @@ async function setCabinPictures(handler) {
   logger.info('Update ids on cabin-to-picture temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -1258,7 +1258,7 @@ async function setCabinPictures(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -1284,7 +1284,7 @@ async function removeDepreactedCabinPictures(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -1312,7 +1312,7 @@ async function removeDepreactedCabin(handler) {
     data_source: DATASOURCE_NAME,
     status: 'deleted',
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 

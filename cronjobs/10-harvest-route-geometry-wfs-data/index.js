@@ -1,14 +1,14 @@
 import {
-  createLogger,
+  Logger,
   startDuration,
-  endDuration,
+  printDuration,
 } from '@ntb/utils';
 import wfsDownload from '@ntb/wfs-utils/download';
 import { SystemSettings } from '@ntb/models';
 import { knex } from '@ntb/db-utils';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 
 
 const SYSTEM_SETTINGS_NAME = 'routes-wfs';
@@ -88,7 +88,7 @@ async function downloadWfsData(wfsType, table) {
     throw new Error('Downloading wfs failed.');
   }
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -106,7 +106,7 @@ async function processRouteType(type, settings) {
   settings[routeType].downloadEnd = new Date().toISOString();
   await updateSystemSettings(settings);
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -119,7 +119,7 @@ async function main() {
   await processRouteType(TYPES.foot, settings);
 
   await updateSystemSettings(settings);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 

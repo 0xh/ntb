@@ -1,7 +1,7 @@
 import {
-  createLogger,
+  Logger,
   startDuration,
-  endDuration,
+  printDuration,
 } from '@ntb/utils';
 import { knex, Model } from '@ntb/db-utils';
 import { geomFromGeoJSON } from '@ntb/gis-utils';
@@ -9,7 +9,7 @@ import { geomFromGeoJSON } from '@ntb/gis-utils';
 import * as legacy from '../legacy-structure/';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 const DATASOURCE_NAME = 'legacy-ntb';
 
 /**
@@ -84,7 +84,7 @@ async function createTempTables(handler, first = false) {
   }
   handler.areas.TempAreaPicturesModel = TempAreaPicturesModel;
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 /**
@@ -99,7 +99,7 @@ async function dropTempTables(handler) {
     .dropTableIfExists(handler.areas.TempAreaAreaModel.tableName)
     .dropTableIfExists(handler.areas.TempAreaPicturesModel.tableName);
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -115,7 +115,7 @@ async function mapData(handler) {
     const m = await legacy.områder.mapping(d, handler);
     areas.push(m);
   }));
-  endDuration(durationId);
+  printDuration(durationId);
 
   handler.areas.processed = areas;
 }
@@ -139,7 +139,7 @@ async function populateTempTables(handler) {
   await handler.areas.TempAreaModel
     .query()
     .insert(areas);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Process data for counties, minucipalities and area relations
   const areaArea = [];
@@ -173,7 +173,7 @@ async function populateTempTables(handler) {
   await handler.areas.TempAreaAreaModel
     .query()
     .insert(areaArea);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for AreaArea
   logger.info('Inserting areas<>pictures to temporary table');
@@ -181,7 +181,7 @@ async function populateTempTables(handler) {
   await handler.areas.TempAreaPicturesModel
     .query()
     .insert(pictures);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -244,7 +244,7 @@ async function mergeAreas(handler) {
   logger.info('Creating or updating areas');
   const durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -272,7 +272,7 @@ async function mergeAreaToArea(handler) {
   logger.info('Update ids on area-to-area temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -290,7 +290,7 @@ async function mergeAreaToArea(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -316,7 +316,7 @@ async function removeDepreactedAreaToArea(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -343,7 +343,7 @@ async function setAreaPictures(handler) {
   logger.info('Update id on area-to-picture temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -362,7 +362,7 @@ async function setAreaPictures(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -388,7 +388,7 @@ async function removeDepreactedAreaPictures(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -416,7 +416,7 @@ async function removeDepreactedArea(handler) {
     data_source: DATASOURCE_NAME,
     status: 'deleted',
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 

@@ -1,9 +1,9 @@
-import { createLogger, isNumber } from '@ntb/utils';
+import { Logger, isNumber } from '@ntb/utils';
 import { harvestPoi } from
   '@ntb/legacy-ntb-harvester';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 
 
 let fullHarvest = false;

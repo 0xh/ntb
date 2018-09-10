@@ -1,5 +1,5 @@
 import settings from '@ntb/settings';
-import { createLogger } from '@ntb/utils';
+import { Logger } from '@ntb/utils';
 import { express, bodyParser } from '@ntb/web-server-utils';
 
 import APIError from './lib/api-error';
@@ -7,7 +7,7 @@ import controllers from './controllers';
 
 
 const { ENV_IS_DEVELOPMENT } = settings;
-const logger = createLogger();
+const logger = Logger.getLogger();
 
 // Initiate express app
 const app = express();

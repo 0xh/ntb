@@ -1,7 +1,7 @@
 import {
-  createLogger,
+  Logger,
   startDuration,
-  endDuration,
+  printDuration,
 } from '@ntb/utils';
 import { knex, Model } from '@ntb/db-utils';
 import { geomFromGeoJSON } from '@ntb/gis-utils';
@@ -9,7 +9,7 @@ import { geomFromGeoJSON } from '@ntb/gis-utils';
 import * as legacy from '../legacy-structure/';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 const DATASOURCE_NAME = 'legacy-ntb';
 
 
@@ -196,7 +196,7 @@ async function createTempTables(handler, first = false) {
   handler.pois.TempPoiPicturesModel = TempPoiPicturesModel;
 
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -217,7 +217,7 @@ async function dropTempTables(handler) {
     .dropTableIfExists(handler.pois.TempPoiToGroupModel.tableName)
     .dropTableIfExists(handler.pois.TempPoiPicturesModel.tableName);
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -237,7 +237,7 @@ async function mapData(handler) {
         pois.push(m);
       })
   );
-  endDuration(durationId);
+  printDuration(durationId);
 
   handler.pois.processed = pois;
 }
@@ -261,7 +261,7 @@ async function populateTempTables(handler) {
   await handler.pois.TempPoiModel
     .query()
     .insert(pois);
-  endDuration(durationId);
+  printDuration(durationId);
 
   const accessabilities = [];
   const poiAccessabilities = [];
@@ -325,7 +325,7 @@ async function populateTempTables(handler) {
   await handler.pois.TempPoiLinkModel
     .query()
     .insert(links);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for PoiType
   logger.info('Inserting poi types to temporary table');
@@ -333,7 +333,7 @@ async function populateTempTables(handler) {
   await handler.pois.TempPoiTypeModel
     .query()
     .insert(poiTypes);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for Accessability
   logger.info('Inserting accessabilities to temporary table');
@@ -347,7 +347,7 @@ async function populateTempTables(handler) {
   await handler.pois.TempAccessabilityModel
     .query()
     .insert(distinctAccessabilities.map((a) => ({ name: a })));
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for PoiAccessability
   logger.info('Inserting poi accessabilities to temporary table');
@@ -355,7 +355,7 @@ async function populateTempTables(handler) {
   await handler.pois.TempPoiAccessabilityModel
     .query()
     .insert(poiAccessabilities);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for PoiAccessability
   logger.info('Inserting poi to area temporary table');
@@ -363,7 +363,7 @@ async function populateTempTables(handler) {
   await handler.pois.TempPoiToAreaModel
     .query()
     .insert(poiToArea);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for PoiToGroup
   logger.info('Inserting poi to group temporary table');
@@ -371,7 +371,7 @@ async function populateTempTables(handler) {
   await handler.pois.TempPoiToGroupModel
     .query()
     .insert(poiToGroup);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for PoiToGroup
   logger.info('Inserting poi pictures to temporary table');
@@ -379,7 +379,7 @@ async function populateTempTables(handler) {
   await handler.pois.TempPoiPicturesModel
     .query()
     .insert(pictures);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -400,7 +400,7 @@ async function mergePoiTypes(handler) {
   logger.info('Creating poi types');
   const durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -475,7 +475,7 @@ async function mergePoi(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -502,7 +502,7 @@ async function mergePoiToPoiTypes(handler) {
   logger.info('Update ids on poi types temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Remove existing poi to poi type relations
   sql = (`
@@ -515,7 +515,7 @@ async function mergePoiToPoiTypes(handler) {
   logger.info('Remove existing poi to poi type relations');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -534,7 +534,7 @@ async function mergePoiToPoiTypes(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -561,7 +561,7 @@ async function removeDepreactedPoiToPoiTypes(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -588,7 +588,7 @@ async function mergePoiLinks(handler) {
   logger.info('Update ids on poi links temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -611,7 +611,7 @@ async function mergePoiLinks(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -638,7 +638,7 @@ async function removeDepreactedPoiLinks(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -657,7 +657,7 @@ async function createAccessabilities(handler) {
   logger.info('Create new accessabilities');
   const durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -683,7 +683,7 @@ async function createPoiAccessabilities(handler) {
   logger.info('Update ids on poi accessability temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Create poi accessability relations
   sql = [
@@ -701,7 +701,7 @@ async function createPoiAccessabilities(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -728,7 +728,7 @@ async function removeDepreactedPoiAccessabilities(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -758,7 +758,7 @@ async function mergePoiToGroup(handler) {
   logger.info('Update ids on poi-to-group temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -777,7 +777,7 @@ async function mergePoiToGroup(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -805,7 +805,7 @@ async function removeDepreactedPoiToGroup(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -832,7 +832,7 @@ async function setPoiPictures(handler) {
   logger.info('Update ids on poi-to-pictures temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -851,7 +851,7 @@ async function setPoiPictures(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -877,7 +877,7 @@ async function removeDepreactedPoiPictures(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -905,7 +905,7 @@ async function removeDepreactedPoi(handler) {
     data_source: DATASOURCE_NAME,
     status: 'deleted',
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 

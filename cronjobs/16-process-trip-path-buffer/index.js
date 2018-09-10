@@ -1,8 +1,8 @@
-import { createLogger } from '@ntb/utils';
+import { Logger } from '@ntb/utils';
 import { knex } from '@ntb/db-utils';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 
 
 async function resetTripPathBufferss() {

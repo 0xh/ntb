@@ -1,9 +1,9 @@
 import processRouteSegments
   from '@ntb/process-route-segments';
-import { createLogger } from '@ntb/utils';
+import { Logger } from '@ntb/utils';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 
 
 const type = 'other';

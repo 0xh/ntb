@@ -1,12 +1,12 @@
 import {
-  createLogger,
+  Logger,
   startDuration,
-  endDuration,
+  printDuration,
 } from '@ntb/utils';
 import { knex } from '@ntb/db-utils';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 
 const MAX_DISTANCE = 5000;
 const LIMIT = 30;
@@ -195,7 +195,7 @@ async function main() {
 
     logger.info('************');
     logger.info(`Iteration done. Updated ${rowCount} rows`);
-    endDuration(durationId);
+    printDuration(durationId);
     logger.info('************');
   }
 }

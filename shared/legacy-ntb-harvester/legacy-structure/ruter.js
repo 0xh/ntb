@@ -2,13 +2,13 @@ import {
   sanitizeHtml,
   stripHtml,
 } from '@ntb/text-content-utils';
-import { createLogger, uuid4 } from '@ntb/utils';
+import { Logger, uuid4 } from '@ntb/utils';
 
 import statusMapper from '../lib/statusMapper';
 import { mapActivityType } from './turer';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 
 const routeCodeLinkIndexd = {};
 const routeCodeLinks = {};

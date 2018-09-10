@@ -1,7 +1,7 @@
 import {
-  createLogger,
+  Logger,
   startDuration,
-  endDuration,
+  printDuration,
 } from '@ntb/utils';
 import { knex, Model } from '@ntb/db-utils';
 import { geomFromGeoJSON } from '@ntb/gis-utils';
@@ -9,7 +9,7 @@ import { geomFromGeoJSON } from '@ntb/gis-utils';
 import * as legacy from '../legacy-structure/';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 const DATASOURCE_NAME = 'legacy-ntb';
 
 
@@ -138,7 +138,7 @@ async function createTempTables(handler, first = false) {
   handler.lists.TempListPicturesModel = TempListPicturesModel;
 
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -156,7 +156,7 @@ async function dropTempTables(handler) {
     .dropTableIfExists(handler.lists.TempListToGroupModel.tableName)
     .dropTableIfExists(handler.lists.TempListPicturesModel.tableName);
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -176,7 +176,7 @@ async function mapData(handler) {
         lists.push(m);
       })
   );
-  endDuration(durationId);
+  printDuration(durationId);
 
   handler.lists.processed = lists;
 }
@@ -200,7 +200,7 @@ async function populateTempTables(handler) {
   await handler.lists.TempListModel
     .query()
     .insert(lists);
-  endDuration(durationId);
+  printDuration(durationId);
 
   const groups = [];
   const poisAndCabins = [];
@@ -243,7 +243,7 @@ async function populateTempTables(handler) {
   await handler.lists.TempListLinkModel
     .query()
     .insert(links);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for List pictures
   logger.info('Inserting list pictures to temporary table');
@@ -251,7 +251,7 @@ async function populateTempTables(handler) {
   await handler.lists.TempListPicturesModel
     .query()
     .insert(pictures);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for ListCabinPoi
   logger.info('Inserting list documents to temporary table');
@@ -259,7 +259,7 @@ async function populateTempTables(handler) {
   await handler.lists.TempListCabinPoi
     .query()
     .insert(poisAndCabins);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for ListToGroup
   logger.info('Inserting list groups to temporary table');
@@ -267,7 +267,7 @@ async function populateTempTables(handler) {
   await handler.lists.TempListToGroupModel
     .query()
     .insert(groups);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -338,7 +338,7 @@ async function mergeList(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -365,7 +365,7 @@ async function mergeListLinks(handler) {
   logger.info('Update ids on list links temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -403,7 +403,7 @@ async function mergeListLinks(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -430,7 +430,7 @@ async function removeDepreactedListLinks(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -460,7 +460,7 @@ async function mergeListToGroup(handler) {
   logger.info('Update ids on list-to-group temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -479,7 +479,7 @@ async function mergeListToGroup(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -507,7 +507,7 @@ async function removeDepreactedListToGroup(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -534,7 +534,7 @@ async function setListPictures(handler) {
   logger.info('Update ids on list-to-picture temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -553,7 +553,7 @@ async function setListPictures(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -579,7 +579,7 @@ async function removeDepreactedListPictures(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -606,7 +606,7 @@ async function mergeListRelation(handler) {
   logger.info('Update list ids on list-relations temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Set cabin ids on TempListCabinPoi temp data
   sql = [
@@ -624,7 +624,7 @@ async function mergeListRelation(handler) {
   logger.info('Update cabin ids on list-relations temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Set poi ids on TempListCabinPoi temp data
   sql = [
@@ -642,7 +642,7 @@ async function mergeListRelation(handler) {
   logger.info('Update poi ids on list-relations temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
 
   // Merge into prod table
@@ -670,7 +670,7 @@ async function mergeListRelation(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -698,7 +698,7 @@ async function removeDepreactedListRelations(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -726,7 +726,7 @@ async function removeDepreactedList(handler) {
     data_source: DATASOURCE_NAME,
     status: 'deleted',
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 

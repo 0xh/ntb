@@ -1,7 +1,7 @@
 import {
-  createLogger,
+  Logger,
   startDuration,
-  endDuration,
+  printDuration,
 } from '@ntb/utils';
 import { knex, Model } from '@ntb/db-utils';
 import { geomFromGeoJSON } from '@ntb/gis-utils';
@@ -9,7 +9,7 @@ import { geomFromGeoJSON } from '@ntb/gis-utils';
 import * as legacy from '../legacy-structure/';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 
 
 /**
@@ -59,7 +59,7 @@ async function createTempTables(handler, first = false) {
   }
   handler.pictures.TempPictureModel = TempPictureModel;
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -73,7 +73,7 @@ async function dropTempTables(handler) {
   await knex.schema
     .dropTableIfExists(handler.pictures.TempPictureModel.tableName);
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -92,7 +92,7 @@ async function mapData(handler) {
         pictures.push(m);
       })
   );
-  endDuration(durationId);
+  printDuration(durationId);
 
   handler.pictures.processed = pictures;
 }
@@ -127,7 +127,7 @@ async function populateTempTables(handler) {
   await handler.pictures.TempPictureModel
     .query()
     .insert(pictures);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -200,7 +200,7 @@ async function mergePictures(handler) {
   logger.info('Creating or updating pictures');
   const durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 

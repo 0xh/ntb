@@ -1,14 +1,14 @@
 import {
-  createLogger,
+  Logger,
   startDuration,
-  endDuration,
+  printDuration,
   moment,
 } from '@ntb/utils';
 import { knex } from '@ntb/db-utils';
 import wfsDownload from '@ntb/wfs-utils/download';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 
 const SRS_NAME = 'urn:ogc:def:crs:EPSG::25833';
 const TABLENAME = 'counties_municipalities_wfs_data';
@@ -41,7 +41,7 @@ async function downloadWfsData() {
     throw new Error('Downloading wfs failed.');
   }
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -75,7 +75,7 @@ async function createTempGeometryTable() {
     table.index('geometry', null, 'GIST');
   });
 
-  endDuration(durationId);
+  printDuration(durationId);
   return tableName;
 }
 
@@ -106,7 +106,7 @@ async function insertDataToTempGeometryTable(geometryTableName) {
         ANY ('{fylke,region,municipality,kommune}'::TEXT[])
   `);
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -352,7 +352,7 @@ async function dropTempTable(geometryTableName) {
 
   await knex.schema.dropTableIfExists(geometryTableName);
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
