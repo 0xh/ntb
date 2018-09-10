@@ -16,7 +16,7 @@ export function geomFromGeoJSON(geojson: object): null | Knex.QueryBuilder {
     return null;
   }
 
-  return st.geomFromGeoJSON(validatedGeojson);
+  return st.setSRID(st.geomFromGeoJSON(validatedGeojson), 4326);
 }
 
 
