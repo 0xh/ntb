@@ -100,14 +100,18 @@ knex.on('query', (status: KnexEventData) => {
 
 
 knex.on('query-error', (_data: {}, status: KnexEventData) => {
-  printDuration(
-    status.__knexQueryUid,
-    '- Query failed! Duration: %duration',
-    'error',
-  );
+  if (status.__knexQueryUid) {
+    printDuration(
+      status.__knexQueryUid,
+      '- Query failed! Duration: %duration',
+      'error',
+    );
+  }
 });
 
 
 knex.on('query-response', (_data: {}, status: KnexEventData) => {
-  printDuration(status.__knexQueryUid, '- Query success! Duration: %duration');
+  if (status.__knexQueryUid) {
+    printDuration(status.__knexQueryUid, '- Query success! Duration: %duration');
+  }
 });
