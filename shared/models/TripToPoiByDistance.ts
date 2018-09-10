@@ -1,4 +1,4 @@
-import Document, { apiFilters } from './Document';
+import Document, { apiConfigJoinTable } from './Document';
 
 
 export default class TripToPoiByDistance extends Document {
@@ -11,10 +11,17 @@ export default class TripToPoiByDistance extends Document {
   calculatedDistance?: number;
   processedVerified?: Date;
 
-  static filters: apiFilters = {
-    calculatedDistance: {
-      type: 'number',
-      filterTypes: ['=', '$gt', '$lt', '$gte', '$lte'],
+  static apiConfig: apiConfigJoinTable = {
+    filters: {
+      calculatedDistance: {
+        type: 'number',
+        filterTypes: ['=', '$gt', '$lt', '$gte', '$lte'],
+      },
+    },
+    ordering: {
+      validFields: [
+        'calculatedDistance'
+      ],
     },
   }
 }

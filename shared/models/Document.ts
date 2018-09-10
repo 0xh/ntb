@@ -104,6 +104,13 @@ export interface apiConfig {
   defaultRelations?: string[];
 }
 
+export interface apiConfigJoinTable {
+  ordering?: {
+    validFields: string[],
+  };
+  filters?: apiFilters;
+}
+
 export interface apiConfigPerReferrer {
   standard: apiConfig;
   [key: string]: apiConfig;
@@ -123,6 +130,7 @@ export default abstract class Document extends Model {
   static relationMappings: RelationMappings | (() => RelationMappings);
   static apiEntryModel: boolean = false;
   static geometryAttributes: string[] = [];
+  static apiConfig?: apiConfigJoinTable;
 
   static getApiConfigPerReferrer(): apiConfigPerReferrer {
     return { standard: { } };
