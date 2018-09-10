@@ -2,6 +2,10 @@ import geojsonRewind from 'geojson-rewind';
 import geojsonhint from '@mapbox/geojsonhint';
 import geojsonValidation from 'geojson-validation';
 import * as g from 'geojson';
+import { Logger } from '@ntb/utils';
+
+
+const logger = Logger.getLogger();
 
 
 const RIGHT_HAND_RULE_ERR =
@@ -127,21 +131,32 @@ export function validateAndFixGeojson(geojson: object): null | g.GeoJSON {
 
   const hints = geojsonhint.hint(geojson);
   if (hints.length) {
+    let valid = true;
     hints.forEach((hint) => {
       // Fix right hand rule error
       if (
         hint.message === RIGHT_HAND_RULE_ERR
-        && (isLineString(newGeojson) || isLineStringFeature(newGeojson))
+        && (isPolygon(newGeojson) || isMultiPolygon(newGeojson))
       ) {
         newGeojson = geojsonRewind(newGeojson);
       }
 
       // Fix invalid properties member error
-      if (hint.message === INVALID_PROPERTIES_MEMBER_ERR) {
+      else if (hint.message === INVALID_PROPERTIES_MEMBER_ERR) {
         type geojsonWithInvalidProperty = g.GeoJSON & { properties: any };
         delete (newGeojson as geojsonWithInvalidProperty).properties;
       }
+
+      else {
+        logger.error('Unable to resolve the geojson hint');
+        logger.error(hint.message);
+        valid = false;
+      }
     });
+
+    if (!valid) {
+      return null;
+    }
   }
 
   return newGeojson;
