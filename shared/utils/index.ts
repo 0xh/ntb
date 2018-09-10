@@ -81,3 +81,34 @@ export function printDuration(
   const message = messageFormat.replace('%duration', durationText);
   logger[level](message);
 }
+
+
+
+/**
+ * Verifies that the specified value is a string
+ * @param {*} value value to verify
+ */
+export function isString(value: any): value is string {
+  return typeof value === 'string' || value instanceof String;
+}
+
+
+/**
+ * Verifies that the specified value is a number
+ * @param {*} value value to verify
+ */
+export function isNumber(value: any): value is number {
+  const regex = /^\d+$/g;
+  return typeof value === 'number' && Number.isFinite(value)
+    ? true
+    : regex.test(value);
+}
+
+
+/**
+ * Verifies that the specified value is an object
+ * @param {*} value value to verify
+ */
+export function isObject(value: any): value is object {
+  return value && typeof value === 'object' && value.constructor === Object;
+}
