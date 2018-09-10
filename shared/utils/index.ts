@@ -1,4 +1,7 @@
 import Logger from './Logger';
+import * as lodash from 'lodash';
+import _moment from 'moment';
+import _uuid4 from 'uuid/v4';
 
 
 export { default as Logger } from './Logger';
@@ -14,10 +17,9 @@ const durationData: durationDataItem = {};
 
 
 // Export common dependencies
-export { default as _ } from 'lodash';
-export { default as moment } from 'moment';
-export { default as uuid4 } from 'uuid/v4';
-
+export const _ = lodash;
+export const moment = _moment;
+export const uuid4 = _uuid4;
 
 /**
  * Starts a duration timer. Returns the duration id
