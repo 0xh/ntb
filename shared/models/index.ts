@@ -1,4 +1,4 @@
-export { default as BaseModel } from './BaseModel';
+export { default as Document } from './Document';
 
 export { default as Accessability } from './Accessability';
 export { default as ActivityType } from './ActivityType';
