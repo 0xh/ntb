@@ -21,7 +21,11 @@ class ApiQueryRequest extends AbstractApiRequest {
       const value = this.requestObject[rawKey];
 
       if (this.valueIsValidType(rawKey, value)) {
-        const requestParameter = this.createRequestParameter(rawKey, value);
+        const requestParameter = this.createRequestParameter(
+          rawKey,
+          typeof value === 'string' ? [value] : value,
+          `${this.errorTrace}${rawKey}`
+        );
 
         // Invalid key
         if (

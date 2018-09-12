@@ -1,14 +1,13 @@
 import { Request as ExpressRequest } from 'express';
 
 import Document, { apiConfig, apiConfigJoinTable } from '@ntb/models/Document';
-import { _ } from '@ntb/utils';
+import { _, isNumber } from '@ntb/utils';
 import { Relation, Relations } from '@ntb/db-utils';
 
 
-type requestValue = string | string[] | number | boolean;
+export type requestValue = string | string[] | number | boolean;
 
-
-interface requestParameter {
+export interface requestParameter {
   rawKey: string;
   rawKeys: string[];
   rawValue: requestValue;
@@ -23,9 +22,9 @@ interface requestParameters {
   [key: string]: requestParameter;
 }
 
-type OperatorFilters = ['$and' | '$or', requestFilters];
-interface requestFilters extends Array<RequestFilter> {};
-type RequestFilter = requestParameter | OperatorFilters;
+type OperatorFilters = ['$and' | '$or', RequestFilters];
+export interface RequestFilters extends Array<RequestFilter> {};
+export type RequestFilter = requestParameter | OperatorFilters;
 
 
 abstract class ApiRequest {
@@ -34,7 +33,7 @@ abstract class ApiRequest {
   requestObjectForRelations: { [key: string]: any } = {};
   requestObjectStructure: 'query' | 'structured';
   requestParameters: requestParameters = {};
-  requestFilters: requestFilters = [];
+  requestFilters: RequestFilters = [];
   referrers: string[] = ['*list'];
   nextReferrerPrefixes?: string[];
   requestedId?: string;
@@ -119,9 +118,8 @@ abstract class ApiRequest {
       .setRelationsApiConfigs()
       .setValidFilters()
       .setValidKeys()
-      .processRequestObject();
-      // .validateKeys()
-      // .setAndValidateLimitAndOffset();
+      .processRequestObject()
+      .setAndValidateLimitAndOffset();
     return this;
   }
 
@@ -140,7 +138,8 @@ abstract class ApiRequest {
 
   protected createRequestParameter(
     rawKey: string,
-    value: requestValue
+    value: requestValue,
+    trace: string,
   ): requestParameter {
     const casedKeys = rawKey
       .split('.')
@@ -153,11 +152,11 @@ abstract class ApiRequest {
       rawKey: rawKey,
       rawKeys: rawKeys,
       rawValue: value,
-      errorTrace: `${this.errorTrace}${rawKey}`,
+      errorTrace: trace,
       key: casedKey,
       keys: casedKeys,
       firstKey: firstCasedKey,
-      value: typeof value === 'string' ? [value] : value,
+      value: value,
     };
   }
 
@@ -271,78 +270,50 @@ abstract class ApiRequest {
     return this;
   }
 
-  // private validateKeys(): this {
-  //   // A key must either be listed in this.validKeys or be a 'a.b' formatted
-  //   // key where 'a' is a valid relation name
+  private setAndValidateLimitAndOffset(): this {
+    for (const key of ['limit', 'offset'] as Array<'limit' | 'offset'>) {
+      const requestParameter = this.requestParameters[key];
+      const requestValue = requestParameter ? requestParameter.value : null;
+      const defaultValue = key === 'limit' && this.apiConfig.paginate
+        ? this.apiConfig.paginate.defaultLimit
+        : null
+      let value;
 
-  //   const keys = Object.keys(this.requestObject);
-  //   keys.forEach((rawKey) => {
-  //     const camelCasedKey = rawKey.split('.')
-  //       .map((subKey) => _.camelCase(subKey.toLowerCase().trim()))
-  //       .join('.');
-  //     const firstKey = camelCasedKey.split('.', 1)[0];
+      if (requestParameter) {
+        value = requestValue;
 
-  //     if (
-  //       !this.validKeys.has(camelCasedKey)
-  //       || (
-  //         rawKey.includes('.')
-  //         && !this.relationsNames.includes(firstKey)
-  //       )
-  //     ) {
-  //       this.errors.push(
-  //         `Invalid query parameter: ${this.errorTrace}${rawKey}`
-  //       );
-  //       delete this.requestObject[rawKey];
-  //     }
-  //   });
+        if (Array.isArray(requestValue)) {
+          if (requestValue.length > 1) {
+            this.errors.push(
+              `Invalid ${requestParameter.errorTrace}. ` +
+              'Should be a single value.'
+            );
+          }
+          else {
+            value = requestValue[0];
+          }
+        }
 
-  //   return this;
-  // }
+        if (value && !isNumber(value)) {
+          this.errors.push(
+            `Invalid ${requestParameter.errorTrace} ` +
+            `value '${value}'`
+          );
+          value = null;
+        }
 
-  // private setAndValidateLimitAndOffset(): this {
-  //   for (const key of ['limit', 'offset'] as Array<'limit' | 'offset'>) {
-  //     const queryLimitList = this.getQueryObjectValueForKey(key);
-  //     const defaultValue = key === 'limit' && this.apiConfig.paginate
-  //       ? this.apiConfig.paginate.defaultLimit
-  //       : null
-  //     let value;
+        if (value !== null) {
+          value = parseInt(`${value}`);
+        }
 
-  //     if (queryLimitList) {
-  //       const queryLimit = queryLimitList[0];
-  //       value = queryLimit.value;
+        value;
+      }
 
-  //       // Special verifications for query-structured requestObject
-  //       if (this.requestObjectStructure === 'query') {
-  //         if (value.length > 1) {
-  //           this.errors.push(
-  //             `Invalid ${this.errorTrace}${queryLimit.originalKey}. ` +
-  //             'There are multiple occurences in the url.'
-  //           );
-  //           value = null;
-  //         }
-  //         else {
-  //           value = value[0];
-  //         }
-  //       }
+      this.queryOptions[key] = value || defaultValue;
+    };
 
-  //       if (!isNumber(value)) {
-  //         this.errors.push(
-  //           `Invalid ${this.errorTrace}${queryLimit.originalKey} ` +
-  //           `value '${queryLimit.value}'`
-  //         );
-  //         value = null;
-  //       }
-
-  //       if (value !== null) {
-  //         value = parseInt(`${value}`);
-  //       }
-  //     }
-
-  //     this.queryOptions[key] = value || defaultValue;
-  //   };
-
-  //   return this;
-  // }
+    return this;
+  }
 
   // private setAndValidateOrdering(): this {
   //   const queryOrderList = this.getQueryObjectValueForKey('order');
