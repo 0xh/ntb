@@ -96,10 +96,10 @@ export function isString(value: any): value is string {
 
 
 /**
- * Verifies that the specified value is a number
+ * Verifies that the specified value is a number or a string with only numbers
  * @param {*} value value to verify
  */
-export function isNumber(value: any): value is number {
+export function isNumber(value: any): value is number | string {
   const regex = /^\d+$/g;
   return typeof value === 'number' && Number.isFinite(value)
     ? true
@@ -113,4 +113,21 @@ export function isNumber(value: any): value is number {
  */
 export function isObject(value: any): value is object {
   return value && typeof value === 'object' && value.constructor === Object;
+}
+
+
+/**
+ * Verifies that the specified value is an array of string
+ * @param {*} value value to verify
+ */
+export function isArrayOfStrings(value: any): value is string[] {
+  if (!Array.isArray(value)) {
+    return false;
+  }
+
+  if (value.some((v) => !isString(v))) {
+    return false;
+  }
+
+  return true;
 }
