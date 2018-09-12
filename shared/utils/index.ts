@@ -103,7 +103,7 @@ export function isNumber(value: any): value is number | string {
   const regex = /^\d+$/g;
   return typeof value === 'number' && Number.isFinite(value)
     ? true
-    : regex.test(value);
+    : regex.test(value) && Number.isFinite(+value);
 }
 
 
