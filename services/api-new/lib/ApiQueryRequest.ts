@@ -7,23 +7,7 @@ import { Relation } from '@ntb/db-utils';
 import AbstractApiRequest from './AbstractApiRequest';
 
 
-interface requestParameter {
-  rawKey: string;
-  rawValue: string | string[];
-  errorTrace: string;
-  key: string;
-  value: string[];
-  touched: boolean;
-}
-
-interface requestParameters {
-  [key: string]: requestParameter;
-}
-
-
 class ApiQueryRequest extends AbstractApiRequest {
-  requestParameters: requestParameters = {};
-
   constructor(
     model: typeof Document,
     requestObject: ExpressRequest['query'],
@@ -32,25 +16,52 @@ class ApiQueryRequest extends AbstractApiRequest {
     super(model, requestObject, 'query', relation);
   }
 
-  protected processRequestObject() {
-    Object.keys(this.requestObject).forEach((key) => {
-      const value = this.requestObject[key];
+  protected processRequestObject(): this {
+    Object.keys(this.requestObject).forEach((rawKey) => {
+      const value = this.requestObject[rawKey];
 
-      if (this.valueIsValidType(key, value)) {
-        const casedKey = _.snakeCase(key.toLowerCase());
-        this.requestParameters[casedKey] = {
-          rawKey: key,
-          rawValue: value,
-          errorTrace: `${this.errorTrace}${key}`,
-          key: casedKey,
-          value: typeof value === 'string' ? [value] : value,
-          touched: false,
-        };
+      if (this.valueIsValidType(rawKey, value)) {
+        const requestParameter = this.createRequestParameter(rawKey, value);
+
+        // Invalid key
+        if (
+          !this.validKeys.has(requestParameter.key)
+          && !this.relationsNames.includes(requestParameter.firstKey)
+        ) {
+          this.errors.push(
+            `Invalid query parameter: ${this.errorTrace}${rawKey}`
+          );
+        }
+        // Add to requestFilters
+        else if (this.isValidFilterKey(requestParameter.key)) {
+          this.requestFilters.push(requestParameter);
+        }
+        // Add to requestParameters
+        else if (
+          !this.isValidFilterKey(requestParameter.key)
+          && !this.relationsNames.includes(requestParameter.firstKey)
+        ) {
+          this.requestParameters[requestParameter.key] = requestParameter;
+        }
+        // Add key/value to request object for relation
+        else if (
+          !this.isValidFilterKey(requestParameter.key)
+          && this.relationsNames.includes(requestParameter.firstKey)
+        ) {
+          // Initiate object for relation if it does not exist
+          if (!this.requestObjectForRelations[requestParameter.firstKey]) {
+            this.requestObjectForRelations[requestParameter.firstKey] = {};
+          }
+
+          const { rawKeys } = requestParameter;
+          const sliceIdx = rawKeys.length > 2 && rawKeys[1] === 'df' ? 2 : 1;
+          const nextKey = rawKeys.slice(sliceIdx).join('.');
+          this.requestObjectForRelations[requestParameter.firstKey][nextKey] =
+            this.requestObject[rawKey];
+        }
       }
     });
-  }
 
-  protected getRequestedFields(): this {
     return this;
   }
 

@@ -5,10 +5,36 @@ import { _ } from '@ntb/utils';
 import { Relation, Relations } from '@ntb/db-utils';
 
 
+type requestValue = string | string[] | number | boolean;
+
+
+interface requestParameter {
+  rawKey: string;
+  rawKeys: string[];
+  rawValue: requestValue;
+  errorTrace: string;
+  key: string;
+  keys: string[];
+  firstKey: string;
+  value: requestValue;
+}
+
+interface requestParameters {
+  [key: string]: requestParameter;
+}
+
+type OperatorFilters = ['$and' | '$or', requestFilters];
+interface requestFilters extends Array<RequestFilter> {};
+type RequestFilter = requestParameter | OperatorFilters;
+
+
 abstract class ApiRequest {
   model: typeof Document;
   requestObject: ExpressRequest['query'] | ExpressRequest['body'];
+  requestObjectForRelations: { [key: string]: any } = {};
   requestObjectStructure: 'query' | 'structured';
+  requestParameters: requestParameters = {};
+  requestFilters: requestFilters = [];
   referrers: string[] = ['*list'];
   nextReferrerPrefixes?: string[];
   requestedId?: string;
@@ -33,6 +59,11 @@ abstract class ApiRequest {
     relations: Set<string>,
     joins: Set<string>,
   } = { self: new Set(), relations: new Set(), joins: new Set() };
+
+  queryOptions: {
+    limit?: number | null,
+    offset?: number | null,
+  } = {};
 
   constructor(
     model: typeof Document,
@@ -88,7 +119,9 @@ abstract class ApiRequest {
       .setRelationsApiConfigs()
       .setValidFilters()
       .setValidKeys()
-      .validateKeys();
+      .processRequestObject();
+      // .validateKeys()
+      // .setAndValidateLimitAndOffset();
     return this;
   }
 
@@ -96,6 +129,39 @@ abstract class ApiRequest {
     this.verify();
     return { test: 2 };
   }
+
+  protected isValidFilterKey(key: string): boolean {
+    return (
+      this.validFilterKeys.self.has(key)
+      || this.validFilterKeys.relations.has(key)
+      || this.validFilterKeys.joins.has(key)
+    );
+  }
+
+  protected createRequestParameter(
+    rawKey: string,
+    value: requestValue
+  ): requestParameter {
+    const casedKeys = rawKey
+      .split('.')
+      .map((k) => _.camelCase(k.toLowerCase()));
+    const casedKey = casedKeys.join('.');
+    const firstCasedKey = casedKeys[0];
+    const rawKeys = rawKey.split('.');
+
+    return {
+      rawKey: rawKey,
+      rawKeys: rawKeys,
+      rawValue: value,
+      errorTrace: `${this.errorTrace}${rawKey}`,
+      key: casedKey,
+      keys: casedKeys,
+      firstKey: firstCasedKey,
+      value: typeof value === 'string' ? [value] : value,
+    };
+  }
+
+  protected abstract processRequestObject(): this;
 
   private setValidKeys(): this {
     this.validKeys.add('fields');
@@ -205,33 +271,153 @@ abstract class ApiRequest {
     return this;
   }
 
-  private validateKeys(): this {
-    // A key must either be listed in this.validKeys or be a 'a.b' formatted
-    // key where 'a' is a valid relation name
+  // private validateKeys(): this {
+  //   // A key must either be listed in this.validKeys or be a 'a.b' formatted
+  //   // key where 'a' is a valid relation name
 
-    const keys = Object.keys(this.requestObject);
-    keys.forEach((rawKey) => {
-      const camelCasedKey = rawKey.split('.')
-        .map((subKey) => _.camelCase(subKey.toLowerCase().trim()))
-        .join('.');
-      const firstKey = camelCasedKey.split('.', 1)[0];
+  //   const keys = Object.keys(this.requestObject);
+  //   keys.forEach((rawKey) => {
+  //     const camelCasedKey = rawKey.split('.')
+  //       .map((subKey) => _.camelCase(subKey.toLowerCase().trim()))
+  //       .join('.');
+  //     const firstKey = camelCasedKey.split('.', 1)[0];
 
-      if (
-        !this.validKeys.has(camelCasedKey)
-        || (
-          rawKey.includes('.')
-          && !this.relationsNames.includes(firstKey)
-        )
-      ) {
-        this.errors.push(
-          `Invalid query parameter: ${this.errorTrace}${rawKey}`
-        );
-        delete this.requestObject[rawKey];
-      }
-    });
+  //     if (
+  //       !this.validKeys.has(camelCasedKey)
+  //       || (
+  //         rawKey.includes('.')
+  //         && !this.relationsNames.includes(firstKey)
+  //       )
+  //     ) {
+  //       this.errors.push(
+  //         `Invalid query parameter: ${this.errorTrace}${rawKey}`
+  //       );
+  //       delete this.requestObject[rawKey];
+  //     }
+  //   });
 
-    return this;
-  }
+  //   return this;
+  // }
+
+  // private setAndValidateLimitAndOffset(): this {
+  //   for (const key of ['limit', 'offset'] as Array<'limit' | 'offset'>) {
+  //     const queryLimitList = this.getQueryObjectValueForKey(key);
+  //     const defaultValue = key === 'limit' && this.apiConfig.paginate
+  //       ? this.apiConfig.paginate.defaultLimit
+  //       : null
+  //     let value;
+
+  //     if (queryLimitList) {
+  //       const queryLimit = queryLimitList[0];
+  //       value = queryLimit.value;
+
+  //       // Special verifications for query-structured requestObject
+  //       if (this.requestObjectStructure === 'query') {
+  //         if (value.length > 1) {
+  //           this.errors.push(
+  //             `Invalid ${this.errorTrace}${queryLimit.originalKey}. ` +
+  //             'There are multiple occurences in the url.'
+  //           );
+  //           value = null;
+  //         }
+  //         else {
+  //           value = value[0];
+  //         }
+  //       }
+
+  //       if (!isNumber(value)) {
+  //         this.errors.push(
+  //           `Invalid ${this.errorTrace}${queryLimit.originalKey} ` +
+  //           `value '${queryLimit.value}'`
+  //         );
+  //         value = null;
+  //       }
+
+  //       if (value !== null) {
+  //         value = parseInt(`${value}`);
+  //       }
+  //     }
+
+  //     this.queryOptions[key] = value || defaultValue;
+  //   };
+
+  //   return this;
+  // }
+
+  // private setAndValidateOrdering(): this {
+  //   const queryOrderList = this.getQueryObjectValueForKey('order');
+  //   const defaultValue = this.apiConfig.ordering
+  //     ? this.apiConfig.ordering.default
+  //     : null;
+  //   let value;
+
+  //   if (
+  //     queryOrderList &&
+  //     this.apiConfig.ordering &&
+  //     !this.apiConfig.ordering.disabled
+  //   ) {
+  //     const queryOrder = queryOrderList[0];
+  //     value = queryOrder.value;
+
+  //     if (
+  //       typeof value !== 'string'
+  //       || !isArrayOfStrings(value)
+  //     ) {
+  //       this.errors.push(
+  //         `Invalid ${this.errorTrace}${queryOrder.originalKey} value.`
+  //       );
+  //       value = null;
+  //     }
+  //     value;
+  //     // Special verifications for query-structured requestObject
+  //     if (this.requestObjectStructure === 'query' && value) {
+  //       value = this.validateQueryOrderingLength(value, queryOrder);
+  //     }
+  //     else if (
+  //       value
+  //       && this.requestObjectStructure === 'structured'
+  //       && !Array.isArray(value)
+  //     ) {
+  //       value = [value];
+  //     }
+
+  //     value;
+  //   }
+
+  //   return this;
+  // }
+
+  // private validateQueryOrderingLength(
+  //   value: string | string[],
+  //   queryOrder: queryObjectValue
+  // ): string[] | null {
+  //   if (Array.isArray(value) && value.length > 1) {
+  //     this.errors.push(
+  //       `Invalid ${this.errorTrace}${queryOrder.originalKey}. ` +
+  //       'There are multiple occurences in the url.'
+  //     );
+  //     return null;
+  //   }
+  //   else {
+  //     return value[0].split(',');
+  //   }
+  // }
+
+  // private getQueryObjectValueForKey(key: string) {
+  //   const values: queryObjectValue[] = [];
+
+  //   Object.keys(this.requestObject).forEach((rawKey) => {
+  //     const firstKey = _.camelCase(rawKey.split('.', 1)[0].toLowerCase().trim());
+  //     if (firstKey === key) {
+  //       values.push({
+  //         originalKey: rawKey,
+  //         value: this.requestObject[rawKey],
+  //       });
+  //     }
+  //   });
+
+  //   return values.length ? values : null;
+  // }
 }
 
 export default ApiRequest;
