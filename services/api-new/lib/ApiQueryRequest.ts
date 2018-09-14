@@ -10,14 +10,14 @@ import AbstractApiRequest, { requestValue } from './AbstractApiRequest';
 class ApiQueryRequest extends AbstractApiRequest {
   constructor(
     model: typeof Document,
-    requestObject: ExpressRequest['query'],
+    requestObject?: ExpressRequest['query'],
     relation?: Relation,
   ) {
     super(model, requestObject, 'query', relation);
   }
 
   protected processRequestObject(): this {
-    Object.keys(this.requestObject).forEach((rawKey) => {
+    Object.keys(this.requestObject || {}).forEach((rawKey) => {
       const value = this.requestObject[rawKey];
 
       if (!this.valueIsValidType(rawKey, value)) {

@@ -14,14 +14,14 @@ import AbstractApiRequest, {
 class ApiStructuredRequest extends AbstractApiRequest {
   constructor(
     model: typeof Document,
-    requestObject: ExpressRequest['query'],
+    requestObject?: ExpressRequest['query'],
     relation?: Relation,
   ) {
     super(model, requestObject, 'structured', relation);
   }
 
   protected processRequestObject(): this {
-    Object.keys(this.requestObject).forEach((rawKey) => {
+    Object.keys(this.requestObject || {}).forEach((rawKey) => {
       const value = this.requestObject[rawKey];
       const key = _.camelCase(rawKey.toLowerCase());
 
@@ -82,12 +82,11 @@ class ApiStructuredRequest extends AbstractApiRequest {
     rawValue: requestValue | null,
     errorTrace: string
   ): string[] | null {
-    if (typeof rawValue === 'string') {
-      return rawValue.split(',');
-    }
-
-    if (!rawValue) {
+    if (rawValue === null) {
       return null;
+    }
+    if (isArrayOfStrings(rawValue)) {
+      return rawValue;
     }
 
     this.errors.push(`Invalid ${errorTrace} value`);
