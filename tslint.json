@@ -9,7 +9,7 @@
   },
   "rules": {
     "no-consecutive-blank-lines": [true, 2],
-    "max-line-length": [true, {"limit": 79, "ignore-pattern": "^import |^export {(.*?)}"}],
+    "max-line-length": [true, {"limit": 79}],
     "no-unused-variable": false,
     "ter-arrow-parens": [true, "always"],
     "brace-style": [2, "stroustrup", { "allowSingleLine": true }],
