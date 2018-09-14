@@ -63,6 +63,50 @@ class ApiStructuredRequest extends AbstractApiRequest {
     return this;
   }
 
+  protected processOrderingValue(
+    rawValue: requestValue | null,
+    errorTrace: string
+  ): string[] | null {
+    if (rawValue === null) {
+      return null;
+    }
+    if (isArrayOfStrings(rawValue)) {
+      return rawValue;
+    }
+
+    this.errors.push(`Invalid ${errorTrace} value`);
+    return null;
+  }
+
+  protected processFieldsValue(
+    rawValue: requestValue | null,
+    errorTrace: string
+  ): string[] | null {
+    if (typeof rawValue === 'string') {
+      return rawValue.split(',');
+    }
+
+    if (!rawValue) {
+      return null;
+    }
+
+    this.errors.push(`Invalid ${errorTrace} value`);
+    return null;
+  }
+
+  protected processRelationRequest(
+    model: typeof Document,
+    requestObject: ExpressRequest['query'],
+    related: Relation,
+  ): ApiStructuredRequest {
+    const relationRequest = new ApiStructuredRequest(
+      model,
+      requestObject,
+      related,
+    );
+    return relationRequest;
+  };
+
   private processRequestFilters(
     rawFilterList: any,
     trace: string

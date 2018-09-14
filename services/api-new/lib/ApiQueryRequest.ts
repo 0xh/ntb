@@ -1,10 +1,10 @@
 import { Request as ExpressRequest } from 'express';
 
-import { _ } from '@ntb/utils';
+import { _, isArrayOfStrings } from '@ntb/utils';
 import { Document } from '@ntb/models';
 import { Relation } from '@ntb/db-utils';
 
-import AbstractApiRequest from './AbstractApiRequest';
+import AbstractApiRequest, { requestValue } from './AbstractApiRequest';
 
 
 class ApiQueryRequest extends AbstractApiRequest {
@@ -20,9 +20,18 @@ class ApiQueryRequest extends AbstractApiRequest {
     Object.keys(this.requestObject).forEach((rawKey) => {
       const value = this.requestObject[rawKey];
 
-      if (this.valueIsValidType(rawKey, value)) {
+      if (!this.valueIsValidType(rawKey, value)) {
+        this.errors.push(
+          `Invalid value in '${this.errorTrace}${rawKey}'`
+        );
+      }
+      else {
+        let processedRawKey = rawKey;
+        if (this.related && rawKey.toLowerCase().startsWith('df.')) {
+          processedRawKey = rawKey.substr(3);
+        }
         const requestParameter = this.createRequestParameter(
-          rawKey,
+          processedRawKey,
           typeof value === 'string' ? [value] : value,
           `${this.errorTrace}${rawKey}`
         );
@@ -58,8 +67,7 @@ class ApiQueryRequest extends AbstractApiRequest {
           }
 
           const { rawKeys } = requestParameter;
-          const sliceIdx = rawKeys.length > 2 && rawKeys[1] === 'df' ? 2 : 1;
-          const nextKey = rawKeys.slice(sliceIdx).join('.');
+          const nextKey = rawKeys.slice(1).join('.');
           this.requestObjectForRelations[requestParameter.firstKey][nextKey] =
             this.requestObject[rawKey];
         }
@@ -67,6 +75,52 @@ class ApiQueryRequest extends AbstractApiRequest {
     });
 
     return this;
+  }
+
+  protected processOrderingValue(
+    rawValue: requestValue | null,
+    errorTrace: string
+  ): string[] | null {
+    if (typeof rawValue === 'string') {
+      return [rawValue];
+    }
+    else if (isArrayOfStrings(rawValue)) {
+      if (rawValue.length > 1) {
+        this.errors.push(
+          `Invalid ${errorTrace} value. Should single value.`
+        );
+        return null;
+      }
+      return rawValue[0].split(',');
+    }
+
+    this.errors.push(`Invalid ${errorTrace} value`);
+    return null;
+  }
+
+  protected processFieldsValue(
+    rawValue: requestValue | null,
+    errorTrace: string
+  ): string[] | null {
+    if (typeof rawValue === 'string') {
+      return rawValue.split(',');
+    }
+    else if (isArrayOfStrings(rawValue)) {
+      if (rawValue.length > 1) {
+        this.errors.push(
+          `Invalid ${errorTrace} value. Should single value.`
+        );
+        return null;
+      }
+      return rawValue[0].split(',');
+    }
+
+    if (!rawValue) {
+      return null;
+    }
+
+    this.errors.push(`Invalid ${errorTrace} value`);
+    return null;
   }
 
   private valueIsValidType(
@@ -87,6 +141,19 @@ class ApiQueryRequest extends AbstractApiRequest {
 
     return true;
   }
+
+  protected processRelationRequest(
+    model: typeof Document,
+    requestObject: ExpressRequest['query'],
+    related: Relation,
+  ): ApiQueryRequest {
+    const relationRequest = new ApiQueryRequest(
+      model,
+      requestObject,
+      related,
+    );
+    return relationRequest;
+  };
 }
 
 export default ApiQueryRequest;
