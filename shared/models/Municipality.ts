@@ -98,7 +98,7 @@ export default class Municipality extends Document {
 
     properties: {
       uri: { type: 'string', readOnly: true },
-      id: { format: 'uuid', readOnly: true },
+      id: { type: 'string', format: 'uuid', readOnly: true },
       code: { type: 'string' },
       name: { type: 'string', minLength: 2, maxLength: 100 },
       geometry: { ...geojsonPolygonSchema },

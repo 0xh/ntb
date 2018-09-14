@@ -114,7 +114,7 @@ export default class Picture extends Document {
 
     properties: {
       uri: { type: 'string', readOnly: true },
-      id: { format: 'uuid', readOnly: true },
+      id: { type: 'string', format: 'uuid', readOnly: true },
       idLegacyNtb: { type: 'string', readOnly: true },
       cabinPictureType: { ...cabinPictureTypeSchema },
       photographer: {

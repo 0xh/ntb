@@ -140,7 +140,7 @@ export default class HazardRegion extends Document {
 
     properties: {
       uri: { type: 'string', readOnly: true },
-      id: { format: 'uuid', readOnly: true },
+      id: { type: 'string', format: 'uuid', readOnly: true },
       type: { type: 'string' },
       name: { type: 'string', minLength: 2, maxLength: 100 },
       regionId: { type: 'number' },
