@@ -108,7 +108,7 @@ export default class PoiType extends Document {
   static getAPIFieldsToAttributes(referrers: string[], fields: string[]) {
     const extra = {
       // Related extra field from PoiType
-      primaryPoiType: ['primaryPoiType'],
+      primaryPoiType: ['[[JOIN-TABLE]].primaryPoiType'],
     };
 
     const attributes = super.getAPIFieldsToAttributes(

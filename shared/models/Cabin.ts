@@ -547,18 +547,20 @@ export default class Cabin extends Document {
   static getAPIFieldsToAttributes(referrers: string[], fields: string[]) {
     const extra = {
       // Related extra field from Accessability
-      cabinAccessabilityDescription: ['cabinAccessabilityDescription'],
+      cabinAccessabilityDescription: [
+        '[[JOIN-TABLE]].cabinAccessabilityDescription'
+      ],
 
       // Related extra field from Facility
-      cabinFacilityDescription: ['cabinFacilityDescription'],
+      cabinFacilityDescription: ['[[JOIN-TABLE]].cabinFacilityDescription'],
 
       // Related extra field through cabinsByDistance
-      calculatedDistance: ['calculatedDistance'],
+      calculatedDistance: ['[[JOIN-TABLE]].calculatedDistance'],
 
       // Related extra fields from DabinServiceLevel.cabinsThroughOpeningHours
-      openAllYear: ['openAllYear'],
-      openFrom: ['openFrom'],
-      openTo: ['openTo'],
+      openAllYear: ['[[JOIN-TABLE]].openAllYear'],
+      openFrom: ['[[JOIN-TABLE]].openFrom'],
+      openTo: ['[[JOIN-TABLE]].openTo'],
 
       contact: [
         'contactName',

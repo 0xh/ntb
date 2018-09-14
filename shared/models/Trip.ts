@@ -472,7 +472,7 @@ export default class Trip extends Document {
         'htgtBicycle',
       ],
       // Related extra field from Cabin++
-      calculatedDistance: ['calculatedDistance'],
+      calculatedDistance: ['[[JOIN-TABLE]].calculatedDistance'],
     };
 
     const attributes = super.getAPIFieldsToAttributes(

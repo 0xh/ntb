@@ -470,9 +470,11 @@ export default class Route extends Document {
   static getAPIFieldsToAttributes(referrers: string[], fields: string[]) {
     const extra = {
       // Related extra field from Accessability
-      cabinAccessabilityDescription: ['cabinAccessabilityDescription'],
+      cabinAccessabilityDescription: [
+        '[[JOIN-TABLE]].cabinAccessabilityDescription'
+      ],
       // Related extra field from poisByDistance, cabinsByDistance
-      calculatedDistance: ['calculatedDistance'],
+      calculatedDistance: ['[[JOIN-TABLE]].calculatedDistance'],
 
       waymarkWinter: [
         'waymarkWinterAllYear',

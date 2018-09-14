@@ -131,7 +131,9 @@ export default class Accessability extends Document {
   static getAPIFieldsToAttributes(referrers: string[], fields: string[]) {
     const extra = {
       // Related extra field from Cabin
-      cabinAccessabilityDescription: ['cabinAccessabilityDescription'],
+      cabinAccessabilityDescription: [
+        '[[JOIN-TABLE]].cabinAccessabilityDescription'
+      ],
     };
 
     const attributes = super.getAPIFieldsToAttributes(

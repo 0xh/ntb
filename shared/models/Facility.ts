@@ -130,7 +130,7 @@ export default class Facility extends Document {
   static getAPIFieldsToAttributes(referrers: string[], fields: string[]) {
     const extra = {
       // Related extra field from Cabin
-      cabinFacilityDescription: ['cabinFacilityDescription'],
+      cabinFacilityDescription: ['[[JOIN-TABLE]].cabinFacilityDescription'],
     };
 
     const attributes = super.getAPIFieldsToAttributes(

@@ -147,7 +147,7 @@ export default class ActivityType extends Document {
   static getAPIFieldsToAttributes(referrers: string[], fields: string[]) {
     const extra = {
       // Related extra field from Trip.subActivityTypes
-      primaryActivityType: ['primaryActivityType'],
+      primaryActivityType: ['[[JOIN-TABLE]].primaryActivityType'],
     };
 
     const attributes = super.getAPIFieldsToAttributes(
