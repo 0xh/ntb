@@ -74,7 +74,7 @@ export default class Picture extends BaseModel {
 
     properties: {
       uri: { type: 'string', readOnly: true },
-      id: { format: 'uuid', readOnly: true },
+      id: { type: 'string', format: 'uuid', readOnly: true },
       idLegacyNtb: { type: 'string', readOnly: true },
       cabinPictureType: { type: 'string' },
       photographer: {

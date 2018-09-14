@@ -157,7 +157,7 @@ export default class Area extends BaseModel {
 
     properties: {
       uri: { type: 'string', readOnly: true },
-      id: { format: 'uuid', readOnly: true },
+      id: { type: 'string', format: 'uuid', readOnly: true },
       idLegacyNtb: { type: 'string', readOnly: true },
       name: { type: 'string', minLength: 2, maxLength: 100 },
       description: { type: 'string', maxLength: 100000 },

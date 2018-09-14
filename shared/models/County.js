@@ -78,7 +78,7 @@ export default class County extends BaseModel {
 
     properties: {
       uri: { type: 'string', readOnly: true },
-      id: { format: 'uuid', readOnly: true },
+      id: { type: 'string', format: 'uuid', readOnly: true },
       code: { type: 'string' },
       name: { type: 'string', minLength: 2, maxLength: 100 },
       status: { ...DocumentStatusSchema },
