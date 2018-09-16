@@ -88,6 +88,9 @@ export interface apiFilters {
 
 export interface apiConfig {
   fullTextSearch?: boolean;
+  fullTextSearchLangauges?: string[],
+  translated?: boolean,
+  translatedFields?: string[],
   ordering?: false | {
     disabled?: boolean,
     default: orderField[],

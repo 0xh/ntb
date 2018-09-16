@@ -369,6 +369,7 @@ export default class Route extends Document {
         maxLimit: 50,
       },
       fullTextSearch: true,
+      fullTextSearchLangauges: ['nb', 'en'],
       ordering: {
         default: [['name', 'ASC']],
         validFields: [

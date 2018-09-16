@@ -118,6 +118,8 @@ export default class Municipality extends Document {
         defaultLimit: 10,
       },
       fullTextSearch: true,
+      translated: true,
+      translatedFields: ['name', 'nameLowerCase'],
       ordering: {
         validFields: [
           'name',

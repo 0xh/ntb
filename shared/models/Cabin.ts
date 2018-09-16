@@ -425,6 +425,14 @@ export default class Cabin extends Document {
         maxLimit: 50,
       },
       fullTextSearch: true,
+      fullTextSearchLangauges: ['nb', 'en'],
+      translated: true,
+      translatedFields: [
+        'name',
+        'nameLowerCase',
+        'description',
+        'descriptionPlain'
+      ],
       ordering: {
         default: [['name', 'ASC']],
         validFields: [

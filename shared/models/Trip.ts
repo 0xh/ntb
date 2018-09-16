@@ -373,6 +373,7 @@ export default class Trip extends Document {
         maxLimit: 50,
       },
       fullTextSearch: true,
+      fullTextSearchLangauges: ['nb', 'en'],
       ordering: {
         default: [['name', 'ASC']],
         validFields: [
