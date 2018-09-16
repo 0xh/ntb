@@ -1,6 +1,9 @@
 import { Request as ExpressRequest } from 'express';
 
-import Document, { apiConfig, apiConfigJoinTable } from '@ntb/models/Document';
+import Document, {
+  apiConfig,
+  apiConfigJoinTable,
+} from '@ntb/models/Document';
 import { _, isNumber, isArrayOfStrings } from '@ntb/utils';
 import { Relation, Relations } from '@ntb/db-utils';
 
@@ -38,6 +41,9 @@ interface queryOptions {
 
 
 abstract class AbstractApiRequest {
+  fullTextSearchLanguage: string = 'searchNb';
+  documentLanguage: string = 'nb';
+
   model: typeof Document;
   requestObject: ExpressRequest['query'] | ExpressRequest['body'];
   requestObjectForRelations: { [key: string]: any } = {};
@@ -48,6 +54,7 @@ abstract class AbstractApiRequest {
   nextReferrerPrefixes?: string[];
   requestedId?: string;
   errors: string[] = [];
+  fullTextQuery?: string;
 
   requestedFields: string[] = [];
   requestedRelations: string[] = [];
@@ -143,6 +150,8 @@ abstract class AbstractApiRequest {
       .setValidFilters()
       .setValidKeys()
       .processRequestObject()
+      .setAndValidateLangauge()
+      .setAndValidateFullTextQuery()
       .setAndValidateLimitAndOffset()
       .setAndValidateOrdering()
       .setDefaultOrdering()
@@ -204,6 +213,14 @@ abstract class AbstractApiRequest {
   }
 
   protected abstract processRequestObject(): this;
+  protected abstract processLanguageValue(
+    rawValue: requestValue | null,
+    errorTrace: string
+  ): string | null;
+  protected abstract processFullTextQueryValue(
+    rawValue: requestValue | null,
+    errorTrace: string
+  ): string | null;
   protected abstract processOrderingValue(
     value: requestValue | null,
     errorTrace: string
@@ -221,6 +238,10 @@ abstract class AbstractApiRequest {
   private setValidKeys(): this {
     this.validKeys.add('fields');
 
+    if (this.apiConfig.translated) {
+      this.validKeys.add('language');
+    }
+
     if (!this.singleInstance) {
       // Set pagination keys
       if (this.apiConfig.paginate && !this.apiConfig.paginate.disabled) {
@@ -236,6 +257,7 @@ abstract class AbstractApiRequest {
       // Set full text search key
       if (this.apiConfig.fullTextSearch) {
         this.validKeys.add('q');
+        this.validKeys.add('language');
       }
 
       // Add valid filters and relation names
@@ -322,6 +344,66 @@ abstract class AbstractApiRequest {
         }
       }
     });
+
+    return this;
+  }
+
+  private setAndValidateLangauge(): this {
+    const requestParameter = this.requestParameters.language;
+    if (requestParameter) {
+      let value = this.processLanguageValue(
+        requestParameter.value, requestParameter.errorTrace
+      );
+
+      if (!value) {
+        return this;
+      }
+
+      value = value.trim().toLowerCase();
+      const hasQ = this.requestParameters.q || this.requestParameters['df.q'];
+
+      // Only allow nb|en as langauges if full text searching
+      const qLangauges = this.apiConfig.fullTextSearchLangauges
+        ? this.apiConfig.fullTextSearchLangauges
+        : ['nb'];
+      if (hasQ && qLangauges.includes(value)) {
+        this.fullTextSearchLanguage = `search${_.startCase(value)}`;
+      }
+      else if (hasQ) {
+        this.errors.push(
+          `When using full text search (q) for this document type, the ` +
+          `supported languages are: '${qLangauges.join(`', '`)}'`
+        );
+      }
+
+      // Invalid document language value (too long)
+      if (value.length > 6) {
+        this.errors.push(
+          `The value of '${requestParameter.errorTrace}' is invalid`
+        );
+        return this;
+      }
+
+      // Set document language
+      if (this.apiConfig.translated) {
+        this.documentLanguage = value;
+      }
+    }
+    return this;
+  }
+
+  private setAndValidateFullTextQuery(): this {
+    const key = this.related ? 'df.q' : 'q';
+    const requestParameter = this.requestParameters[key];
+    let value = this.processLanguageValue(
+      requestParameter.value, requestParameter.errorTrace
+    );
+
+    if (!value) {
+      return this;
+    }
+
+    this.fullTextQuery = value;
 
     return this;
   }
@@ -470,25 +552,12 @@ abstract class AbstractApiRequest {
       return this;
     }
 
-    // Free text ordering
+    // Full text ordering
     const q = this.requestParameters.q || this.requestParameters['df.q'];
     if (this.apiConfig.fullTextSearch && q) {
-      const freeTextOrder: orderValues = [];
-      let qCount = 1;
-      if (isArrayOfStrings(q.value)) {
-        qCount = q.value.length;
-      }
-
-      for (let i = 0; i < qCount; i += 1) {
-        freeTextOrder.push([`free_text_rank_${i}`, 'DESC']);
-      }
-
-      if (freeTextOrder.length) {
-        this.queryOptions.order = freeTextOrder;
-        return this;
-      }
+      const fullTextOrder: orderValue = [`full_text_rank`, 'DESC'];
+      this.queryOptions.order = [fullTextOrder];
     }
-
 
     // Set default value
     const defaultValue = this.apiConfig.ordering

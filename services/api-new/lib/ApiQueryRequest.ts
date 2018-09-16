@@ -77,6 +77,48 @@ class ApiQueryRequest extends AbstractApiRequest {
     return this;
   }
 
+  protected processLanguageValue(
+    rawValue: requestValue | null,
+    errorTrace: string
+  ): string | null {
+    if (typeof rawValue === 'string') {
+      return rawValue;
+    }
+    else if (isArrayOfStrings(rawValue)) {
+      if (rawValue.length > 1) {
+        this.errors.push(
+          `Invalid ${errorTrace} value. Should single value.`
+        );
+        return null;
+      }
+      return rawValue[0];
+    }
+
+    this.errors.push(`Invalid ${errorTrace} value`);
+    return null;
+  }
+
+  protected processFullTextQueryValue(
+    rawValue: requestValue | null,
+    errorTrace: string
+  ): string | null {
+    if (typeof rawValue === 'string') {
+      return rawValue;
+    }
+    else if (isArrayOfStrings(rawValue)) {
+      if (rawValue.length > 1) {
+        this.errors.push(
+          `Invalid ${errorTrace} value. Should single value.`
+        );
+        return null;
+      }
+      return rawValue[0];
+    }
+
+    this.errors.push(`Invalid ${errorTrace} value`);
+    return null;
+  }
+
   protected processOrderingValue(
     rawValue: requestValue | null,
     errorTrace: string

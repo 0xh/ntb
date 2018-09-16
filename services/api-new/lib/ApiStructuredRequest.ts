@@ -63,6 +63,36 @@ class ApiStructuredRequest extends AbstractApiRequest {
     return this;
   }
 
+  protected processLanguageValue(
+    rawValue: requestValue | null,
+    errorTrace: string
+  ): string | null {
+    if (rawValue === null) {
+      return null;
+    }
+    if (typeof rawValue === 'string') {
+      return rawValue;
+    }
+
+    this.errors.push(`Invalid ${errorTrace} value`);
+    return null;
+  }
+
+  protected processFullTextQueryValue(
+    rawValue: requestValue | null,
+    errorTrace: string
+  ): string | null {
+    if (rawValue === null) {
+      return null;
+    }
+    if (typeof rawValue === 'string') {
+      return rawValue;
+    }
+
+    this.errors.push(`Invalid ${errorTrace} value`);
+    return null;
+  }
+
   protected processOrderingValue(
     rawValue: requestValue | null,
     errorTrace: string
