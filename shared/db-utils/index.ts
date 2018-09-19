@@ -30,6 +30,8 @@ export {
   Relations,
   Relation,
   JsonSchema,
+  QueryBuilder,
+  RelationProperty,
 } from 'objection';
 
 // Create and export the connection configuration. This configuration is also
@@ -85,9 +87,13 @@ knex.on('query', (status: KnexEventData) => {
     logger.debug(
       status.sql.length > 1500
         ? `${status.sql.substr(0, 1500)}... [TRUNCATED]`
-        : status.sql
+        : status.sql,
     );
-    if (status.bindings && status.bindings.length && status.bindings.length <= 20) {
+    if (
+      status.bindings &&
+      status.bindings.length &&
+      status.bindings.length <= 20
+    ) {
       logger.debug(status.bindings);
     }
     else if (status.bindings && status.bindings.length) {
@@ -112,6 +118,9 @@ knex.on('query-error', (_data: {}, status: KnexEventData) => {
 
 knex.on('query-response', (_data: {}, status: KnexEventData) => {
   if (status.__knexQueryUid) {
-    printDuration(status.__knexQueryUid, '- Query success! Duration: %duration');
+    printDuration(
+      status.__knexQueryUid,
+      '- Query success! Duration: %duration',
+    );
   }
 });

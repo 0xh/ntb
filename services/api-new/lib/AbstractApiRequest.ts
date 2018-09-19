@@ -7,6 +7,7 @@ import Document, {
 import { _, isNumber } from '@ntb/utils';
 import { Relation, Relations } from '@ntb/db-utils';
 
+import DbQuery from './DbQuery';
 import Filter from './Filter';
 import {
   FilterOptions,
@@ -19,6 +20,7 @@ import {
   RequestParameter,
   RequestParameters,
   requestValue,
+  DbQueryResult,
 } from './types';
 
 
@@ -78,8 +80,10 @@ abstract class AbstractApiRequest {
     relations: [],
     relationIndex: {},
     filters: [],
-    freeTextJoin: null,
+    fullTextJoin: null,
   };
+
+  result: DbQueryResult = [];
 
   constructor(
     model: typeof Document,
@@ -163,9 +167,30 @@ abstract class AbstractApiRequest {
     return this;
   }
 
-  execute() {
+  async execute(): Promise<DbQueryResult | string[]> {
     this.verify();
-    return { test: 2 };
+
+    if (this.errors.length) {
+      return this.errors;
+    }
+
+    let joinModel: undefined | typeof Document;
+    if (this.related && this.related.joinModelClass) {
+      joinModel = this.related.joinModelClass as any as typeof Document;
+    }
+
+    const query = new DbQuery(
+      this.model,
+      this.apiConfig,
+      this.queryOptions,
+      joinModel,
+    );
+    await query.execute();
+    if (query.result) {
+      this.result = query.result;
+    }
+
+    return this.result;
   }
 
   protected isValidFilterKey(key: string): boolean {
@@ -392,7 +417,7 @@ abstract class AbstractApiRequest {
     if (!value) return this;
 
     this.fullTextQuery = value;
-    this.queryOptions.freeTextJoin = [
+    this.queryOptions.fullTextJoin = [
       "JOIN plainto_tsquery('norwegian', ?) AS full_text_phrase ON TRUE",
       [value],
     ];

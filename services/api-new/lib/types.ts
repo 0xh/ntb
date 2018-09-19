@@ -18,7 +18,7 @@ export interface RequestParameters {
   [key: string]: RequestParameter;
 }
 
-type Operator = '$and' | '$or';
+export type Operator = '$and' | '$or';
 type OperatorRequestFilters = [Operator, RequestFilters];
 export interface RequestFilters extends Array<RequestFilter> {}
 export type RequestFilter = RequestParameter | OperatorRequestFilters;
@@ -58,7 +58,7 @@ export interface QueryOptions {
   relations: JoinRelation[];
   relationIndex: JoinRelationIndex;
   filters: QueryFilters<QueryFilterOption>;
-  freeTextJoin: null | [string, [string]];
+  fullTextJoin: null | [string, [string]];
 }
 
 
@@ -73,3 +73,18 @@ export interface QueryFilterOption {
     | 'whereRaw';
   options: (string | string[] | number)[];
 }
+
+
+export interface DbQueryRow {
+  [key: string]: any;
+}
+
+
+export interface DbPaginatedQueryResult {
+  limit: number;
+  offset: number;
+  count: number;
+  rows: DbQueryRow[];
+}
+
+export type DbQueryResult = DbPaginatedQueryResult | DbQueryRow;
