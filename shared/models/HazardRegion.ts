@@ -2,8 +2,8 @@ import { RelationMappings, JsonSchema } from '@ntb/db-utils';
 import { geojson } from '@ntb/gis-utils';
 
 import Document, {
-  apiConfigPerReferrer,
-  apiConfig,
+  ApiConfigPerReferrer,
+  ApiConfig,
 } from './Document';
 
 
@@ -154,8 +154,8 @@ export default class HazardRegion extends Document {
 
   static apiEntryModel = true;
 
-  static getApiConfigPerReferrer(): apiConfigPerReferrer {
-    const list: apiConfig = {
+  static getApiConfigPerReferrer(): ApiConfigPerReferrer {
+    const list: ApiConfig = {
       paginate: {
         defaultLimit: 10,
         maxLimit: 50,
@@ -171,9 +171,15 @@ export default class HazardRegion extends Document {
         ],
       },
       filters: {
-        id: {},
-        type: { filterTypes: ['=', '$in', '$nin'] },
-        regionId: { filterTypes: ['=', '$in', '$nin'] },
+        id: { type: 'uuid' },
+        type: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        regionId: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
       },
       fullFields: [
         'uri',
@@ -191,10 +197,10 @@ export default class HazardRegion extends Document {
     };
 
     // Default configuration when an instance in accessed directly
-    const single: apiConfig = list;
+    const single: ApiConfig = list;
 
     // Default configuration when included from another model
-    const standard: apiConfig = {
+    const standard: ApiConfig = {
       ...list,
       defaultFields: [
         'uri',

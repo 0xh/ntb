@@ -1,4 +1,4 @@
-import Document, { apiConfigJoinTable } from './Document';
+import Document, { ApiConfigJoinTable } from './Document';
 
 
 export default class PoiToPoiByDistance extends Document {
@@ -11,7 +11,7 @@ export default class PoiToPoiByDistance extends Document {
   calculatedDistance?: number;
   processedVerified?: Date;
 
-  static apiConfig: apiConfigJoinTable = {
+  static apiConfig: ApiConfigJoinTable = {
     filters: {
       calculatedDistance: {
         type: 'number',
@@ -20,8 +20,8 @@ export default class PoiToPoiByDistance extends Document {
     },
     ordering: {
       validFields: [
-        'calculatedDistance'
+        'calculatedDistance',
       ],
     },
-  }
+  };
 }

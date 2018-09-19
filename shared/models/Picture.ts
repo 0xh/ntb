@@ -2,8 +2,8 @@ import { geojson } from '@ntb/gis-utils';
 import { RelationMappings, JsonSchema } from '@ntb/db-utils';
 
 import Document, {
-  apiConfigPerReferrer,
-  apiConfig,
+  ApiConfigPerReferrer,
+  ApiConfig,
   documentStatus,
 } from './Document';
 import {
@@ -160,9 +160,9 @@ export default class Picture extends Document {
 
   static apiEntryModel = true;
 
-  static getApiConfigPerReferrer(): apiConfigPerReferrer {
+  static getApiConfigPerReferrer(): ApiConfigPerReferrer {
     // Configuration when it's the entry model
-    const list: apiConfig = {
+    const list: ApiConfig = {
       paginate: {
         maxLimit: 50,
         defaultLimit: 10,
@@ -177,13 +177,22 @@ export default class Picture extends Document {
         default: [['updatedAt', 'DESC']],
       },
       filters: {
-        id: {},
-        idLegacyNtb: {},
-        name: {},
-        provider: { filterTypes: ['=', '$in', '$nin'] },
-        status: { filterTypes: ['=', '$in', '$nin'] },
-        updatedAt: {},
-        createdAt: {},
+        id: { type: 'uuid' },
+        idLegacyNtb: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        name: { type: 'text' },
+        provider: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        status: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        updatedAt: { type: 'date' },
+        createdAt: { type: 'date' },
       },
       fullFields: [
         'uri',
@@ -217,7 +226,7 @@ export default class Picture extends Document {
     };
 
     // Default configuration when included from another model
-    const single: apiConfig = {
+    const single: ApiConfig = {
       ...list,
       defaultRelations: [
         'area',
@@ -229,7 +238,7 @@ export default class Picture extends Document {
     };
 
     // Default configuration when included from another model
-    const standard: apiConfig = {
+    const standard: ApiConfig = {
       ...list,
       ordering: {
         validFields: [

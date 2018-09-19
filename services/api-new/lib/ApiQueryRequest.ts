@@ -4,7 +4,8 @@ import { _, isArrayOfStrings } from '@ntb/utils';
 import { Document } from '@ntb/models';
 import { Relation } from '@ntb/db-utils';
 
-import AbstractApiRequest, { requestValue } from './AbstractApiRequest';
+import AbstractApiRequest from './AbstractApiRequest';
+import { requestValue } from './types';
 
 
 class ApiQueryRequest extends AbstractApiRequest {
@@ -22,7 +23,7 @@ class ApiQueryRequest extends AbstractApiRequest {
 
       if (!this.valueIsValidType(rawKey, value)) {
         this.errors.push(
-          `Invalid value in '${this.errorTrace}${rawKey}'`
+          `Invalid value in '${this.errorTrace}${rawKey}'`,
         );
       }
       else {
@@ -33,7 +34,7 @@ class ApiQueryRequest extends AbstractApiRequest {
         const requestParameter = this.createRequestParameter(
           processedRawKey,
           typeof value === 'string' ? [value] : value,
-          `${this.errorTrace}${rawKey}`
+          `${this.errorTrace}${rawKey}`,
         );
 
         // Invalid key
@@ -42,7 +43,7 @@ class ApiQueryRequest extends AbstractApiRequest {
           && !this.relationsNames.includes(requestParameter.firstKey)
         ) {
           this.errors.push(
-            `Invalid query parameter: ${this.errorTrace}${rawKey}`
+            `Invalid query parameter: ${this.errorTrace}${rawKey}`,
           );
         }
         // Add to requestFilters
@@ -68,8 +69,11 @@ class ApiQueryRequest extends AbstractApiRequest {
 
           const { rawKeys } = requestParameter;
           const nextKey = rawKeys.slice(1).join('.');
-          this.requestObjectForRelations[requestParameter.firstKey][nextKey] =
-            this.requestObject[rawKey];
+          if (nextKey) {
+            const relationKey = requestParameter.firstKey;
+            this.requestObjectForRelations[relationKey][nextKey] =
+              this.requestObject[rawKey];
+          }
         }
       }
     });
@@ -79,15 +83,15 @@ class ApiQueryRequest extends AbstractApiRequest {
 
   protected processLanguageValue(
     rawValue: requestValue | null,
-    errorTrace: string
+    errorTrace: string,
   ): string | null {
     if (typeof rawValue === 'string') {
       return rawValue;
     }
-    else if (isArrayOfStrings(rawValue)) {
+    if (isArrayOfStrings(rawValue)) {
       if (rawValue.length > 1) {
         this.errors.push(
-          `Invalid ${errorTrace} value. Should single value.`
+          `Invalid ${errorTrace} value. Should single value.`,
         );
         return null;
       }
@@ -100,19 +104,19 @@ class ApiQueryRequest extends AbstractApiRequest {
 
   protected processFullTextQueryValue(
     rawValue: requestValue | null,
-    errorTrace: string
+    errorTrace: string,
   ): string | null {
     if (typeof rawValue === 'string') {
-      return rawValue;
+      return rawValue.toLowerCase().trim();
     }
-    else if (isArrayOfStrings(rawValue)) {
+    if (isArrayOfStrings(rawValue)) {
       if (rawValue.length > 1) {
         this.errors.push(
-          `Invalid ${errorTrace} value. Should single value.`
+          `Invalid ${errorTrace} value. Should single value.`,
         );
         return null;
       }
-      return rawValue[0];
+      return rawValue[0].toLowerCase().trim();
     }
 
     this.errors.push(`Invalid ${errorTrace} value`);
@@ -121,15 +125,15 @@ class ApiQueryRequest extends AbstractApiRequest {
 
   protected processOrderingValue(
     rawValue: requestValue | null,
-    errorTrace: string
+    errorTrace: string,
   ): string[] | null {
     if (typeof rawValue === 'string') {
       return [rawValue];
     }
-    else if (isArrayOfStrings(rawValue)) {
+    if (isArrayOfStrings(rawValue)) {
       if (rawValue.length > 1) {
         this.errors.push(
-          `Invalid ${errorTrace} value. Should single value.`
+          `Invalid ${errorTrace} value. Should single value.`,
         );
         return null;
       }
@@ -142,15 +146,15 @@ class ApiQueryRequest extends AbstractApiRequest {
 
   protected processFieldsValue(
     rawValue: requestValue | null,
-    errorTrace: string
+    errorTrace: string,
   ): string[] | null {
     if (typeof rawValue === 'string') {
       return rawValue.split(',');
     }
-    else if (isArrayOfStrings(rawValue)) {
+    if (isArrayOfStrings(rawValue)) {
       if (rawValue.length > 1) {
         this.errors.push(
-          `Invalid ${errorTrace} value. Should single value.`
+          `Invalid ${errorTrace} value. Should single value.`,
         );
         return null;
       }
@@ -176,7 +180,7 @@ class ApiQueryRequest extends AbstractApiRequest {
     }
 
     // If the value is an array, make sure each array-value is a string
-    if (Array.isArray(value) && value.some((v) => v !== 'string')) {
+    if (Array.isArray(value) && value.some((v) => typeof v !== 'string')) {
       this.errors.push(`Invalid query parameter: ${this.errorTrace}${key}`);
       return false;
     }
@@ -195,7 +199,7 @@ class ApiQueryRequest extends AbstractApiRequest {
       related,
     );
     return relationRequest;
-  };
+  }
 }
 
 export default ApiQueryRequest;

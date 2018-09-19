@@ -1,8 +1,8 @@
 import { JsonSchema } from '@ntb/db-utils';
 
 import Document, {
-  apiConfigPerReferrer,
-  apiConfig,
+  ApiConfigPerReferrer,
+  ApiConfig,
   serviceLevel,
 } from './Document';
 import { cabinOpeningHoursKeyType } from './CabinOpeningHoursKeyType';
@@ -44,9 +44,9 @@ export default class CabinOpeningHours extends Document {
   };
 
 
-  static getApiConfigPerReferrer(): apiConfigPerReferrer {
+  static getApiConfigPerReferrer(): ApiConfigPerReferrer {
     // Configuration when it's the entry model
-    const standard: apiConfig = {
+    const standard: ApiConfig = {
       paginate: false,
       fullTextSearch: false,
       ordering: {
@@ -59,10 +59,13 @@ export default class CabinOpeningHours extends Document {
         ],
       },
       filters: {
-        allYear: {},
-        from: {},
-        to: {},
-        serviceLevel: { filterTypes: ['=', '$in', '$nin'] },
+        allYear: { type: 'boolean' },
+        from: { type: 'date' },
+        to: { type: 'date' },
+        serviceLevel: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
       },
       fullFields: [
         'allYear',

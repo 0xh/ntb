@@ -2,8 +2,8 @@ import { geojson } from '@ntb/gis-utils';
 import { RelationMappings, JsonSchema } from '@ntb/db-utils';
 
 import Document, {
-  apiConfigPerReferrer,
-  apiConfig,
+  ApiConfigPerReferrer,
+  ApiConfig,
   documentStatus,
   grading,
 } from './Document';
@@ -365,9 +365,9 @@ export default class Trip extends Document {
   ];
 
 
-  static getApiConfigPerReferrer(): apiConfigPerReferrer {
+  static getApiConfigPerReferrer(): ApiConfigPerReferrer {
     // Configuration when it's the entry model
-    const list: apiConfig = {
+    const list: ApiConfig = {
       paginate: {
         defaultLimit: 10,
         maxLimit: 50,
@@ -383,17 +383,32 @@ export default class Trip extends Document {
         ],
       },
       filters: {
-        id: {},
-        idLegacyNtb: { filterTypes: ['=', 'null', 'notnull', '$in', '$nin'] },
-        activityType: { filterTypes: ['=', 'null', 'notnull', '$in', '$nin'] },
-        name: {},
-        suitableForChildren: {},
-        provider: { filterTypes: ['=', '$in', '$nin'] },
-        distance: {},
-        direction: { filterTypes: ['=', 'null', 'notnull'] },
-        status: { filterTypes: ['=', '$in', '$nin'] },
-        updatedAt: {},
-        createdAt: {},
+        id: { type: 'uuid' },
+        idLegacyNtb: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        activityType: {
+          type: 'text',
+          filterTypes: ['=', 'null', 'notnull', '$in', '$nin'],
+        },
+        name: { type: 'text' },
+        suitableForChildren: { type: 'boolean' },
+        provider: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        distance: { type: 'number' },
+        direction: {
+          type: 'text',
+          filterTypes: ['=', 'null', 'notnull'],
+        },
+        status: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        updatedAt: { type: 'date' },
+        createdAt: { type: 'date' },
       },
       fullFields: [
         'uri',
@@ -420,10 +435,10 @@ export default class Trip extends Document {
     };
 
     // Default configuration when an instance in accessed directly
-    const single: apiConfig = list;
+    const single: ApiConfig = list;
 
     // Default configuration when included from another model
-    const standard: apiConfig = {
+    const standard: ApiConfig = {
       ...list,
       defaultFields: [
         'uri',
@@ -435,7 +450,7 @@ export default class Trip extends Document {
     };
 
     // Configuration when included through distance table
-    const tripsByDistance: apiConfig = {
+    const tripsByDistance: ApiConfig = {
       ...standard,
       defaultFields: [
         ...(standard.defaultFields || []),

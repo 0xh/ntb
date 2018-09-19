@@ -2,8 +2,8 @@ import { geojson } from '@ntb/gis-utils';
 import { RelationMappings, JsonSchema } from '@ntb/db-utils';
 
 import Document, {
-  apiConfigPerReferrer,
-  apiConfig,
+  ApiConfigPerReferrer,
+  ApiConfig,
   serviceLevel,
   documentStatus,
 } from './Document';
@@ -60,10 +60,10 @@ export default class Cabin extends Document {
   htgtGeneral?: string;
   htgtWinter?: string;
   htgtSummer?: string;
-  htgtPublicTransport?: string;
-  htgtCarAllYear?: string;
-  htgtCarSummer?: string;
-  htgtBicycle?: string;
+  htgtPublicTransport?: boolean;
+  htgtCarAllYear?: boolean;
+  htgtCarSummer?: boolean;
+  htgtBicycle?: boolean;
   htgtPublicTransportAvailable?: string;
   htgtBoatTransportAvailable?: string;
   map?: string;
@@ -417,9 +417,9 @@ export default class Cabin extends Document {
   static apiEntryModel = true;
 
 
-  static getApiConfigPerReferrer(): apiConfigPerReferrer {
+  static getApiConfigPerReferrer(): ApiConfigPerReferrer {
     // Configuration when it's the entry model
-    const list: apiConfig = {
+    const list: ApiConfig = {
       paginate: {
         defaultLimit: 10,
         maxLimit: 50,
@@ -431,7 +431,7 @@ export default class Cabin extends Document {
         'name',
         'nameLowerCase',
         'description',
-        'descriptionPlain'
+        'descriptionPlain',
       ],
       ordering: {
         default: [['name', 'ASC']],
@@ -443,17 +443,36 @@ export default class Cabin extends Document {
       },
 
       filters: {
-        id: {},
-        idLegacyNtb: { filterTypes: ['=', 'null', 'notnull', '$in', '$nin'] },
-        dntCabin: {},
-        dntDiscount: {},
-        serviceLevel: { filterTypes: ['=', 'null', 'notnull', '$in', '$nin'] },
-        name: {},
-        provider: { filterTypes: ['=', '$in', '$nin'] },
-        status: { filterTypes: ['=', '$in', '$nin'] },
-        coordinates: { geojsonType: 'Point' },
-        updatedAt: {},
-        createdAt: {},
+        id: { type: 'uuid' },
+        idLegacyNtb: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        dntCabin: { type: 'boolean' },
+        dntDiscount: { type: 'boolean' },
+        serviceLevel: {
+          type: 'text',
+          filterTypes: ['=', 'null', 'notnull', '$in', '$nin'],
+        },
+        name: { type: 'text' },
+        provider: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        status: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        coordinates: {
+          type: 'geojson',
+          geojsonType: 'Point',
+        },
+        updatedAt: { type: 'date' },
+        createdAt: { type: 'date' },
+        'htgt.carAllYear': {
+          type: 'boolean',
+          tableAttribute: 'htgtCarAllYear',
+        },
       },
       fullFields: [
         'uri',
@@ -483,10 +502,10 @@ export default class Cabin extends Document {
     };
 
     // Default configuration when an instance in accessed directly
-    const single: apiConfig = list;
+    const single: ApiConfig = list;
 
     // Default configuration when included from another model
-    const standard: apiConfig = {
+    const standard: ApiConfig = {
       ...list,
       defaultFields: [
         'uri',
@@ -498,7 +517,7 @@ export default class Cabin extends Document {
     };
 
     // Configuration when included through Accessability.cabins
-    const accessabilityCabins: apiConfig = {
+    const accessabilityCabins: ApiConfig = {
       ...standard,
       defaultFields: [
         ...(standard.defaultFields || []),
@@ -507,7 +526,7 @@ export default class Cabin extends Document {
     };
 
     // Configuration when included through Facility.cabins
-    const facilityCabins: apiConfig = {
+    const facilityCabins: ApiConfig = {
       ...standard,
       defaultFields: [
         ...(standard.defaultFields || []),
@@ -517,7 +536,7 @@ export default class Cabin extends Document {
 
     // Configuration when included through
     // DabinServiceLevel.cabinsThroughOpeningHours
-    const cabinServiceLevelCabinsThroughOpeningHours: apiConfig = {
+    const cabinServiceLevelCabinsThroughOpeningHours: ApiConfig = {
       ...standard,
       defaultFields: [
         ...(standard.defaultFields || []),
@@ -528,7 +547,7 @@ export default class Cabin extends Document {
     };
 
     // Configuration when included through distance table
-    const cabinsByDistance: apiConfig = {
+    const cabinsByDistance: ApiConfig = {
       ...standard,
       defaultFields: [
         ...(standard.defaultFields || []),
@@ -556,7 +575,7 @@ export default class Cabin extends Document {
     const extra = {
       // Related extra field from Accessability
       cabinAccessabilityDescription: [
-        '[[JOIN-TABLE]].cabinAccessabilityDescription'
+        '[[JOIN-TABLE]].cabinAccessabilityDescription',
       ],
 
       // Related extra field from Facility
@@ -602,7 +621,7 @@ export default class Cabin extends Document {
     };
 
     const attributes = super.getAPIFieldsToAttributes(
-      referrers, fields, extra
+      referrers, fields, extra,
     );
 
     return attributes;

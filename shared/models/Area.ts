@@ -2,8 +2,8 @@ import { geojson } from '@ntb/gis-utils';
 import { RelationMappings, JsonSchema } from '@ntb/db-utils';
 
 import Document, {
-  apiConfigPerReferrer,
-  apiConfig,
+  ApiConfigPerReferrer,
+  ApiConfig,
   documentStatus,
 } from './Document';
 import { documentStatusSchema, geojsonPolygonSchema } from './schemas';
@@ -202,8 +202,8 @@ export default class Area extends Document {
 
   static apiEntryModel = true;
 
-  static getApiConfigPerReferrer(): apiConfigPerReferrer {
-    const list: apiConfig = {
+  static getApiConfigPerReferrer(): ApiConfigPerReferrer {
+    const list: ApiConfig = {
       fullTextSearch: true,
       paginate: {
         defaultLimit: 10,
@@ -219,13 +219,26 @@ export default class Area extends Document {
       },
 
       filters: {
-        id: {},
-        idLegacyNtb: { filterTypes: ['=', 'null', 'notnull', '$in', '$nin'] },
-        name: {},
-        provider: { filterTypes: ['=', '$in', '$nin'] },
-        status: { filterTypes: ['=', '$in', '$nin'] },
-        updatedAt: {},
-        createdAt: {},
+        id: { type: 'uuid' },
+        idLegacyNtb: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        name: { type: 'text' },
+        provider: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        geometry: {
+          type: 'geojson',
+          geojsonType: 'Polygon',
+        },
+        status: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        updatedAt: { type: 'date' },
+        createdAt: { type: 'date' },
       },
       fullFields: [
         'uri',
@@ -246,10 +259,10 @@ export default class Area extends Document {
     };
 
     // Default configuration when included from another model
-    const single: apiConfig = list;
+    const single: ApiConfig = list;
 
     // Default configuration when included from another model
-    const standard: apiConfig = {
+    const standard: ApiConfig = {
       ...list,
       defaultFields: [
         'uri',

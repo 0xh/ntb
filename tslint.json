@@ -9,6 +9,8 @@
   },
   "rules": {
     "no-consecutive-blank-lines": [true, 2],
+    "no-boolean-literal-compare": true,
+    "quotemark": [true, "single", "avoid-escape", "avoid-template", "jsx-double"],
     "max-line-length": [true, {"limit": 79}],
     "no-unused-variable": false,
     "ter-arrow-parens": [true, "always"],

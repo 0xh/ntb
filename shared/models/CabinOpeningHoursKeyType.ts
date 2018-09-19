@@ -1,6 +1,6 @@
 import { JsonSchema } from '@ntb/db-utils';
 
-import Document, { apiConfigPerReferrer, apiConfig } from './Document';
+import Document, { ApiConfigPerReferrer, ApiConfig } from './Document';
 
 
 export type cabinOpeningHoursKeyType =
@@ -39,9 +39,9 @@ export default class CabinOpeningHoursKeyType extends Document {
 
   static apiEntryModel = true;
 
-  static getApiConfigPerReferrer(): apiConfigPerReferrer {
+  static getApiConfigPerReferrer(): ApiConfigPerReferrer {
     // Default configuration
-    const standard: apiConfig = {
+    const standard: ApiConfig = {
       paginate: false,
       fullTextSearch: false,
       ordering: {

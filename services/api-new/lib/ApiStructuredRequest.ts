@@ -4,11 +4,12 @@ import { _, isArrayOfStrings } from '@ntb/utils';
 import { Document } from '@ntb/models';
 import { Relation } from '@ntb/db-utils';
 
-import AbstractApiRequest, {
-  requestParameter,
-  requestValue,
+import AbstractApiRequest from './AbstractApiRequest';
+import {
   RequestFilters,
-} from './AbstractApiRequest';
+  RequestParameter,
+  requestValue,
+} from './types';
 
 
 class ApiStructuredRequest extends AbstractApiRequest {
@@ -28,7 +29,7 @@ class ApiStructuredRequest extends AbstractApiRequest {
       // Filters
       if (key === 'filters') {
         const filters = this.processRequestFilters(
-          value, `${this.errorTrace}filters`
+          value, `${this.errorTrace}filters`,
         );
         if (filters.length) {
           this.requestFilters = filters;
@@ -42,19 +43,19 @@ class ApiStructuredRequest extends AbstractApiRequest {
       // Invalid key
       else if (!this.validKeys.has(key)) {
         this.errors.push(
-          `Invalid query parameter: ${this.errorTrace}${rawKey}`
+          `Invalid query parameter: ${this.errorTrace}${rawKey}`,
         );
       }
       // Invalid value
       else if (!this.valueIsValidType(value)) {
         this.errors.push(
-          `Invalid value of: ${this.errorTrace}${rawKey}`
+          `Invalid value of: ${this.errorTrace}${rawKey}`,
         );
       }
       // Add to requestParameters
       else {
         const requestParameter = this.createStructuredRequestParameter(
-          rawKey, value
+          rawKey, value,
         );
         this.requestParameters[key] = requestParameter;
       }
@@ -65,7 +66,7 @@ class ApiStructuredRequest extends AbstractApiRequest {
 
   protected processLanguageValue(
     rawValue: requestValue | null,
-    errorTrace: string
+    errorTrace: string,
   ): string | null {
     if (rawValue === null) {
       return null;
@@ -80,13 +81,13 @@ class ApiStructuredRequest extends AbstractApiRequest {
 
   protected processFullTextQueryValue(
     rawValue: requestValue | null,
-    errorTrace: string
+    errorTrace: string,
   ): string | null {
     if (rawValue === null) {
       return null;
     }
     if (typeof rawValue === 'string') {
-      return rawValue;
+      return rawValue.toLowerCase().trim();
     }
 
     this.errors.push(`Invalid ${errorTrace} value`);
@@ -95,7 +96,7 @@ class ApiStructuredRequest extends AbstractApiRequest {
 
   protected processOrderingValue(
     rawValue: requestValue | null,
-    errorTrace: string
+    errorTrace: string,
   ): string[] | null {
     if (rawValue === null) {
       return null;
@@ -110,7 +111,7 @@ class ApiStructuredRequest extends AbstractApiRequest {
 
   protected processFieldsValue(
     rawValue: requestValue | null,
-    errorTrace: string
+    errorTrace: string,
   ): string[] | null {
     if (rawValue === null) {
       return null;
@@ -134,11 +135,11 @@ class ApiStructuredRequest extends AbstractApiRequest {
       related,
     );
     return relationRequest;
-  };
+  }
 
   private processRequestFilters(
     rawFilterList: any,
-    trace: string
+    trace: string,
   ): RequestFilters {
     if (!Array.isArray(rawFilterList)) {
       this.errors.push(`Invalid value of ${trace}. Needs to be an array.`);
@@ -149,7 +150,7 @@ class ApiStructuredRequest extends AbstractApiRequest {
     rawFilterList.forEach((rawFilter, idx) => {
       if (!Array.isArray(rawFilter) || rawFilter.length !== 2) {
         this.errors.push(
-          `Invalid format of filter in "${trace}" at index ${idx}`
+          `Invalid format of filter in "${trace}" at index ${idx}`,
         );
       }
       else {
@@ -160,24 +161,24 @@ class ApiStructuredRequest extends AbstractApiRequest {
           const newTrace = `${trace}[${idx} - ${key}]`;
           const requestFilters = this.processRequestFilters(value, newTrace);
           if (requestFilters.length) {
-            res.push([key.toLowerCase(), requestFilters])
+            res.push([key.toLowerCase(), requestFilters]);
           }
         }
         // Add filter
         else {
           const newTrace = `${trace}[${idx} - ${key}]`;
           const requestParameter = this.createRequestParameter(
-            key, value, newTrace
+            key, value, newTrace,
           );
 
           if (!this.isValidFilterKey(requestParameter.key)) {
             this.errors.push(
-              `Invalid filter key '${key}' at '${newTrace}'`
+              `Invalid filter key '${key}' at '${newTrace}'`,
             );
           }
           else if (!this.valueIsValidType(value)) {
             this.errors.push(
-              `Invalid filter value in '${newTrace}'`
+              `Invalid filter value in '${newTrace}'`,
             );
           }
           else {
@@ -192,19 +193,19 @@ class ApiStructuredRequest extends AbstractApiRequest {
 
   private createStructuredRequestParameter(
     rawKey: string,
-    value: requestValue
-  ): requestParameter {
+    value: requestValue,
+  ): RequestParameter {
     const casedKey = _.camelCase(rawKey.toLowerCase());
 
     return {
-      rawKey: rawKey,
+      rawKey,
+      value,
       rawKeys: [rawKey],
       rawValue: value,
       errorTrace: `${this.errorTrace}${rawKey}`,
       key: casedKey,
       keys: [casedKey],
       firstKey: casedKey,
-      value: value,
     };
   }
 

@@ -68,55 +68,72 @@ export type grading =
 
 type orderField = [string, 'ASC' | 'DESC'];
 type filterType =
+  | '!'
+  | '^'
   | '='
+  | '~'
+  | '$'
+  | '$after'
+  | '$before'
+  | '$between'
   | '$gt'
   | '$gte'
+  | '$in'
   | '$lt'
   | '$lte'
-  | 'null'
+  | '$nin'
   | 'notnull'
-  | '$in'
-  | '$nin';
+  | 'null';
 
-export interface apiFilters {
-  [key: string]: {
-    type?: 'string' | 'number' | 'uuid' | 'boolean' | 'date',
-    filterTypes?: filterType[],
-    geojsonType?: 'Point' | 'LineString',
-  },
-};
+export interface ApiFilter {
+  type:
+    | 'text'
+    | 'number'
+    | 'uuid'
+    | 'boolean'
+    | 'date'
+    | 'geojson'
+    | 'relationExistance';
+  tableAttribute?: string;
+  filterTypes?: filterType[];
+  geojsonType?: 'Point' | 'LineString' | 'Polygon';
+}
 
-export interface apiConfig {
+export interface ApiFilters {
+  [key: string]: ApiFilter;
+}
+
+export interface ApiConfig {
   fullTextSearch?: boolean;
-  fullTextSearchLangauges?: string[],
-  translated?: boolean,
-  translatedFields?: string[],
+  fullTextSearchLangauges?: string[];
+  translated?: boolean;
+  translatedFields?: string[];
   ordering?: false | {
-    disabled?: boolean,
-    default: orderField[],
-    validFields: string[],
+    disabled?: boolean;
+    default: orderField[];
+    validFields: string[];
   };
   paginate?: false | {
-    disabled?: boolean,
-    defaultLimit: number,
-    maxLimit: number,
+    disabled?: boolean;
+    defaultLimit: number;
+    maxLimit: number;
   };
-  filters?: false | apiFilters;
+  filters?: false | ApiFilters;
   fullFields?: string[];
   defaultFields?: string[];
   defaultRelations?: string[];
 }
 
-export interface apiConfigJoinTable {
+export interface ApiConfigJoinTable {
   ordering?: {
     validFields: string[],
   };
-  filters?: apiFilters;
+  filters?: ApiFilters;
 }
 
-export interface apiConfigPerReferrer {
-  standard: apiConfig;
-  [key: string]: apiConfig;
+export interface ApiConfigPerReferrer {
+  standard: ApiConfig;
+  [key: string]: ApiConfig;
 }
 
 
@@ -133,13 +150,13 @@ export default abstract class Document extends Model {
   static relationMappings: RelationMappings | (() => RelationMappings);
   static apiEntryModel: boolean = false;
   static geometryAttributes: string[] = [];
-  static apiConfig?: apiConfigJoinTable;
+  static apiConfig?: ApiConfigJoinTable;
 
-  static getApiConfigPerReferrer(): apiConfigPerReferrer {
+  static getApiConfigPerReferrer(): ApiConfigPerReferrer {
     return { standard: { } };
   }
 
-  static getApiConfig(referrers?: string[]): apiConfig {
+  static getApiConfig(referrers?: string[]): ApiConfig {
     const apiConfigPerReferrer = this.getApiConfigPerReferrer();
     let selectedApiConfig = apiConfigPerReferrer.standard;
 

@@ -1,4 +1,4 @@
-import Document, { apiConfigJoinTable } from './Document';
+import Document, { ApiConfigJoinTable } from './Document';
 
 
 export default class TripToTripByDistance extends Document {
@@ -11,7 +11,7 @@ export default class TripToTripByDistance extends Document {
   calculatedDistance?: number;
   processedVerified?: Date;
 
-  static apiConfig: apiConfigJoinTable = {
+  static apiConfig: ApiConfigJoinTable = {
     filters: {
       calculatedDistance: {
         type: 'number',

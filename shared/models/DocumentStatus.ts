@@ -1,8 +1,8 @@
 import { JsonSchema } from '@ntb/db-utils';
 
 import Document, {
-  apiConfigPerReferrer,
-  apiConfig,
+  ApiConfigPerReferrer,
+  ApiConfig,
   documentStatus,
 } from './Document';
 import { documentStatusSchema } from './schemas';
@@ -31,9 +31,9 @@ export default class DocumentStatus extends Document {
 
   static apiEntryModel = true;
 
-  static getApiConfigPerReferrer(): apiConfigPerReferrer {
+  static getApiConfigPerReferrer(): ApiConfigPerReferrer {
     // Default configuration
-    const standard: apiConfig = {
+    const standard: ApiConfig = {
       paginate: false,
       fullTextSearch: false,
       ordering: {

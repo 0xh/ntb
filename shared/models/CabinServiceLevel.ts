@@ -1,8 +1,8 @@
 import { RelationMappings, JsonSchema } from '@ntb/db-utils';
 
 import Document, {
-  apiConfigPerReferrer,
-  apiConfig,
+  ApiConfigPerReferrer,
+  ApiConfig,
   serviceLevel,
 } from './Document';
 import { serviceLevelSchema } from './schemas';
@@ -68,9 +68,9 @@ export default class CabinServiceLevel extends Document {
 
   static apiEntryModel = true;
 
-  static getApiConfigPerReferrer(): apiConfigPerReferrer {
+  static getApiConfigPerReferrer(): ApiConfigPerReferrer {
     // Configuration when it's the entry model
-    const list: apiConfig = {
+    const list: ApiConfig = {
       paginate: false,
       fullTextSearch: false,
       ordering: {
@@ -88,10 +88,10 @@ export default class CabinServiceLevel extends Document {
     };
 
     // Default configuration when an instance in accessed directly
-    const single: apiConfig = list;
+    const single: ApiConfig = list;
 
     // Default configuration when included from another model
-    const standard: apiConfig = {
+    const standard: ApiConfig = {
       ...list,
       defaultFields: [
         'uri',

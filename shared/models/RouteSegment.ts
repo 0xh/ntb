@@ -2,8 +2,8 @@ import { geojson } from '@ntb/gis-utils';
 import { RelationMappings, JsonSchema } from '@ntb/db-utils';
 
 import Document, {
-  apiConfigPerReferrer,
-  apiConfig,
+  ApiConfigPerReferrer,
+  ApiConfig,
 } from './Document';
 import {
   geojsonPointSchema,
@@ -114,9 +114,9 @@ export default class RouteSegment extends Document {
   static apiEntryModel = true;
 
 
-  static getApiConfigPerReferrer(): apiConfigPerReferrer {
+  static getApiConfigPerReferrer(): ApiConfigPerReferrer {
     // Configuration when it's the entry model
-    const list: apiConfig = {
+    const list: ApiConfig = {
       paginate: {
         defaultLimit: 10,
         maxLimit: 50,
@@ -131,7 +131,7 @@ export default class RouteSegment extends Document {
         ],
       },
       filters: {
-        id: {},
+        id: { type: 'uuid' },
       },
       fullFields: [
         'uri',
@@ -149,10 +149,10 @@ export default class RouteSegment extends Document {
     };
 
     // Default configuration when an instance in accessed directly
-    const single: apiConfig = list;
+    const single: ApiConfig = list;
 
     // Default configuration when included from another model
-    const standard: apiConfig = {
+    const standard: ApiConfig = {
       ...list,
       defaultFields: [
         'uri',
@@ -166,7 +166,7 @@ export default class RouteSegment extends Document {
     };
 
     // When included by Route.route_segments
-    const routeRouteSegments: apiConfig = {
+    const routeRouteSegments: ApiConfig = {
       ...standard,
       paginate: false,
     };

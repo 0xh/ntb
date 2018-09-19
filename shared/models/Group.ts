@@ -1,8 +1,8 @@
 import { RelationMappings, JsonSchema } from '@ntb/db-utils';
 
 import Document, {
-  apiConfigPerReferrer,
-  apiConfig,
+  ApiConfigPerReferrer,
+  ApiConfig,
   documentStatus,
 } from './Document';
 import { documentStatusSchema } from './schemas';
@@ -171,9 +171,9 @@ export default class Group extends Document {
 
   static apiEntryModel = true;
 
-  static getApiConfigPerReferrer(): apiConfigPerReferrer {
+  static getApiConfigPerReferrer(): ApiConfigPerReferrer {
     // Configuration when it's the entry model
-    const list: apiConfig = {
+    const list: ApiConfig = {
       paginate: {
         defaultLimit: 10,
         maxLimit: 50,
@@ -217,22 +217,38 @@ export default class Group extends Document {
         'links',
       ],
       filters: {
-        id: {},
-        groupType: {},
-        groupSubType: {},
-        name: {},
-        provider: { filterTypes: ['=', '$in', '$nin'] },
-        status: { filterTypes: ['=', '$in', '$nin'] },
-        updatedAt: {},
-        createdAt: {},
+        id: { type: 'uuid' },
+        idLegacyNtb: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        groupType: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        groupSubType: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        name: { type: 'text' },
+        provider: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        status: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        updatedAt: { type: 'text' },
+        createdAt: { type: 'text' },
       },
     };
 
     // Default configuration when an instance in accessed directly
-    const single: apiConfig = list;
+    const single: ApiConfig = list;
 
     // Default configuration when included from another model
-    const standard: apiConfig = {
+    const standard: ApiConfig = {
       ...list,
       defaultFields: [
         'uri',

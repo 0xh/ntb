@@ -1,5 +1,5 @@
 import { RelationMappings, JsonSchema } from '@ntb/db-utils';
-import Document, { apiConfigPerReferrer, apiConfig } from './Document';
+import Document, { ApiConfigPerReferrer, ApiConfig } from './Document';
 
 
 export default class Accessability extends Document {
@@ -78,9 +78,9 @@ export default class Accessability extends Document {
 
   static apiEntryModel = true;
 
-  static getApiConfigPerReferrer(): apiConfigPerReferrer {
+  static getApiConfigPerReferrer(): ApiConfigPerReferrer {
     // Configuration when it's the entry model
-    const list: apiConfig = {
+    const list: ApiConfig = {
       paginate: false,
       fullTextSearch: false,
       ordering: {
@@ -88,7 +88,10 @@ export default class Accessability extends Document {
         validFields: ['name'],
       },
       filters: {
-        name: { filterTypes: ['=', '$in', '$nin'] },
+        name: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
       },
       fullFields: [
         'name',
@@ -102,16 +105,16 @@ export default class Accessability extends Document {
     };
 
     // Default configuration when an instance in accessed directly
-    const single: apiConfig = list;
+    const single: ApiConfig = list;
 
     // Default configuration when included from another model
-    const standard: apiConfig = {
+    const standard: ApiConfig = {
       ...list,
       defaultFields: ['name'],
     };
 
     // Configuration when included through Cabin.accessabilities
-    const cabinAccessabilities: apiConfig = {
+    const cabinAccessabilities: ApiConfig = {
       ...standard,
       defaultFields: [
         ...(standard.defaultFields || []),
@@ -132,7 +135,7 @@ export default class Accessability extends Document {
     const extra = {
       // Related extra field from Cabin
       cabinAccessabilityDescription: [
-        '[[JOIN-TABLE]].cabinAccessabilityDescription'
+        '[[JOIN-TABLE]].cabinAccessabilityDescription',
       ],
     };
 

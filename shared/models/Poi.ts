@@ -2,8 +2,8 @@ import { geojson } from '@ntb/gis-utils';
 import { RelationMappings, JsonSchema } from '@ntb/db-utils';
 
 import Document, {
-  apiConfigPerReferrer,
-  apiConfig,
+  ApiConfigPerReferrer,
+  ApiConfig,
   documentStatus,
 } from './Document';
 import { documentStatusSchema, geojsonPointSchema } from './schemas';
@@ -275,9 +275,9 @@ export default class Poi extends Document {
 
   static apiEntryModel = true;
 
-  static getApiConfigPerReferrer(): apiConfigPerReferrer {
+  static getApiConfigPerReferrer(): ApiConfigPerReferrer {
     // Configuration when it's the entry model
-    const list: apiConfig = {
+    const list: ApiConfig = {
       paginate: {
         defaultLimit: 10,
         maxLimit: 50,
@@ -293,16 +293,34 @@ export default class Poi extends Document {
         ],
       },
       filters: {
-        id: {},
-        idLegacyNtb: { filterTypes: ['=', 'null', 'notnull', '$in', '$nin'] },
-        idSsr: { filterTypes: ['=', 'null', 'notnull', '$in', '$nin'] },
-        type: { filterTypes: ['=', 'null', 'notnull', '$in', '$nin'] },
-        name: {},
-        coordinates: { geojsonType: 'Point' },
-        provider: { filterTypes: ['=', '$in', '$nin'] },
-        status: { filterTypes: ['=', '$in', '$nin'] },
-        updatedAt: {},
-        createdAt: {},
+        id: { type: 'uuid' },
+        idLegacyNtb: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        idSsr: {
+          type: 'text',
+          filterTypes: ['=', 'null', 'notnull', '$in', '$nin'],
+        },
+        type: {
+          type: 'text',
+          filterTypes: ['=', 'null', 'notnull', '$in', '$nin'],
+        },
+        name: { type: 'text' },
+        coordinates: {
+          type: 'geojson',
+          geojsonType: 'Point',
+        },
+        provider: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        status: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        updatedAt: { type: 'date' },
+        createdAt: { type: 'date' },
       },
       fullFields: [
         'uri',
@@ -329,10 +347,10 @@ export default class Poi extends Document {
     };
 
     // Default configuration when an instance in accessed directly
-    const single: apiConfig = list;
+    const single: ApiConfig = list;
 
     // Default configuration when included from another model
-    const standard: apiConfig = {
+    const standard: ApiConfig = {
       ...list,
       defaultFields: [
         'uri',
@@ -343,7 +361,7 @@ export default class Poi extends Document {
     };
 
     // Configuration when included through Accessability.pois
-    const accessabilityPois: apiConfig = {
+    const accessabilityPois: ApiConfig = {
       ...standard,
       defaultFields: [
         ...(standard.defaultFields || []),
@@ -352,7 +370,7 @@ export default class Poi extends Document {
     };
 
     // Configuration when included through PoiType.pois
-    const poiTypePois: apiConfig = {
+    const poiTypePois: ApiConfig = {
       ...standard,
       defaultFields: [
         ...(standard.defaultFields || []),
@@ -361,7 +379,7 @@ export default class Poi extends Document {
     };
 
     // Configuration when included through distance table
-    const poisByDistance: apiConfig = {
+    const poisByDistance: ApiConfig = {
       ...standard,
       defaultFields: [
         ...(standard.defaultFields || []),
@@ -387,7 +405,7 @@ export default class Poi extends Document {
     const extra = {
       // Related extra field from Accessability
       poiAccessabilityDescription: [
-        '[[JOIN-TABLE]].poiAccessabilityDescription'
+        '[[JOIN-TABLE]].poiAccessabilityDescription',
       ],
       // Related extra field from Route++
       calculatedDistance: ['[[JOIN-TABLE]].calculatedDistance'],

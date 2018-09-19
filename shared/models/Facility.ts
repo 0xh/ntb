@@ -1,8 +1,8 @@
 import { RelationMappings, JsonSchema } from '@ntb/db-utils';
 
 import Document, {
-  apiConfigPerReferrer,
-  apiConfig,
+  ApiConfigPerReferrer,
+  ApiConfig,
 } from './Document';
 
 
@@ -78,9 +78,9 @@ export default class Facility extends Document {
 
   static apiEntryModel = true;
 
-  static getApiConfigPerReferrer(): apiConfigPerReferrer {
+  static getApiConfigPerReferrer(): ApiConfigPerReferrer {
     // Configuration when it's the entry model
-    const list: apiConfig = {
+    const list: ApiConfig = {
       paginate: false,
       fullTextSearch: false,
       ordering: {
@@ -88,7 +88,10 @@ export default class Facility extends Document {
         validFields: ['name'],
       },
       filters: {
-        name: { filterTypes: ['=', '$in', '$nin'] },
+        name: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
       },
       fullFields: [
         'name',
@@ -101,16 +104,16 @@ export default class Facility extends Document {
     };
 
     // Default configuration when an instance in accessed directly
-    const single: apiConfig = list;
+    const single: ApiConfig = list;
 
     // Default configuration when included from another model
-    const standard: apiConfig = {
+    const standard: ApiConfig = {
       ...list,
       defaultFields: ['name'],
     };
 
     // Configuration when included through Cabin.facilities
-    const cabinFacilities: apiConfig = {
+    const cabinFacilities: ApiConfig = {
       ...standard,
       defaultFields: [
         ...(standard.defaultFields || []),

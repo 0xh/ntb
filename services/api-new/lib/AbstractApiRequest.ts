@@ -1,43 +1,25 @@
 import { Request as ExpressRequest } from 'express';
 
 import Document, {
-  apiConfig,
-  apiConfigJoinTable,
+  ApiConfig,
+  ApiConfigJoinTable,
 } from '@ntb/models/Document';
-import { _, isNumber, isArrayOfStrings } from '@ntb/utils';
+import { _, isNumber } from '@ntb/utils';
 import { Relation, Relations } from '@ntb/db-utils';
 
-
-export type requestValue = string | string[] | number | boolean;
-
-export interface requestParameter {
-  rawKey: string;
-  rawKeys: string[];
-  rawValue: requestValue;
-  errorTrace: string;
-  key: string;
-  keys: string[];
-  firstKey: string;
-  value: requestValue;
-}
-
-interface requestParameters {
-  [key: string]: requestParameter;
-}
-
-type OperatorFilters = ['$and' | '$or', RequestFilters];
-export interface RequestFilters extends Array<RequestFilter> {};
-export type RequestFilter = requestParameter | OperatorFilters;
-
-type orderValue = [string, 'ASC' | 'DESC'];
-type orderValues = orderValue[];
-
-interface queryOptions {
-  limit: number | null;
-  offset: number | null;
-  order: orderValues | null;
-  attributes: Set<string>;
-};
+import Filter from './Filter';
+import {
+  FilterOptions,
+  orderValue,
+  orderValues,
+  QueryFilters,
+  QueryFilterOption,
+  QueryOptions,
+  RequestFilters,
+  RequestParameter,
+  RequestParameters,
+  requestValue,
+} from './types';
 
 
 abstract class AbstractApiRequest {
@@ -48,13 +30,18 @@ abstract class AbstractApiRequest {
   requestObject: ExpressRequest['query'] | ExpressRequest['body'];
   requestObjectForRelations: { [key: string]: any } = {};
   requestObjectStructure: 'query' | 'structured';
-  requestParameters: requestParameters = {};
+  requestParameters: RequestParameters = {};
   requestFilters: RequestFilters = [];
   referrers: string[] = ['*list'];
   nextReferrerPrefixes?: string[];
   requestedId?: string;
   errors: string[] = [];
+
   fullTextQuery?: string;
+  filters?: QueryFilters<QueryFilterOption>;
+  filterCount: number = 0;
+  filterDepth: number = 1;
+  maxFilterDepth: number = 3;
 
   requestedFields: string[] = [];
   requestedRelations: string[] = [];
@@ -68,10 +55,10 @@ abstract class AbstractApiRequest {
   relationsNames: string[];
   relationRequests: AbstractApiRequest[] = [];
 
-  apiConfig!: apiConfig;
-  apiConfigsForRelations: { [relationsName: string] : apiConfig } = {};
+  apiConfig!: ApiConfig;
+  apiConfigsForRelations: { [relationsName: string] : ApiConfig } = {};
   apiConfigsForRelationJoins: {
-    [relationsName: string] : apiConfigJoinTable
+    [relationsName: string] : ApiConfigJoinTable,
   } = {};
   related?: Relation;
   singleInstance: boolean = false;
@@ -83,11 +70,15 @@ abstract class AbstractApiRequest {
     joins: Set<string>,
   } = { self: new Set(), relations: new Set(), joins: new Set() };
 
-  queryOptions: queryOptions = {
+  queryOptions: QueryOptions = {
     limit: null,
     offset: null,
     order: null,
     attributes: new Set(),
+    relations: [],
+    relationIndex: {},
+    filters: [],
+    freeTextJoin: null,
   };
 
   constructor(
@@ -152,6 +143,7 @@ abstract class AbstractApiRequest {
       .processRequestObject()
       .setAndValidateLangauge()
       .setAndValidateFullTextQuery()
+      .setAndValidateFilters()
       .setAndValidateLimitAndOffset()
       .setAndValidateOrdering()
       .setDefaultOrdering()
@@ -159,16 +151,12 @@ abstract class AbstractApiRequest {
       .validateInvalidRelationReferences();
 
     // Abort if an error has occured up until this point
-    if (this.errors.length) {
-      return this;
-    }
+    if (this.errors.length) return this;
 
     this.processRelationRequests();
 
     // Abort if an error has occured up until this point
-    if (this.errors.length) {
-      return this;
-    }
+    if (this.errors.length) return this;
 
     this.setAttributes();
 
@@ -192,7 +180,7 @@ abstract class AbstractApiRequest {
     rawKey: string,
     value: requestValue,
     trace: string,
-  ): requestParameter {
+  ): RequestParameter {
     const casedKeys = rawKey
       .split('.')
       .map((k) => _.camelCase(k.toLowerCase()));
@@ -201,33 +189,33 @@ abstract class AbstractApiRequest {
     const rawKeys = rawKey.split('.');
 
     return {
-      rawKey: rawKey,
-      rawKeys: rawKeys,
+      rawKey,
+      rawKeys,
+      value,
       rawValue: value,
       errorTrace: trace,
       key: casedKey,
       keys: casedKeys,
       firstKey: firstCasedKey,
-      value: value,
     };
   }
 
   protected abstract processRequestObject(): this;
   protected abstract processLanguageValue(
     rawValue: requestValue | null,
-    errorTrace: string
+    errorTrace: string,
   ): string | null;
   protected abstract processFullTextQueryValue(
     rawValue: requestValue | null,
-    errorTrace: string
+    errorTrace: string,
   ): string | null;
   protected abstract processOrderingValue(
     value: requestValue | null,
-    errorTrace: string
+    errorTrace: string,
   ): string[] | null;
   protected abstract processFieldsValue(
     rawValue: requestValue | null,
-    errorTrace: string
+    errorTrace: string,
   ): string[] | null;
   protected abstract processRelationRequest(
     model: typeof Document,
@@ -263,7 +251,6 @@ abstract class AbstractApiRequest {
       // Add valid filters and relation names
       this.validKeys = new Set([
         ...this.validKeys,
-        ...this.relationsNames,
         ...this.validFilterKeys.self,
         ...this.validFilterKeys.relations,
         ...this.validFilterKeys.joins,
@@ -283,6 +270,8 @@ abstract class AbstractApiRequest {
 
       // Set filter keys on related models
       this.relationsNames.forEach((relationName) => {
+        this.validFilterKeys.relations.add(relationName);
+
         // For the related model
         const relationApiConfig = this.apiConfigsForRelations[relationName];
         if (relationApiConfig && relationApiConfig.filters) {
@@ -300,7 +289,7 @@ abstract class AbstractApiRequest {
               `${relationName}.${key}`,
             ));
         }
-      })
+      });
     }
 
     return this;
@@ -352,12 +341,10 @@ abstract class AbstractApiRequest {
     const requestParameter = this.requestParameters.language;
     if (requestParameter) {
       let value = this.processLanguageValue(
-        requestParameter.value, requestParameter.errorTrace
+        requestParameter.value, requestParameter.errorTrace,
       );
 
-      if (!value) {
-        return this;
-      }
+      if (!value) return this;
 
       value = value.trim().toLowerCase();
       const hasQ = this.requestParameters.q || this.requestParameters['df.q'];
@@ -371,15 +358,15 @@ abstract class AbstractApiRequest {
       }
       else if (hasQ) {
         this.errors.push(
-          `When using full text search (q) for this document type, the ` +
-          `supported languages are: '${qLangauges.join(`', '`)}'`
+          'When using full text search (q) for this document type, the ' +
+          `supported languages are: '${qLangauges.join("', '")}'`,
         );
       }
 
       // Invalid document language value (too long)
       if (value.length > 6) {
         this.errors.push(
-          `The value of '${requestParameter.errorTrace}' is invalid`
+          `The value of '${requestParameter.errorTrace}' is invalid`,
         );
         return this;
       }
@@ -395,26 +382,208 @@ abstract class AbstractApiRequest {
   private setAndValidateFullTextQuery(): this {
     const key = this.related ? 'df.q' : 'q';
     const requestParameter = this.requestParameters[key];
-    let value = this.processLanguageValue(
-      requestParameter.value, requestParameter.errorTrace
+
+    if (!requestParameter) return this;
+
+    const value = this.processFullTextQueryValue(
+      requestParameter.value, requestParameter.errorTrace,
     );
 
-    if (!value) {
-      return this;
-    }
+    if (!value) return this;
 
     this.fullTextQuery = value;
+    this.queryOptions.freeTextJoin = [
+      "JOIN plainto_tsquery('norwegian', ?) AS full_text_phrase ON TRUE",
+      [value],
+    ];
+
+    const attr = `[[MODEL-TABLE]].${_.snakeCase(this.fullTextSearchLanguage)}`;
+    this.queryOptions.filters = [
+      ...this.queryOptions.filters,
+      {
+        whereType: 'whereRaw',
+        options: [
+          `${attr} @@ ${name}`,
+        ],
+      },
+    ];
 
     return this;
   }
 
+  private setAndValidateFilters(): this {
+    if (!this.requestFilters) return this;
+    const queryFilters = this.processFilters(this.requestFilters);
+    if (queryFilters !== null) {
+      this.queryOptions.filters = queryFilters;
+    }
+    return this;
+  }
+
+  private processFilters(
+    requestFilters: RequestFilters,
+  ): null | QueryFilters<QueryFilterOption> {
+    const nextFilterDepth = this.filterDepth + 1;
+    let queryFilters: QueryFilters<QueryFilterOption> = [];
+
+    for (const requestFilter of requestFilters) {
+      // Nested filters
+      if (Array.isArray(requestFilter)) {
+        if (nextFilterDepth > this.maxFilterDepth) {
+          this.errors.push(
+            'Max filter depth have been exceeded. You can nest $and/$or ' +
+            `filters to a max of ${this.maxFilterDepth} levels.`,
+          );
+          return null;
+        }
+        const [op, reqFilters] = requestFilter;
+        const subFilters = this.processFilters(reqFilters);
+        this.filterDepth = nextFilterDepth;
+
+        if (subFilters === null) {
+          return null;
+        }
+
+        queryFilters.push([op, subFilters]);
+        continue;
+      }
+
+      let filterOptions: FilterOptions | undefined;
+
+      // JOIN FILTER
+      if (this.validFilterKeys.joins.has(requestFilter.key)) {
+        filterOptions = this.processJoinFilter(requestFilter);
+      }
+      // RELATION FILTER
+      else if (this.validFilterKeys.relations.has(requestFilter.key)) {
+        filterOptions = this.processRelationFilter(requestFilter);
+      }
+      // SELF FILTER
+      else {
+        filterOptions = this.processSelfFilter(requestFilter);
+      }
+
+      const filter = new Filter(filterOptions, this.queryOptions);
+      this.errors = [
+        ...this.errors,
+        ...filter.errors,
+      ];
+      if (filter.queryFilterOptions) {
+        queryFilters = [
+          ...queryFilters,
+          ...filter.queryFilterOptions,
+        ];
+      }
+    }
+
+    return queryFilters.length ? queryFilters : null;
+  }
+
+  private processSelfFilter(requestFilter: RequestParameter): FilterOptions {
+    const key = requestFilter.key;
+    if (
+      !this.apiConfig
+      || !this.apiConfig.filters
+      || !this.apiConfig.filters[key]
+    ) {
+      throw new Error('Unable to find apiConfig for filters');
+    }
+
+    const config = this.apiConfig.filters[key];
+    const attr = config.tableAttribute || key;
+    return {
+      ...config,
+      isJoin: true,
+      attribute: `[[MODEL-TABLE]].${attr}`,
+      snakeCasedAttribute: `"[[MODEL-TABLE]]"."${_.snakeCase(attr)}"`,
+      value: requestFilter.value,
+      errorTrace: requestFilter.errorTrace,
+    };
+  }
+
+  private processJoinFilter(requestFilter: RequestParameter): FilterOptions {
+    const key = requestFilter.firstKey;
+    if (!this.related || !this.related.joinModelClass) {
+      throw new Error('Unable to find join model');
+    }
+
+    const joinModel = this.related.joinModelClass as any as typeof Document;
+    if (
+      !joinModel.apiConfig
+      || !joinModel.apiConfig.filters
+      || !joinModel.apiConfig.filters[key]
+    ) {
+      throw new Error('Unable to find join model apiConfig for filters');
+    }
+
+    const config = joinModel.apiConfig.filters[key];
+    const attr = config.tableAttribute || key;
+    return {
+      ...config,
+      isJoin: true,
+      attribute: `[[JOIN-TABLE]].${attr}`,
+      snakeCasedAttribute: `"[[JOIN-TABLE]]"."${_.snakeCase(attr)}"`,
+      value: requestFilter.value,
+      errorTrace: requestFilter.errorTrace,
+    };
+  }
+
+  private processRelationFilter(
+    requestFilter: RequestParameter,
+  ): FilterOptions {
+    // Add relation join
+    if (!this.queryOptions.relationIndex[requestFilter.firstKey]) {
+      this.queryOptions.relations.push({
+        key: requestFilter.firstKey,
+        type: 'left',
+      });
+      this.queryOptions.relationIndex[requestFilter.firstKey] = 'left';
+    }
+
+    // Relation existance filter
+    if (requestFilter.keys.length === 1) {
+      const { idColumn } = this.relations[requestFilter.key].relatedModelClass;
+      const { key } = requestFilter;
+      const attr = Array.isArray(idColumn) ? idColumn[0] : idColumn;
+
+      return {
+        type: 'relationExistance',
+        relationName: requestFilter.key,
+        value: requestFilter.value,
+        isRelation: true,
+        errorTrace: requestFilter.errorTrace,
+        attribute: `${key}.${attr}`,
+        snakeCasedAttribute: `"${_.snakeCase(key)}"."${_.snakeCase(attr)}"`,
+      };
+    }
+
+    const key = requestFilter.firstKey;
+    const apiConfig = this.apiConfigsForRelations[requestFilter.firstKey];
+
+    if (!apiConfig.filters || !apiConfig.filters[key]) {
+      throw new Error('Unable to find relation apiConfig for filters');
+    }
+
+    const config = apiConfig.filters[key];
+    const attr = config.tableAttribute || key;
+    return {
+      ...config,
+      isRelation: true,
+      attribute: `${key}.${attr}`,
+      snakeCasedAttribute: `"${_.snakeCase(key)}"."${_.snakeCase(attr)}"`,
+      value: requestFilter.value,
+      errorTrace: requestFilter.errorTrace,
+    };
+  }
+
   private setAndValidateLimitAndOffset(): this {
-    for (const key of ['limit', 'offset'] as Array<'limit' | 'offset'>) {
+    type limitOffset = 'limit' | 'offset';
+    for (const key of ['limit', 'offset'] as limitOffset[]) {
       const requestParameter = this.requestParameters[key];
       const requestValue = requestParameter ? requestParameter.value : null;
       const defaultValue = key === 'limit' && this.apiConfig.paginate
         ? this.apiConfig.paginate.defaultLimit
-        : null
+        : null;
       let value;
 
       if (requestParameter) {
@@ -424,7 +593,7 @@ abstract class AbstractApiRequest {
           if (requestValue.length > 1) {
             this.errors.push(
               `Invalid '${requestParameter.errorTrace}'. ` +
-              'Should be a single value.'
+              'Should be a single value.',
             );
           }
           else {
@@ -435,20 +604,20 @@ abstract class AbstractApiRequest {
         if (value && !isNumber(value)) {
           this.errors.push(
             `Invalid '${requestParameter.errorTrace}' ` +
-            `value '${value}'`
+            `value '${value}'`,
           );
           value = null;
         }
 
         if (value !== null) {
-          value = parseInt(`${value}`);
+          value = parseInt(`${value}`, 10);
         }
 
         value;
       }
 
       this.queryOptions[key] = value || defaultValue;
-    };
+    }
 
     return this;
   }
@@ -457,27 +626,21 @@ abstract class AbstractApiRequest {
     const requestParameter = this.requestParameters.order;
     const requestValue = requestParameter ? requestParameter.value : null;
 
-    if (!requestParameter) {
-      return this;
-    }
+    if (!requestParameter) return this;
 
     // if no request parameter or ordering is disabled
     if (
       !requestParameter
       || !this.apiConfig.ordering
       || this.apiConfig.ordering.disabled
-    ) {
-      return this;
-    }
+    ) return this;
 
     // Process ordering request parameter into strings
     const orderStrings = this.processOrderingValue(
-      requestValue, requestParameter.errorTrace
+      requestValue, requestParameter.errorTrace,
     );
 
-    if (!orderStrings) {
-      return this;
-    }
+    if (!orderStrings) return this;
 
     const ordering: orderValues = [];
     for (const orderString of orderStrings) {
@@ -487,7 +650,7 @@ abstract class AbstractApiRequest {
       if (rest && rest.length) {
         this.errors.push(
           `Invalid format of ordering in '${requestParameter.errorTrace}'. ` +
-          `The correct format is '<field_name> asc|desc'`
+          "The correct format is '<field_name> asc|desc'",
         );
         return this;
       }
@@ -496,8 +659,8 @@ abstract class AbstractApiRequest {
       const direction = rawDirection.trim().toUpperCase();
       if (direction !== 'ASC' && direction !== 'DESC') {
         this.errors.push(
-          `Invalid format of ordering direction in ` +
-          `'${requestParameter.errorTrace}'. Must be 'asc' or 'desc'`
+          'Invalid format of ordering direction in ' +
+          `'${requestParameter.errorTrace}'. Must be 'asc' or 'desc'`,
         );
         return this;
       }
@@ -512,7 +675,7 @@ abstract class AbstractApiRequest {
       ) {
         const joinConfig = this.apiConfigsForRelationJoins[this.related.name];
         if (joinConfig.ordering) {
-          validJoinFields = joinConfig.ordering.validFields
+          validJoinFields = joinConfig.ordering.validFields;
         }
       }
 
@@ -523,7 +686,7 @@ abstract class AbstractApiRequest {
       ) {
         this.errors.push(
           `Invalid ordering field in '${requestParameter.errorTrace}': ` +
-          `'${rawKey.trim()}'`
+          `'${rawKey.trim()}'`,
         );
         return this;
       }
@@ -537,7 +700,7 @@ abstract class AbstractApiRequest {
     if (ordering.length > 2) {
       this.errors.push(
         `Invalid ordering values in '${requestParameter.errorTrace}'.` +
-        `Only allowed to order on one or two fields`
+        'Only allowed to order on one or two fields',
       );
       return this;
     }
@@ -548,21 +711,19 @@ abstract class AbstractApiRequest {
 
   private setDefaultOrdering(): this {
     // Do not set default value if set by query options
-    if (this.queryOptions.order) {
-      return this;
-    }
+    if (this.queryOptions.order) return this;
 
     // Full text ordering
     const q = this.requestParameters.q || this.requestParameters['df.q'];
     if (this.apiConfig.fullTextSearch && q) {
-      const fullTextOrder: orderValue = [`full_text_rank`, 'DESC'];
+      const fullTextOrder: orderValue = ['full_text_rank', 'DESC'];
       this.queryOptions.order = [fullTextOrder];
     }
 
     // Set default value
     const defaultValue = this.apiConfig.ordering
       ? this.apiConfig.ordering.default
-      : null
+      : null;
 
     if (defaultValue) {
       this.queryOptions.order = defaultValue
@@ -588,12 +749,14 @@ abstract class AbstractApiRequest {
 
     // Set default fields
     let defaultRelationFields = this.relationsNames
-      .filter((k) => (this.apiConfig.defaultRelations || []).includes(k));
+      .filter((k) => (this.apiConfig.defaultRelations || [])
+      .includes(k));
     let defaultFields: string[] = [];
 
     (this.apiConfig.defaultFields || []).forEach((f) => {
       if (f === '*full') {
-        defaultFields = defaultFields.concat((this.apiConfig.fullFields || []));
+        defaultFields = defaultFields
+          .concat((this.apiConfig.fullFields || []));
       }
       else if (f.startsWith('-')) {
         defaultFields = defaultFields.filter((r) => r !== f.substr(1));
@@ -604,6 +767,11 @@ abstract class AbstractApiRequest {
     });
     defaultFields = Array.from(new Set(defaultFields));
 
+    // Make sure to not include default relations if we're nested too deep
+    if (this.level + 1 > this.maxLevelDepth) {
+      defaultRelationFields = [];
+    }
+
     // if no request parameter, just return and use the defaults
     if (!requestParameter) {
       this.setRequestFieldsAndRelations(defaultFields, defaultRelationFields);
@@ -612,7 +780,7 @@ abstract class AbstractApiRequest {
 
     // Process ordering request parameter into strings
     const fieldStrings = this.processFieldsValue(
-      requestValue, requestParameter.errorTrace
+      requestValue, requestParameter.errorTrace,
     );
 
     // Set defaults if fields parameter is not specified
@@ -662,7 +830,7 @@ abstract class AbstractApiRequest {
             `${
               fieldStrings.length > 1 ? ` on '${fieldExpressionRaw}'. ` : '. '
             }` +
-            'This is not a valid field.'
+            'This is not a valid field.',
           );
           valid = false;
         }
@@ -696,7 +864,7 @@ abstract class AbstractApiRequest {
 
   private setRequestFieldsAndRelations(
     fields: string[],
-    relations: string[]
+    relations: string[],
   ): this {
     this.requestedFields = fields;
     this.requestedRelations = relations;
@@ -707,7 +875,7 @@ abstract class AbstractApiRequest {
         : '';
 
       this.errors.push(
-        `No fields${forTrace} have been selected.`
+        `No fields${forTrace} have been selected.`,
       );
     }
     return this;
@@ -721,7 +889,7 @@ abstract class AbstractApiRequest {
           const relationKeyCased = _.snakeCase(relationKey);
           this.errors.push(
             `Invalid parameter '${relationKeyCased}.${key}'. ` +
-            `'${relationKeyCased}' is not included in fields.`
+            `'${relationKeyCased}' is not included in fields.`,
           );
         }
       }
@@ -730,15 +898,13 @@ abstract class AbstractApiRequest {
   }
 
   private processRelationRequests(): this {
-    if (!this.requestedRelations.length) {
-      return this;
-    }
+    if (!this.requestedRelations.length) return this;
 
     // Only allow a certain depth
     if ((this.level + 1) > this.maxLevelDepth) {
       this.errors.push(
-        `The allowed depth count for queries have been exceeded. ` +
-        `Max depth is ${this.maxLevelDepth}`
+        'The allowed depth count for queries have been exceeded. ' +
+        `Max depth is ${this.maxLevelDepth}`,
       );
     }
 
@@ -751,7 +917,7 @@ abstract class AbstractApiRequest {
       const relationRequest = this.processRelationRequest(
         relatedModel,
         requestObject,
-        relation
+        relation,
       );
 
       if (!this.nextReferrerPrefixes) {
@@ -782,10 +948,10 @@ abstract class AbstractApiRequest {
     // Translate requested fields into attributes
     if (this.requestedFields) {
       const attrs = this.model.getAPIFieldsToAttributes(
-        this.referrers, this.requestedFields
+        this.referrers, this.requestedFields,
       );
       this.queryOptions.attributes = new Set(attrs
-        .map((a) => a.startsWith('[[') ? a : `[[MODEL-TABLE]].${a}`)
+        .map((a) => a.startsWith('[[') ? a : `[[MODEL-TABLE]].${a}`),
       );
     }
 
@@ -794,7 +960,7 @@ abstract class AbstractApiRequest {
       ? this.model.idColumn
       : [this.model.idColumn];
     idColumns.forEach((key) => this.queryOptions.attributes.add(
-      `[[MODEL-TABLE]].${key}`
+      `[[MODEL-TABLE]].${key}`,
     ));
 
     // Make sure the fields needed for relations from this model are always

@@ -2,8 +2,8 @@ import { RelationMappings, JsonSchema } from '@ntb/db-utils';
 import { geojson } from '@ntb/gis-utils';
 
 import Document, {
-  apiConfigPerReferrer,
-  apiConfig,
+  ApiConfigPerReferrer,
+  ApiConfig,
   documentStatus,
 } from './Document';
 import { documentStatusSchema, geojsonPolygonSchema } from './schemas';
@@ -110,9 +110,9 @@ export default class Municipality extends Document {
 
   static apiEntryModel = true;
 
-  static getApiConfigPerReferrer(): apiConfigPerReferrer {
+  static getApiConfigPerReferrer(): ApiConfigPerReferrer {
     // Configuration when it's the entry model
-    const list: apiConfig = {
+    const list: ApiConfig = {
       paginate: {
         maxLimit: 50,
         defaultLimit: 10,
@@ -129,12 +129,18 @@ export default class Municipality extends Document {
         default: [['name', 'ASC']],
       },
       filters: {
-        id: {},
-        code: {},
-        name: {},
-        status: { filterTypes: ['=', '$in', '$nin'] },
-        updatedAt: {},
-        createdAt: {},
+        id: { type: 'uuid' },
+        code: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        name: { type: 'text' },
+        status: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        updatedAt: { type: 'date' },
+        createdAt: { type: 'date' },
       },
       fullFields: [
         'uri',
@@ -150,10 +156,10 @@ export default class Municipality extends Document {
     };
 
     // Default configuration when included from another model
-    const single: apiConfig = list;
+    const single: ApiConfig = list;
 
     // Default configuration when included from another model
-    const standard: apiConfig = {
+    const standard: ApiConfig = {
       ...list,
       defaultFields: [
         'uri',

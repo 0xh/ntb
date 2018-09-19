@@ -1,8 +1,8 @@
 import { JsonSchema } from '@ntb/db-utils';
 
 import Document, {
-  apiConfigPerReferrer,
-  apiConfig,
+  ApiConfigPerReferrer,
+  ApiConfig,
   linkType,
 } from './Document';
 import { linkTypeSchema } from './schemas';
@@ -40,9 +40,9 @@ export default class GroupLink extends Document {
   };
 
 
-  static getApiConfigPerReferrer(): apiConfigPerReferrer {
+  static getApiConfigPerReferrer(): ApiConfigPerReferrer {
     // Configuration when it's the entry model
-    const standard: apiConfig = {
+    const standard: ApiConfig = {
       paginate: false,
       fullTextSearch: false,
       ordering: {

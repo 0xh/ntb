@@ -2,8 +2,8 @@ import { RelationMappings, JsonSchema } from '@ntb/db-utils';
 import { geojson } from '@ntb/gis-utils';
 
 import Document, {
-  apiConfigPerReferrer,
-  apiConfig,
+  ApiConfigPerReferrer,
+  ApiConfig,
   documentStatus,
   grading,
 } from './Document';
@@ -357,13 +357,12 @@ export default class Route extends Document {
   }
 
 
-
   static apiEntryModel = true;
 
 
-  static getApiConfigPerReferrer(): apiConfigPerReferrer {
+  static getApiConfigPerReferrer(): ApiConfigPerReferrer {
     // Configuration when it's the entry model
-    const list: apiConfig = {
+    const list: ApiConfig = {
       paginate: {
         defaultLimit: 10,
         maxLimit: 50,
@@ -379,24 +378,37 @@ export default class Route extends Document {
         ],
       },
       filters: {
-        id: {},
-        type: { filterTypes: ['=', '$in', '$nin'] },
+        id: { type: 'uuid' },
+        type: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
         idLegacyNtbAb: {
-          filterTypes: ['=', 'null', 'notnull', '$in', '$nin'],
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
         },
         idLegacyNtbBa: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        isWinter: { type: 'boolean' },
+        name: { type: 'text' },
+        grading: {
+          type: 'text',
           filterTypes: ['=', 'null', 'notnull', '$in', '$nin'],
         },
-        isWinter: {},
-        name: {},
-        source: { filterTypes: ['=', 'null', 'notnull', '$in', '$nin'] },
-        grading: { filterTypes: ['=', 'null', 'notnull', '$in', '$nin'] },
-        suitableForChildren: {},
-        distance: {},
-        provider: { filterTypes: ['=', '$in', '$nin'] },
-        status: { filterTypes: ['=', '$in', '$nin'] },
-        updatedAt: {},
-        createdAt: {},
+        suitableForChildren: { type: 'boolean' },
+        distance: { type: 'number' },
+        provider: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        status: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
+        updatedAt: { type: 'date' },
+        createdAt: { type: 'date' },
       },
       fullFields: [
         'uri',
@@ -433,10 +445,10 @@ export default class Route extends Document {
     };
 
     // Default configuration when an instance in accessed directly
-    const single: apiConfig = list;
+    const single: ApiConfig = list;
 
     // Default configuration when included from another model
-    const standard: apiConfig = {
+    const standard: ApiConfig = {
       ...list,
       defaultFields: [
         'uri',
@@ -448,7 +460,7 @@ export default class Route extends Document {
     };
 
     // Configuration when included through distance table
-    const routesByDistance: apiConfig = {
+    const routesByDistance: ApiConfig = {
       ...standard,
       defaultFields: [
         ...(standard.defaultFields || []),
@@ -472,7 +484,7 @@ export default class Route extends Document {
     const extra = {
       // Related extra field from Accessability
       cabinAccessabilityDescription: [
-        '[[JOIN-TABLE]].cabinAccessabilityDescription'
+        '[[JOIN-TABLE]].cabinAccessabilityDescription',
       ],
       // Related extra field from poisByDistance, cabinsByDistance
       calculatedDistance: ['[[JOIN-TABLE]].calculatedDistance'],
