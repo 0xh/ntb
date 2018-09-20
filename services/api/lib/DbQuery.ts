@@ -260,9 +260,12 @@ class DbQuery {
           && geometryAttributes.includes(a.slice(16))
         ) {
           const snakedA = _.snakeCase(a.slice(16));
-          return st.asGeoJSON(knex.raw(
-            `ST_Transform(${tableName}.${snakedA}, 4326)`,
-          )).as(a.slice(16));
+          attrs.push(
+            st.asGeoJSON(knex.raw(
+              `ST_Transform(${tableName}.${snakedA}, 4326)`,
+            )).as(a.slice(16)) as any as Knex.Raw,
+          );
+          continue;
         }
 
         let name: string = '';
