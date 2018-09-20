@@ -183,6 +183,10 @@ export default class Picture extends Document {
           type: 'text',
           filterTypes: ['=', '$in', '$nin'],
         },
+        cabinPictureType: {
+          type: 'text',
+          filterTypes: ['=', '$in', '$nin'],
+        },
         name: { type: 'text' },
         provider: {
           type: 'text',
@@ -253,6 +257,7 @@ export default class Picture extends Document {
         'uri',
         'id',
         'versions',
+        'cabinPictureType',
         'description',
         'photographer',
       ],
