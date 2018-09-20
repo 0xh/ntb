@@ -1478,19 +1478,20 @@ class DbQuery {
 
       // Process includes
       Object.keys(apiRequest.relationRequests).forEach((relationKey) => {
-        if ((row as ao)[relationKey]) {
+        const nextRows = (row as ao)[relationKey];
+        if (nextRows) {
           const nextApiRequest = apiRequest.relationRequests[relationKey];
-          if (Array.isArray((row as ao))) {
+          if (Array.isArray(nextRows)) {
             document[relationKey] = this.formatRows(
               nextApiRequest,
-              (row as ao)[relationKey],
+              nextRows,
               nextApiRequest.singleInstance,
             );
           }
-          else if ((row as ao)[relationKey].rows) {
+          else if (nextRows.rows) {
             document[relationKey].rows = this.formatRows(
               nextApiRequest,
-              (row as ao)[relationKey].rows,
+              nextRows.rows,
             );
           }
         }
