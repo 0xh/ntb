@@ -1,5 +1,5 @@
-import { Logger, moment, startDuration, printDuration } from "@ntb/utils";
-import { knex } from "@ntb/db-utils";
+import { Logger, moment, startDuration, printDuration } from '@ntb/utils';
+import { knex } from '@ntb/db-utils';
 
 
 const DELETE_OLDER_THEN_HOURS = 12;
@@ -21,7 +21,7 @@ async function main(): Promise<void> {
   `);
 
   if (result.rowCount) {
-    const rows = result.rows as Array<{ table_name: string }>;
+    const rows = result.rows as { table_name: string }[];
     for (const row of rows) {
       const { table_name: tableName } = row;
       const dateString = tableName.slice(2, 19);
