@@ -1,6 +1,9 @@
 import { geojson } from '@ntb/gis-utils';
 import { RelationMappings, JsonSchema } from '@ntb/db-utils';
 
+import {
+  CabinOpeningHours,
+} from './index';
 import Document, {
   ApiConfigPerReferrer,
   ApiConfig,
@@ -50,11 +53,13 @@ export default class Cabin extends Document {
   countyId?: string;
   municipalityId?: string;
   serviceLevel!: serviceLevel;
+  serviceLevelToday?: serviceLevel;
   bedsExtra: number = 0;
   bedsStaffed: number = 0;
   bedsSelfService: number = 0;
   bedsNoService: number = 0;
   bedsWinter: number = 0;
+  bedsToday: number = 0;
   bookingEnabled: boolean = false;
   bookingOnly: boolean = false;
   bookingUrl?: string;
@@ -82,6 +87,20 @@ export default class Cabin extends Document {
   processedRelationsUpdatedAt?: Date;
   processedElevationUpdatedAt?: Date;
 
+  openingHours?: CabinOpeningHours[];
+  // links
+  // areas
+  // facilities
+  // accessabilities
+  // ownerGroup
+  // contactGroup
+  // maintainerGroup
+  // pictures
+  // hazardRegions
+  // routesByDistance
+  // poisByDistance
+  // tripsByDistance
+  // cabinsByDistance
 
   get uri() {
     return `cabin/${this.id}`;
@@ -284,6 +303,7 @@ export default class Cabin extends Document {
       },
       description: { type: 'string', maxLength: 100000 },
       serviceLevel: { ...serviceLevelSchema },
+      serviceLevelToday: { ...serviceLevelSchema },
       contact: {
         type: 'object',
         properties: {
@@ -306,6 +326,7 @@ export default class Cabin extends Document {
           selfService: { type: 'number' },
           noService: { type: 'number' },
           winter: { type: 'number' },
+          today: { type: 'number' },
         },
       },
       htgt: {
@@ -370,6 +391,7 @@ export default class Cabin extends Document {
       selfService: databaseJson.bedsSelfService || null,
       noService: databaseJson.bedsNoService || null,
       winter: databaseJson.bedsWinter || null,
+      today: databaseJson.bedsToday || null,
     };
 
     // Remove from databaseJson
@@ -378,6 +400,7 @@ export default class Cabin extends Document {
     delete json.bedsSelfService;
     delete json.bedsNoService;
     delete json.bedsWinter;
+    delete json.bedsToday;
 
     // Create htgt object
     json.htgt = {
@@ -455,6 +478,10 @@ export default class Cabin extends Document {
           type: 'text',
           filterTypes: ['=', 'null', 'notnull', '$in', '$nin'],
         },
+        serviceLevelToday: {
+          type: 'text',
+          filterTypes: ['=', 'null', 'notnull', '$in', '$nin'],
+        },
         name: { type: 'text' },
         provider: {
           type: 'text',
@@ -470,6 +497,10 @@ export default class Cabin extends Document {
         },
         updatedAt: { type: 'date' },
         createdAt: { type: 'date' },
+        'beds.today': {
+          type: 'number',
+          tableAttribute: 'bedsToday',
+        },
         'htgt.publicTransport': {
           type: 'boolean',
           tableAttribute: 'htgtPublicTransport',
@@ -502,6 +533,7 @@ export default class Cabin extends Document {
         'nameAlt',
         'description',
         'serviceLevel',
+        'serviceLevelToday',
         'contact',
         'map',
         'url',
@@ -509,6 +541,7 @@ export default class Cabin extends Document {
         'provider',
         'status',
         'updatedAt',
+        'beds',
       ],
       defaultFields: [
         '*full',
@@ -627,6 +660,7 @@ export default class Cabin extends Document {
         'bedsSelfService',
         'bedsNoService',
         'bedsWinter',
+        'bedsToday',
       ],
       htgt: [
         'htgtGeneral',
