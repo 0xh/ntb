@@ -415,7 +415,7 @@ class Filter {
       whereType: 'where',
       options: [
         this.filterOptions.attribute as string,
-        '=',
+        'ilike',
         value,
       ],
     }];
