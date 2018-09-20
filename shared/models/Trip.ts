@@ -410,6 +410,30 @@ export default class Trip extends Document {
         },
         updatedAt: { type: 'date' },
         createdAt: { type: 'date' },
+        'htgt.publicTransport': {
+          type: 'boolean',
+          tableAttribute: 'htgtPublicTransport',
+        },
+        'htgt.carAllYear': {
+          type: 'boolean',
+          tableAttribute: 'htgtCarAllYear',
+        },
+        'htgt.carSummer': {
+          type: 'boolean',
+          tableAttribute: 'htgtCarSummer',
+        },
+        'htgt.bicycle': {
+          type: 'boolean',
+          tableAttribute: 'htgtBicycle',
+        },
+        'htgt.publicTransportAvailable': {
+          type: 'boolean',
+          tableAttribute: 'htgtPublicTransportAvailable',
+        },
+        'htgt.boatTransportAvailable': {
+          type: 'boolean',
+          tableAttribute: 'htgtBoatTransportAvailable',
+        },
       },
       fullFields: [
         'uri',
