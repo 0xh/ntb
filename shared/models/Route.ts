@@ -425,7 +425,6 @@ export default class Route extends Document {
         'grading',
         'suitableForChildren',
         'distance',
-        'calculatedDistance',
         'duration',
         'waymarkWinter',
         'season',
