@@ -10,30 +10,40 @@ import ApiQueryRequest from '../lib/ApiQueryRequest';
 import ApiStructuredRequest from '../lib/ApiStructuredRequest';
 import expressAsyncHandler from '../lib/expressAsyncHandler';
 import DbQuery from '../lib/DbQuery';
-// import APIError from '../lib/APIError';
+import APIError from '../lib/APIError';
 
+import { DbQueryResult } from '../lib/types';
 
 const { Router } = express;
 const router = Router();
+
+interface EmptyResult {
+  message: string;
+}
 
 
 async function verifyAndExecute(
   model: typeof models.Document,
   requestObject: ExpressRequest,
   type: 'query' | 'structured' = 'query',
-) {
+): Promise<DbQueryResult | EmptyResult> {
   const apiRequest = type === 'query'
     ? new ApiQueryRequest(model, requestObject)
     : new ApiStructuredRequest(model, requestObject);
   apiRequest.verify();
 
-  if (apiRequest.errors) {
-    throw new Error('SOME API ERROR');
+  if (apiRequest.errors.length) {
+    throw new APIError(
+      'The query is not valid',
+      { apiErrors: apiRequest.errors },
+    );
   }
 
   const query = new DbQuery(model, apiRequest);
-  const result = query.execute();
-  return result;
+  const result = await query.execute();
+  return result ? result : {
+    message: 'Nothing found',
+  };
 }
 
 
@@ -96,9 +106,8 @@ function createModelRouter(model: typeof models.Document) {
   // );
 
   // Find documents
-  // tslint:disable-next-line
   modelRouter.get('/', expressAsyncHandler(async (req, res, _next) => {
-    const data = verifyAndExecute(model, req.query, 'query');
+    const data = await verifyAndExecute(model, req.query, 'query');
     res.json(data);
   }));
 
@@ -118,13 +127,14 @@ router.get('/robots.txt', (_req, res, _next) => {
 
 
 // Add entry models
-Object.keys(models).forEach((modelName: string) => {
-  const model: typeof models.Document = models[modelName];
+for (const modelName of Object.keys(models)) {
+  const name = modelName as keyof typeof models;
+  const model = models[name] as typeof models.Document;
   if (model.apiEntryModel) {
     const name = _.snakeCase(model.name);
     router.use(`/${name}`, createModelRouter(model));
   }
-});
+}
 
 
 export default router;

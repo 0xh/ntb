@@ -54,7 +54,7 @@ class DbQuery {
     }
   }
 
-  async execute() {
+  async execute(): Promise<DbQueryResult | undefined> {
     await this.processMainQuery();
 
     // Run any relation queries if any documents have been found
@@ -74,7 +74,7 @@ class DbQuery {
       }
 
       if (!outerInstances.length) {
-        return;
+        return this.result;
       }
       await this.processRelationQueries(this.apiRequest, outerInstances);
 
@@ -92,7 +92,7 @@ class DbQuery {
       }
     }
 
-    return;
+    return this.result;
   }
 
   private async processMainQuery(): Promise<void> {
@@ -364,7 +364,7 @@ class DbQuery {
 
     // Find identifiers from outer instances
     const [identifiersFound, identifiersByProp] =
-      this.findIdentifiersForThroughRelations(related);
+      this.findIdentifiersForThroughRelations(related, outerInstances);
 
     // Nothing to join on
     if (!identifiersFound) return [];
@@ -470,7 +470,7 @@ class DbQuery {
 
     // Find identifiers from outer instances
     const [identifiersFound, identifiersByProp] =
-      this.findIdentifiersForThroughRelations(related);
+      this.findIdentifiersForThroughRelations(related, outerInstances);
 
     // Nothing to join on
     if (!identifiersFound) return [];
@@ -527,15 +527,9 @@ class DbQuery {
     const geometryAttributes =
       (model as any as typeof Document).geometryAttributes;
 
-    // Set owner table id columns
-    const ownerTableName = related.ownerModelClass.tableName;
-    const ownerIdColumns = Array.isArray(related.ownerModelClass.idColumn)
-      ? related.ownerModelClass.idColumn
-      : [related.ownerModelClass.idColumn];
-
     // Find identifiers from outer instances
     const [identifiersFound, identifiersByProp] =
-      this.findIdentifiersForThroughRelations(related);
+      this.findIdentifiersForThroughRelations(related, outerInstances);
 
     // Nothing to join on
     if (!identifiersFound) return [];
@@ -562,42 +556,18 @@ class DbQuery {
           continue;
         }
 
-        attrs.push(`${model.tableName}.${a}`);
+        const attr = a.replace('[[MODEL-TABLE]]', model.tableName);
+        attrs.push(attr);
       }
 
-      query = query.distinct(...attrs);
+      query = query.select(...attrs);
     }
 
-    // Select owner identifiers
-    const ownerAttributes = ownerIdColumns.map((p, idx) => (
-      `${ownerTableName}.${p} AS outerId${idx}`
-    ));
-    query = query.distinct(...ownerAttributes).select();
-
-    // Join related table
-    query = query.innerJoin(
-      related.ownerModelClass.tableName,
-      function joinFn() {
-        // Filter on inner and join table attributes
-        related.relatedProp.props.forEach((modelProp, idx) => {
-          const ownerProp = related.ownerProp.props[idx];
-          const mProp = `${model.tableName}.${modelProp}`;
-          const rProp = `${ownerTableName}.${ownerProp}`;
-          this.on(mProp, '=', rProp);
-        });
-
-        // Filter on outerInstace identifiers
-        Object.keys(identifiersByProp).forEach((p) => {
-          const identifiers = identifiersByProp[p];
-          if (!identifiers.length) {
-            this.onNull(`${ownerTableName}.${p}`);
-          }
-          else {
-            this.onIn(`${ownerTableName}.${p}`, identifiers);
-          }
-        });
-      },
-    );
+    // Filter on identifiers from outer instances
+    for (const [idx, op] of related.ownerProp.props.entries()) {
+      const rp = related.relatedProp.props[idx];
+      query = query.whereIn(rp, Array.from(new Set(identifiersByProp[op])));
+    }
 
     // Add relations joins (for filters and eager loading)
     if (queryOptions.relations) {
@@ -637,7 +607,8 @@ class DbQuery {
         .filter((instance) => (
           related.ownerProp.props
             .map((p, idx) =>
-              (instance as ao)[p] === (row as ao)[`outerId${idx}`],
+              (instance as ao)[p] ===
+                (row as ao)[related.relatedProp.props[idx]],
             )
             .every((e) => e)
         ));
@@ -684,7 +655,7 @@ class DbQuery {
 
     // Find identifiers from outer instances
     const [identifiersFound, identifiersByProp] =
-      this.findIdentifiersForThroughRelations(related);
+      this.findIdentifiersForThroughRelations(related, outerInstances);
 
     // Nothing to join on
     if (!identifiersFound) return [];
@@ -1461,8 +1432,8 @@ class DbQuery {
   // Find identifiers from outer instances
   private findIdentifiersForThroughRelations(
     related: Relation,
+    outerInstances: Model[],
   ): [boolean, IdentifiersByProp] {
-    const outerInstances = this.getOuterInstances();
     let identifiersFound = false;
     const identifiersByProp: IdentifiersByProp = {};
 
@@ -1477,16 +1448,6 @@ class DbQuery {
     });
 
     return [identifiersFound, identifiersByProp];
-  }
-
-  private getOuterInstances(): Model[] {
-    if (!this.result) {
-      return [];
-    }
-    if (Array.isArray(this.result)) {
-      return this.result;
-    }
-    return this.result.rows;
   }
 
   private formatRows(
@@ -1513,16 +1474,16 @@ class DbQuery {
       Object.keys(apiRequest.relationRequests).forEach((relationKey) => {
         if ((row as ao)[relationKey]) {
           const nextApiRequest = apiRequest.relationRequests[relationKey];
-          if (Array.isArray(document[relationKey])) {
+          if (Array.isArray((row as ao))) {
             document[relationKey] = this.formatRows(
               nextApiRequest,
-              document[relationKey],
+              (row as ao)[relationKey],
             );
           }
-          else if (document[relationKey] && document[relationKey].rows) {
+          else if ((row as ao) && (row as ao).rows) {
             document[relationKey].rows = this.formatRows(
               nextApiRequest,
-              document[relationKey].rows,
+              (row as ao)[relationKey].rows,
             );
           }
         }

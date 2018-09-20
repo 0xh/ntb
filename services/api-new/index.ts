@@ -31,7 +31,7 @@ app.use('/', controllers);
 
 // Error handler
 
-interface errorData {
+interface ErrorData {
   error: string;
   errorDetails?: string[];
   debug?: {
@@ -42,8 +42,8 @@ interface errorData {
 
 // tslint:disable-next-line
 app.use((err: Error | APIError, _req: Request, res: Response, _next: NextFunction) => {
-  const data: errorData = {
-    error: `Oops, an unknown error occured! We're on it!`,
+  const data: ErrorData = {
+    error: "Oops, an unknown error occured! We're on it!",
   };
   let code = 500;
 

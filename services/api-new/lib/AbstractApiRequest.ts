@@ -534,13 +534,15 @@ abstract class AbstractApiRequest {
   private processRelationFilter(
     requestFilter: RequestParameter,
   ): FilterOptions {
+    const relationKey = requestFilter.firstKey;
+
     // Add relation join
-    if (!this.queryOptions.relationIndex[requestFilter.firstKey]) {
+    if (!this.queryOptions.relationIndex[relationKey]) {
       this.queryOptions.relations.push({
-        key: requestFilter.firstKey,
+        key: relationKey,
         type: 'left',
       });
-      this.queryOptions.relationIndex[requestFilter.firstKey] = 'left';
+      this.queryOptions.relationIndex[relationKey] = 'left';
     }
 
     // Relation existance filter
@@ -560,20 +562,21 @@ abstract class AbstractApiRequest {
       };
     }
 
-    const key = requestFilter.firstKey;
-    const apiConfig = this.apiConfigsForRelations[requestFilter.firstKey];
+    const filterKey = requestFilter.keys.slice(1).join('.');
+    const apiConfig = this.apiConfigsForRelations[relationKey];
 
-    if (!apiConfig.filters || !apiConfig.filters[key]) {
+    if (!apiConfig.filters || !apiConfig.filters[filterKey]) {
       throw new Error('Unable to find relation apiConfig for filters');
     }
 
-    const config = apiConfig.filters[key];
-    const attr = config.tableAttribute || key;
+    const config = apiConfig.filters[filterKey];
+    const attr = config.tableAttribute || filterKey;
     return {
       ...config,
       isRelation: true,
-      attribute: `${key}.${attr}`,
-      snakeCasedAttribute: `"${_.snakeCase(key)}"."${_.snakeCase(attr)}"`,
+      attribute: `${relationKey}.${attr}`,
+      snakeCasedAttribute:
+        `"${_.snakeCase(relationKey)}"."${_.snakeCase(attr)}"`,
       value: requestFilter.value,
       errorTrace: requestFilter.errorTrace,
     };

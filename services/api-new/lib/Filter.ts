@@ -344,7 +344,7 @@ class Filter {
     let prefix: prefixType | '' = '';
     const prefixes: prefixType[] = ['~', '^', '$', '!'];
     for (const p of prefixes) {
-      if (value.startsWith(`${p}:`)) {
+      if (value.startsWith(p)) {
         prefix = p;
       }
     }
