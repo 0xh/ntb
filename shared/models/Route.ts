@@ -13,6 +13,7 @@ import { documentStatusSchema, gradingSchema } from './schemas';
 export default class Route extends Document {
   static tableName = 'routes';
   static idColumn = 'id';
+  static idColumnType = 'uuid';
   static virtualAttributes = ['uri'];
 
   // Database columns

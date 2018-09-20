@@ -12,6 +12,7 @@ import { documentStatusSchema, geojsonPolygonSchema } from './schemas';
 export default class Municipality extends Document {
   static tableName = 'municipalities';
   static idColumn = 'id';
+  static idColumnType = 'uuid';
   static virtualAttributes = ['uri'];
 
   // Database columns

@@ -9,6 +9,7 @@ import Document, {
 export default class Facility extends Document {
   static tableName = 'facilities';
   static idColumn = 'name';
+  static idColumnType = 'text';
   static virtualAttributes = ['uri'];
 
   // Database columns

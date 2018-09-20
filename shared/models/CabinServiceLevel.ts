@@ -11,6 +11,7 @@ import { serviceLevelSchema } from './schemas';
 export default class CabinServiceLevel extends Document {
   static tableName = 'cabinServiceLevels';
   static idColumn = 'name';
+  static idColumnType = 'text';
   static virtualAttributes = ['uri'];
 
   // Database columns

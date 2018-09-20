@@ -11,6 +11,7 @@ import { documentStatusSchema } from './schemas';
 export default class DocumentStatus extends Document {
   static tableName = 'documentStatuses';
   static idColumn = 'name';
+  static idColumnType = 'text';
   static virtualAttributes = [];
 
   // Database columns

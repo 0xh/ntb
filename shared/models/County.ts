@@ -12,6 +12,7 @@ import { documentStatusSchema, geojsonPolygonSchema } from './schemas';
 export default class County extends Document {
   static tableName = 'counties';
   static idColumn = 'id';
+  static idColumnType = 'uuid';
   static virtualAttributes = ['uri'];
 
   // Database columns

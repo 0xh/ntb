@@ -9,6 +9,7 @@ import Document, {
 export default class RouteWaymarkType extends Document {
   static tableName = 'routeWaymarkTypes';
   static idColumn = 'name';
+  static idColumnType = 'text';
   static virtualAttributes = ['uri'];
 
   // Database columns

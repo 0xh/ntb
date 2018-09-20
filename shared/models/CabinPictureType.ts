@@ -14,6 +14,7 @@ export type cabinPictureType =
 export default class CabinPictureType extends Document {
   static tableName = 'cabinPictureTypes';
   static idColumn = 'name';
+  static idColumnType = 'text';
   static virtualAttributes = [];
 
   // Database columns

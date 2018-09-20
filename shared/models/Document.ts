@@ -140,6 +140,7 @@ export interface ApiConfigPerReferrer {
 export default abstract class Document extends Model {
   static modelPaths = [__dirname];
   static idColumn: string | string[];
+  static idColumnType?: string;
 
   timestamps?: boolean;
   createdAt?: Date;

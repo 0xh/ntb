@@ -12,6 +12,7 @@ import { documentStatusSchema, geojsonPointSchema } from './schemas';
 export default class Poi extends Document {
   static tableName = 'pois';
   static idColumn = 'id';
+  static idColumnType = 'uuid';
   static virtualAttributes = ['uri'];
 
   // Database columns

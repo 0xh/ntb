@@ -9,6 +9,7 @@ import Document, {
 export default class PoiType extends Document {
   static tableName = 'poiTypes';
   static idColumn = 'name';
+  static idColumnType = 'text';
   static virtualAttributes = ['uri'];
 
   // Database columns

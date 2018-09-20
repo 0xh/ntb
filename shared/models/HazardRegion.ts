@@ -10,6 +10,7 @@ import Document, {
 export default class HazardRegion extends Document {
   static tableName = 'hazardRegions';
   static idColumn = 'id';
+  static idColumnType = 'uuid';
   static virtualAttributes = ['uri'];
 
   // Database columns

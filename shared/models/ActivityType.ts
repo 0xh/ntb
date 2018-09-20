@@ -6,6 +6,7 @@ import Document, { ApiConfigPerReferrer, ApiConfig } from './Document';
 export default class ActivityType extends Document {
   static tableName = 'activityTypes';
   static idColumn = 'name';
+  static idColumnType = 'text';
   static virtualAttributes = ['uri'];
 
   // Database columns

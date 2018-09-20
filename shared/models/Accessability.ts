@@ -5,6 +5,7 @@ import Document, { ApiConfigPerReferrer, ApiConfig } from './Document';
 export default class Accessability extends Document {
   static tableName = 'accessabilities';
   static idColumn = 'name';
+  static idColumnType = 'text';
   static virtualAttributes = ['uri'];
 
   // Database columns

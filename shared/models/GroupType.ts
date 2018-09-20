@@ -9,6 +9,7 @@ import Document, {
 export default class GroupType extends Document {
   static tableName = 'groupTypes';
   static idColumn = 'name';
+  static idColumnType = 'text';
   static virtualAttributes = ['uri'];
 
   // Database columns

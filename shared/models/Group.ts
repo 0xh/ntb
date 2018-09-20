@@ -11,6 +11,7 @@ import { documentStatusSchema } from './schemas';
 export default class Group extends Document {
   static tableName = 'groups';
   static idColumn = 'id';
+  static idColumnType = 'uuid';
   static virtualAttributes = ['uri'];
 
   // Database columns

@@ -12,6 +12,7 @@ export type cabinOpeningHoursKeyType =
 export default class CabinOpeningHoursKeyType extends Document {
   static tableName = 'cabinOpeningHoursKeyTypes';
   static idColumn = 'name';
+  static idColumnType = 'text';
   static virtualAttributes = [];
 
   // Database columns

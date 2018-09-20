@@ -12,6 +12,7 @@ import { documentStatusSchema, geojsonPolygonSchema } from './schemas';
 export default class Area extends Document {
   static tableName = 'areas';
   static idColumn = 'id';
+  static idColumnType = 'uuid';
   static virtualAttributes = ['uri'];
 
   // Database columns

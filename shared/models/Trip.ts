@@ -18,6 +18,7 @@ import {
 export default class Trip extends Document {
   static tableName = 'trips';
   static idColumn = 'id';
+  static idColumnType = 'uuid';
   static virtualAttributes = ['uri'];
 
   // Database columns

@@ -17,6 +17,7 @@ import { cabinPictureType } from './CabinPictureType';
 export default class Picture extends Document {
   static tableName = 'pictures';
   static idColumn = 'id';
+  static idColumnType = 'uuid';
   static virtualAttributes = ['uri'];
 
   // Database columns

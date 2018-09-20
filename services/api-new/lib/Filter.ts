@@ -326,7 +326,7 @@ class Filter {
 
     // Where null
     if (value === '') {
-      return this.whereNull();
+      return this.whereNull(true);
     }
 
     // Where not null
@@ -416,14 +416,14 @@ class Filter {
       options: [
         this.filterOptions.attribute as string,
         '=',
-        value.slice(1),
+        value,
       ],
     }];
 
     return this;
   }
 
-  private whereNull(): this {
+  private whereNull(checkLength = false): this {
     const { filterTypes, errorTrace } = this.filterOptions;
     if (filterTypes && !filterTypes.includes('null')) {
       this.errors.push(
@@ -433,23 +433,30 @@ class Filter {
       return this;
     }
 
-    this.queryFilterOptions = [[
-      '$or',
-      [
-        {
-          whereType: 'whereNull',
-          options: [
-            this.filterOptions.attribute as string,
-          ],
-        },
-        {
-          whereType: 'whereRaw',
-          options: [
-            `LENGTH(${this.filterOptions.snakeCasedAttribute}) = 0`,
-          ],
-        },
+    const whereNull: QueryFilterOption = {
+      whereType: 'whereNull',
+      options: [
+        this.filterOptions.attribute as string,
       ],
-    ]];
+    };
+
+    if (checkLength) {
+      this.queryFilterOptions = [[
+        '$or',
+        [
+          whereNull,
+          {
+            whereType: 'whereRaw',
+            options: [
+              `LENGTH(${this.filterOptions.snakeCasedAttribute}) = 0`,
+            ],
+          },
+        ],
+      ]];
+    }
+    else {
+      this.queryFilterOptions = [whereNull];
+    }
 
     return this;
   }

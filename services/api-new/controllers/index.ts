@@ -1,3 +1,5 @@
+import uuidValidate from 'uuid-validate';
+
 import { _ } from '@ntb/utils';
 import {
   express,
@@ -17,19 +19,19 @@ import { DbQueryResult } from '../lib/types';
 const { Router } = express;
 const router = Router();
 
-interface EmptyResult {
-  message: string;
-}
-
 
 async function verifyAndExecute(
   model: typeof models.Document,
   requestObject: ExpressRequest,
   type: 'query' | 'structured' = 'query',
-): Promise<DbQueryResult | EmptyResult> {
+  id?: string,
+): Promise<DbQueryResult | null> {
   const apiRequest = type === 'query'
     ? new ApiQueryRequest(model, requestObject)
     : new ApiStructuredRequest(model, requestObject);
+  if (id) {
+    apiRequest.setRequestedId(id);
+  }
   apiRequest.verify();
 
   if (apiRequest.errors.length) {
@@ -41,9 +43,12 @@ async function verifyAndExecute(
 
   const query = new DbQuery(model, apiRequest);
   const result = await query.execute();
-  return result ? result : {
-    message: 'Nothing found',
-  };
+
+  if (Array.isArray(result) && !result.length) {
+    return null;
+  }
+
+  return result;
 }
 
 
@@ -51,41 +56,31 @@ function createModelRouter(model: typeof models.Document) {
   const modelRouter = Router();
 
   // Find specific document
-  // modelRouter.get('/:id', expressAsyncHandler(async (req, res, next) => {
-  //   if (Array.isArray(model.idColumn)) {
-  //     throw new Error('Multi column identifiers are not supported here');
-  //   }
+  modelRouter.get('/:id', expressAsyncHandler(async (req, res, next) => {
+    if (Array.isArray(model.idColumn)) {
+      throw new Error('Multi column identifiers are not supported here');
+    }
 
-  //   const { id } = req.params;
-  //   // Skip if model does not have a jsonSchema
-  //   if (
-  //     !model.jsonSchema
-  //     || !model.jsonSchema.properties
-  //     || !model.jsonSchema.properties[model.idColumn]
-  //   ) {
-  //     return next();
-  //   }
-  //   const formatOptions = model.jsonSchema.properties[model.idColumn];
+    const { id } = req.params;
+    // Skip if model does not have a jsonSchema
+    if (!model.idColumnType) {
+      return next();
+    }
 
-  //   // Validate uuid
-  //   if (
-  //     formatOptions.type === 'string'
-  //     && formatOptions.format === 'uuid'
-  //     && id
-  //     && !uuidValidate(id, 4)
-  //   ) {
-  //     return next();
-  //   }
+    // Validate uuid
+    if (model.idColumnType === 'uuid' && !uuidValidate(id, 4)) {
+      return next();
+    }
 
-  //   const request = new ApiQueryRequest(model, req.query);
-  //   const data = request.execute();
+    const data = await verifyAndExecute(model, req.query, 'query', id);
 
-  //   if (data === null) {
-  //     return res.status(404).json({ error: 'Not found' });
-  //   }
-
-  //   return res.json(data);
-  // }));
+    if (data === null) {
+      res.status(404).json({ error: 'Not found' });
+    }
+    else {
+      return res.json(data);
+    }
+  }));
 
   // Find documents by structured object
   // modelRouter.post(
@@ -108,7 +103,12 @@ function createModelRouter(model: typeof models.Document) {
   // Find documents
   modelRouter.get('/', expressAsyncHandler(async (req, res, _next) => {
     const data = await verifyAndExecute(model, req.query, 'query');
-    res.json(data);
+    if (data === null) {
+      res.json({ message: 'Nothing found' });
+    }
+    else {
+      res.json(data);
+    }
   }));
 
   return modelRouter;

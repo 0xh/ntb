@@ -110,6 +110,10 @@ abstract class AbstractApiRequest {
   }
 
   setRequestedId(requestedId: string): this {
+    if (Array.isArray(this.model.idColumn)) {
+      throw new Error('Array of idColumns are not supported');
+    }
+
     this.requestedId = requestedId;
     this.singleInstance = true;
 
@@ -118,6 +122,16 @@ abstract class AbstractApiRequest {
         .setReferrers(['*single'])
         .setNextReferrerPrefixes();
     }
+
+    this.queryOptions.filters.push({
+      whereType: 'where',
+      options: [
+        `[[MODEL-TABLE]].${this.model.idColumn}`,
+        '=',
+        this.requestedId,
+      ],
+    });
+
     return this;
   }
 

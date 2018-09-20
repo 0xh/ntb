@@ -17,6 +17,7 @@ import {
 export default class Cabin extends Document {
   static tableName = 'cabins';
   static idColumn = 'id';
+  static idColumnType = 'uuid';
   static virtualAttributes = ['uri'];
 
   // Database columns

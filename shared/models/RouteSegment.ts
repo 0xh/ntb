@@ -21,6 +21,7 @@ export type routeSegmentType =
 export default class RouteSegment extends Document {
   static tableName = 'routeSegments';
   static idColumn = 'id';
+  static idColumnType = 'uuid';
   static virtualAttributes = ['uri'];
 
   // Database columns

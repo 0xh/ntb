@@ -31,7 +31,7 @@ const logger = Logger.getLogger();
 
 
 class DbQuery {
-  result?: DbQueryResult;
+  result?: DbQueryResult | null;
 
   model: typeof Model;
   apiRequest: AbstractApiRequest;
@@ -54,7 +54,7 @@ class DbQuery {
     }
   }
 
-  async execute(): Promise<DbQueryResult | undefined> {
+  async execute(): Promise<DbQueryResult | null> {
     await this.processMainQuery();
 
     // Run any relation queries if any documents have been found
@@ -82,6 +82,7 @@ class DbQuery {
         this.result = this.formatRows(
           this.apiRequest,
           this.result,
+          this.apiRequest.singleInstance,
         );
       }
       else if (this.result.rows) {
@@ -92,7 +93,7 @@ class DbQuery {
       }
     }
 
-    return this.result;
+    return this.result || null;
   }
 
   private async processMainQuery(): Promise<void> {
@@ -121,7 +122,7 @@ class DbQuery {
       return;
     }
 
-    this.result = [];
+    this.result = await this.mainQuery(false);
     return;
   }
 
@@ -1216,7 +1217,8 @@ class DbQuery {
           continue;
         }
 
-        attrs.push(`${model.tableName}.${a}`);
+        const attr = a.replace('[[MODEL-TABLE]]', 'inner');
+        attrs.push(attr);
       }
 
       subQuery = subQuery.select(...attrs);
@@ -1453,7 +1455,8 @@ class DbQuery {
   private formatRows(
     apiRequest: AbstractApiRequest,
     rows: Model[],
-  ): ao[] {
+    asSingle = false,
+  ): ao[] | ao | null {
     let documents: ao[] = [];
 
     for (const row of rows) {
@@ -1478,6 +1481,7 @@ class DbQuery {
             document[relationKey] = this.formatRows(
               nextApiRequest,
               (row as ao)[relationKey],
+              nextApiRequest.singleInstance,
             );
           }
           else if ((row as ao) && (row as ao).rows) {
@@ -1508,6 +1512,9 @@ class DbQuery {
       });
     }
 
+    if (asSingle) {
+      return documents.length ? documents[0] : null;
+    }
     return documents;
   }
 

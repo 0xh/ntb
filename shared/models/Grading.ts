@@ -11,6 +11,7 @@ import { gradingSchema } from './schemas';
 export default class Grading extends Document {
   static tableName = 'gradings';
   static idColumn = 'name';
+  static idColumnType = 'text';
   static virtualAttributes = ['uri'];
 
   // Database columns
