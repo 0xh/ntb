@@ -203,6 +203,7 @@ export default class HazardRegion extends Document {
     // Default configuration when included from another model
     const standard: ApiConfig = {
       ...list,
+      paginate: false,
       defaultFields: [
         'uri',
         'id',
