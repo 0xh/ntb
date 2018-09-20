@@ -251,7 +251,7 @@ class DbQuery {
 
     // Attributes to select if it's not a count query
     if (!count && this.queryOptions.attributes) {
-      const attrs: string[] = [];
+      const attrs: (string | Knex.Raw)[] = [];
       for (const a of this.queryOptions.attributes) {
         const geometryAttributes = modelDocument.geometryAttributes || [];
 
@@ -282,9 +282,9 @@ class DbQuery {
 
       // Full text rank attribute
       if (this.queryOptions.fullTextJoin) {
-        attrs.push(
+        attrs.push(knex.raw(
           'ts_rank(search_nb, full_text_phrase) AS full_text_rank',
-        );
+        ));
       }
 
       if (this.queryOptions.relations) {

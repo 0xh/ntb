@@ -420,7 +420,7 @@ abstract class AbstractApiRequest {
       {
         whereType: 'whereRaw',
         options: [
-          `${attr} @@ ${name}`,
+          `full_text_phrase @@ ${attr}`,
         ],
       },
     ];
@@ -745,7 +745,7 @@ abstract class AbstractApiRequest {
       ? this.apiConfig.ordering.default
       : null;
 
-    if (defaultValue) {
+    if (defaultValue && !this.queryOptions.order) {
       this.queryOptions.order = defaultValue
         .map(([field, direction]): orderValue => (
           [`[[MODEL-TABLE]].${field}`, direction]
@@ -1003,7 +1003,7 @@ abstract class AbstractApiRequest {
     // Make sure the order by key is always selected
     (this.queryOptions.order || []).forEach((orderKey) => {
       if (
-        !orderKey[0].startsWith('free_text_rank_')
+        orderKey[0] !== 'full_text_rank'
         && !this.queryOptions.attributes.has(orderKey[0])
       ) {
         this.queryOptions.attributes.add(orderKey[0]);

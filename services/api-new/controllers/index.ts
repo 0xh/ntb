@@ -83,22 +83,21 @@ function createModelRouter(model: typeof models.Document) {
   }));
 
   // Find documents by structured object
-  // modelRouter.post(
-  //   '/jsonquery',
-  //   // tslint:disable-next-line
-  //   expressAsyncHandler(async (req, res, _next) => {
-  //     const queryKeys = Object.keys(req.query);
-  //     if (queryKeys.length) {
-  //       throw new APIError(
-  //         'Invalid query parameters detected. Only a json-object through ' +
-  //         'application/json is allowed.',
-  //       );
-  //     }
+  modelRouter.post(
+    '/jsonquery',
+    expressAsyncHandler(async (req, res, _next) => {
+      const queryKeys = Object.keys(req.query);
+      if (queryKeys.length) {
+        throw new APIError(
+          'Invalid query parameters detected. Only a json-object through ' +
+          'application/json is allowed.',
+        );
+      }
 
-  //     const data = await processRequest(model, req.body, null, false);
-  //     res.json(data);
-  //   }),
-  // );
+      const data = await verifyAndExecute(model, req.body, 'structured');
+      res.json(data);
+    }),
+  );
 
   // Find documents
   modelRouter.get('/', expressAsyncHandler(async (req, res, _next) => {
