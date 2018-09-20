@@ -85,7 +85,6 @@ export function printDuration(
 }
 
 
-
 /**
  * Verifies that the specified value is a string
  * @param {*} value value to verify

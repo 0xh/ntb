@@ -1,6 +1,7 @@
-import { Request as ExpressRequest } from 'express';
+// import { Request as ExpressRequest } from 'express';
 
 import { _, isArrayOfStrings } from '@ntb/utils';
+import { Request as ExpressRequest } from '@ntb/web-server-utils';
 import { Document } from '@ntb/models';
 import { Relation } from '@ntb/db-utils';
 

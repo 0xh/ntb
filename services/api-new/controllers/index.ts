@@ -1,14 +1,40 @@
 import { _ } from '@ntb/utils';
-import { express, morgan } from '@ntb/web-server-utils';
+import {
+  express,
+  morgan,
+  Request as ExpressRequest,
+} from '@ntb/web-server-utils';
 import * as models from '@ntb/models';
 
 import ApiQueryRequest from '../lib/ApiQueryRequest';
+import ApiStructuredRequest from '../lib/ApiStructuredRequest';
 import expressAsyncHandler from '../lib/expressAsyncHandler';
+import DbQuery from '../lib/DbQuery';
 // import APIError from '../lib/APIError';
 
 
 const { Router } = express;
 const router = Router();
+
+
+async function verifyAndExecute(
+  model: typeof models.Document,
+  requestObject: ExpressRequest,
+  type: 'query' | 'structured' = 'query',
+) {
+  const apiRequest = type === 'query'
+    ? new ApiQueryRequest(model, requestObject)
+    : new ApiStructuredRequest(model, requestObject);
+  apiRequest.verify();
+
+  if (apiRequest.errors) {
+    throw new Error('SOME API ERROR');
+  }
+
+  const query = new DbQuery(model, apiRequest);
+  const result = query.execute();
+  return result;
+}
 
 
 function createModelRouter(model: typeof models.Document) {
@@ -72,8 +98,7 @@ function createModelRouter(model: typeof models.Document) {
   // Find documents
   // tslint:disable-next-line
   modelRouter.get('/', expressAsyncHandler(async (req, res, _next) => {
-    const request = new ApiQueryRequest(model, req.query);
-    const data = request.execute();
+    const data = verifyAndExecute(model, req.query, 'query');
     res.json(data);
   }));
 

@@ -7,7 +7,6 @@ import Document, {
 import { _, isNumber } from '@ntb/utils';
 import { Relation, Relations } from '@ntb/db-utils';
 
-import DbQuery from './DbQuery';
 import Filter from './Filter';
 import {
   FilterOptions,
@@ -22,6 +21,11 @@ import {
   requestValue,
   DbQueryResult,
 } from './types';
+
+
+interface RelationRequests {
+  [key: string]: AbstractApiRequest;
+}
 
 
 abstract class AbstractApiRequest {
@@ -55,7 +59,7 @@ abstract class AbstractApiRequest {
 
   relations: Relations;
   relationsNames: string[];
-  relationRequests: AbstractApiRequest[] = [];
+  relationRequests: RelationRequests = {};
 
   apiConfig!: ApiConfig;
   apiConfigsForRelations: { [relationsName: string] : ApiConfig } = {};
@@ -165,32 +169,6 @@ abstract class AbstractApiRequest {
     this.setAttributes();
 
     return this;
-  }
-
-  async execute(): Promise<DbQueryResult | string[]> {
-    this.verify();
-
-    if (this.errors.length) {
-      return this.errors;
-    }
-
-    let joinModel: undefined | typeof Document;
-    if (this.related && this.related.joinModelClass) {
-      joinModel = this.related.joinModelClass as any as typeof Document;
-    }
-
-    const query = new DbQuery(
-      this.model,
-      this.apiConfig,
-      this.queryOptions,
-      joinModel,
-    );
-    await query.execute();
-    if (query.result) {
-      this.result = query.result;
-    }
-
-    return this.result;
   }
 
   protected isValidFilterKey(key: string): boolean {
@@ -963,7 +941,7 @@ abstract class AbstractApiRequest {
         ...relationRequest.errors,
       ];
 
-      this.relationRequests.push(relationRequest);
+      this.relationRequests[key] = relationRequest;
     }
 
     return this;
