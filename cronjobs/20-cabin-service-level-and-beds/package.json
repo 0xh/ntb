@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "name": "@ntb/cronjobs-20",
+  "version": "0.0.0",
+  "dependencies": {
+    "@ntb/models": "*"
+  }
+}
