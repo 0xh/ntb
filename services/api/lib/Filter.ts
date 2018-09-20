@@ -94,12 +94,12 @@ class Filter {
 
     // Where null
     if (value === '') {
-      return this.whereNull();
+      return this.whereNotNull();
     }
 
     // Where not null
     if (value === '!') {
-      return this.whereNotNull();
+      return this.whereNull();
     }
 
     // In or not in list of values
@@ -326,12 +326,12 @@ class Filter {
 
     // Where null
     if (value === '') {
-      return this.whereNull(true);
+      return this.whereNotNull();
     }
 
     // Where not null
     if (value === '!') {
-      return this.whereNotNull();
+      return this.whereNull(true);
     }
 
     // In or not in list of values
