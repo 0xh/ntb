@@ -1,9 +1,9 @@
-import { uuid4 } from '@ntb/shared-utils';
+import { uuid4 } from '@ntb/utils';
 
 import {
   sanitizeHtml,
   stripHtml,
-} from '@ntb/shared-text-content-utils';
+} from '@ntb/text-content-utils';
 
 import statusMapper from '../lib/statusMapper';
 

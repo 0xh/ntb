@@ -9,9 +9,9 @@
     "migrate:rollback": "npm run knex -- migrate:rollback"
   },
   "dependencies": {
-    "@ntb/shared-db-utils": "*",
-    "@ntb/shared-models": "*",
-    "@ntb/shared-utils": "*",
+    "@ntb/db-utils": "*",
+    "@ntb/models": "*",
+    "@ntb/utils": "*",
     "knex-migrate": "1.6.1"
   }
 }

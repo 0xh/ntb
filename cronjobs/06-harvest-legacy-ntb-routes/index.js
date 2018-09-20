@@ -1,9 +1,9 @@
-import { createLogger, isNumber } from '@ntb/shared-utils';
+import { Logger, isNumber } from '@ntb/utils';
 import { harvestRoute } from
-  '@ntb/shared-legacy-ntb-harvester';
+  '@ntb/legacy-ntb-harvester';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 
 
 let fullHarvest = false;

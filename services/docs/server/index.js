@@ -5,8 +5,8 @@ import {
   express,
   nunjucks as _nunjucks,
   Raven,
-} from '@ntb/shared-web-server-utils';
-import settings from '@ntb/shared-settings';
+} from '@ntb/web-server-utils';
+import settings from '@ntb/settings';
 
 import NunjuckCustomWebLoader from './utils/nunjucks-custom-web-loader';
 import environment from './lib/environment';

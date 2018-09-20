@@ -1,9 +1,9 @@
 import {
-  createLogger,
+  Logger,
   startDuration,
-  endDuration,
+  printDuration,
   moment,
-} from '@ntb/shared-utils';
+} from '@ntb/utils';
 
 import * as legacy from './legacy-structure';
 import verify from './lib/verify';
@@ -21,7 +21,7 @@ import processPicture, { mapPictureData } from './process/picture';
 import processList, { mapListData } from './process/list';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 
 
 /**
@@ -105,7 +105,7 @@ export async function harvestAreas(limit = 2000, fullHarvest = false) {
   await processArea(handler, fullHarvest);
 
   logger.info('Harvesting complete');
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -151,7 +151,7 @@ export async function harvestGroups(limit = 2000, fullHarvest = false) {
   await processGroup(handler, fullHarvest);
 
   logger.info('Harvesting complete');
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -198,7 +198,7 @@ export async function harvestCabin(limit = 2000, fullHarvest = false) {
   await processCabin(handler, fullHarvest);
 
   logger.info('Harvesting complete');
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -246,7 +246,7 @@ export async function harvestPoi(limit = 2000, fullHarvest = false) {
   await processPoi(handler, fullHarvest);
 
   logger.info('Harvesting complete');
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -305,7 +305,7 @@ export async function harvestRoute(limit = 2000, fullHarvest = false) {
   await processRoute(handler, fullHarvest);
 
   logger.info('Harvesting complete');
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -360,7 +360,7 @@ export async function harvestTrip(limit = 2000, fullHarvest = false) {
   await processTrip(handler, fullHarvest);
 
   logger.info('Harvesting complete');
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -408,7 +408,7 @@ export async function harvestPictures(limit = 2000, fullHarvest = false) {
   await processPicture(handler);
 
   logger.info('Harvesting complete');
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -454,5 +454,5 @@ export async function harvestLists(limit = 2000, fullHarvest = false) {
   await processList(handler, fullHarvest);
 
   logger.info('Harvesting complete');
-  endDuration(durationId);
+  printDuration(durationId);
 }

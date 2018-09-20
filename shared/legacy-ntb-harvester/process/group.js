@@ -1,14 +1,14 @@
-import { knex, Model } from '@ntb/shared-db-utils';
+import { knex, Model } from '@ntb/db-utils';
 import {
-  createLogger,
+  Logger,
   startDuration,
-  endDuration,
-} from '@ntb/shared-utils';
+  printDuration,
+} from '@ntb/utils';
 
 import * as legacy from '../legacy-structure/';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 const DATASOURCE_NAME = 'legacy-ntb';
 
 
@@ -81,7 +81,7 @@ async function createTempTables(handler, first = false) {
   }
   handler.groups.TempGroupLinkModel = TempGroupLinkModel;
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -96,7 +96,7 @@ async function dropTempTables(handler) {
     .dropTableIfExists(handler.groups.TempGroupModel.tableName)
     .dropTableIfExists(handler.groups.TempGroupLinkModel.tableName);
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -112,7 +112,7 @@ async function mapData(handler) {
     const m = await legacy.grupper.mapping(d, handler);
     groups.push(m);
   }));
-  endDuration(durationId);
+  printDuration(durationId);
 
   handler.groups.processed = groups;
 }
@@ -130,7 +130,7 @@ async function populateTempTables(handler) {
   await handler.groups.TempGroupModel
     .query()
     .insert(groups);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Process data for links and tags
   let links = [];
@@ -144,7 +144,7 @@ async function populateTempTables(handler) {
   await handler.groups.TempGroupLinkModel
     .query()
     .insert(links);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -165,7 +165,7 @@ async function createGroupTypes(handler) {
   logger.info('Create new primary group types');
   let durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Create sub group types
   sql = [
@@ -179,7 +179,7 @@ async function createGroupTypes(handler) {
   logger.info('Create new sub group types');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -275,7 +275,7 @@ async function mergeGroups(handler) {
   logger.info('Creating or updating groups');
   const durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -301,7 +301,7 @@ async function mergeGroupLinks(handler) {
   logger.info('Update ids on group links temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -325,7 +325,7 @@ async function mergeGroupLinks(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -351,7 +351,7 @@ async function removeDepreactedGroupLinks(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -379,7 +379,7 @@ async function removeDepreactedGroups(handler) {
     data_source: DATASOURCE_NAME,
     status: 'deleted',
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 

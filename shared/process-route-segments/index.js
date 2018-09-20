@@ -1,13 +1,13 @@
 import {
-  createLogger,
+  Logger,
   startDuration,
-  endDuration,
+  printDuration,
   moment,
-} from '@ntb/shared-utils';
-import { knex } from '@ntb/shared-db-utils';
+} from '@ntb/utils';
+import { knex } from '@ntb/db-utils';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 const DATASOURCE = 'kartverket-ruter';
 
 
@@ -50,7 +50,7 @@ async function createTempGeometryTable(type) {
   //   knex.raw(`SELECT UpdateGeometrySRID('${tableName}', '${c}', 25833);`)
   // )));
 
-  endDuration(durationId);
+  printDuration(durationId);
   return tableName;
 }
 
@@ -86,7 +86,7 @@ async function insertRouteDataToTempTable(geometryTableName, wfsTableName) {
     ) sq2
   `);
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -126,7 +126,7 @@ async function setRouteIdentifiers(
     WHERE "${geometryTableName}".id = sq.id
   `);
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -438,5 +438,5 @@ export default async function (
   await aggregateRoutePath(type);
   await deleteTempGeometryTable(geometryTableName);
 
-  endDuration(durationId);
+  printDuration(durationId);
 }

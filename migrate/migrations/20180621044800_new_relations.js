@@ -1,7 +1,7 @@
-import { createLogger } from '@ntb/shared-utils';
+import { Logger } from '@ntb/utils';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 
 
 async function createByDistanceTable(knex, options) {

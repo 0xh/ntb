@@ -1,4 +1,4 @@
-import { nunjucks } from '@ntb/shared-web-server-utils';
+import { nunjucks } from '@ntb/web-server-utils';
 
 import loadFromWebpackDevServer from './load-from-webpack-dev-server';
 

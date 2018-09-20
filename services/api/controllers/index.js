@@ -1,8 +1,8 @@
 import uuidValidate from 'uuid-validate';
 
-import { _ } from '@ntb/shared-utils';
-import { express, morgan } from '@ntb/shared-web-server-utils';
-import * as Models from '@ntb/shared-models';
+import { _ } from '@ntb/utils';
+import { express, morgan } from '@ntb/web-server-utils';
+import * as Models from '@ntb/models';
 
 import processRequest from '../lib/process-request';
 import asyncHandler from '../lib/express-async-handler';
@@ -79,7 +79,7 @@ router.get('/robots.txt', (req, res, next) => {
 
 // Add entry models
 Object.values(Models).forEach((model) => {
-  if (model.APIEntryModel) {
+  if (model.apiEntryModel) {
     const name = _.snakeCase(model.name);
     router.use(`/${name}`, createModelRouter(model));
   }

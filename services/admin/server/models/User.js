@@ -1,4 +1,4 @@
-import settings from '@ntb/shared-settings';
+import settings from '@ntb/settings';
 
 import sherpa from '../lib/sherpa';
 import removeObjectKeys from '../utils/removeObjectKeys';

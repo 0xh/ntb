@@ -2,11 +2,11 @@ import path from 'path';
 
 import knexMigrate from 'knex-migrate';
 
-import { knex } from '@ntb/shared-db-utils';
-import { createLogger } from '@ntb/shared-utils';
+import { knex } from '@ntb/db-utils';
+import { Logger } from '@ntb/utils';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 
 const migrateConfig = {
   directory: path.resolve(__dirname, 'migrations'),

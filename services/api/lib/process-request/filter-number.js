@@ -1,4 +1,4 @@
-import { isString, isNumber } from '@ntb/shared-utils';
+import { isString, isNumber } from '@ntb/utils';
 
 
 export default function (handler, filter) {

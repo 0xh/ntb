@@ -1,13 +1,13 @@
-import settings from '@ntb/shared-settings';
-import { createLogger } from '@ntb/shared-utils';
-import { express, bodyParser } from '@ntb/shared-web-server-utils';
+import settings from '@ntb/settings';
+import { Logger } from '@ntb/utils';
+import { express, bodyParser } from '@ntb/web-server-utils';
 
 import APIError from './lib/api-error';
 import controllers from './controllers';
 
 
 const { ENV_IS_DEVELOPMENT } = settings;
-const logger = createLogger();
+const logger = Logger.getLogger();
 
 // Initiate express app
 const app = express();

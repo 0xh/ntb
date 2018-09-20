@@ -3,7 +3,7 @@
   "name": "@ntb/cronjobs-01",
   "version": "0.0.0",
   "dependencies": {
-    "@ntb/shared-legacy-ntb-harvester": "*",
-    "@ntb/shared-utils": "*"
+    "@ntb/legacy-ntb-harvester": "*",
+    "@ntb/utils": "*"
   }
 }

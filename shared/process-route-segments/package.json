@@ -1,9 +1,9 @@
 {
   "private": true,
-  "name": "@ntb/shared-process-route-segments",
+  "name": "@ntb/process-route-segments",
   "version": "0.0.0",
   "dependencies": {
-    "@ntb/shared-db-utils": "*",
-    "@ntb/shared-utils": "*"
+    "@ntb/db-utils": "*",
+    "@ntb/utils": "*"
   }
 }

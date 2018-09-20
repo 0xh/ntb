@@ -9,19 +9,19 @@ import { clusterEach } from '@turf/clusters';
 import center from '@turf/center';
 
 import {
-  createLogger,
+  Logger,
   startDuration,
-  endDuration,
-} from '@ntb/shared-utils';
-import { knex, Knex } from '@ntb/shared-db-utils';
-import * as models from '@ntb/shared-models';
-import settings from '@ntb/shared-settings';
+  printDuration,
+} from '@ntb/utils';
+import { knex, Knex } from '@ntb/db-utils';
+import * as models from '@ntb/models';
+import settings from '@ntb/settings';
 
 
 // Bump this if you change or delete properties (not if you only add new ones)
 const VERSION = '1';
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 const DATA_DIR = path.resolve(__dirname, 'data');
 const SPAWN_SYNC_OPTIONS = {
   cwd: process.cwd(),
@@ -183,7 +183,7 @@ async function createGeojsonCabins() {
   );
 
   logger.info('Done');
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -230,7 +230,7 @@ async function createGeojsonPois() {
   );
 
   logger.info('Done');
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -329,7 +329,7 @@ async function createGeojsonTrips() {
   );
 
   logger.info('Done');
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -393,7 +393,7 @@ async function createGeojsonTripClusters() {
     .pipe(eventStream.mapSync((trip) => features.push(trip)));
 
   logger.info('Trip clusters done');
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -432,7 +432,7 @@ async function createGeojsonRoutes(type) {
   );
 
   logger.info('Done');
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -467,7 +467,7 @@ async function createGeojsonRoutePoints(type) {
   );
 
   logger.info('Done');
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -481,7 +481,7 @@ async function tippecanoe(name) {
     SPAWN_SYNC_OPTIONS
   );
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -506,7 +506,7 @@ async function joinTiles() {
     path.resolve(DATA_DIR, `routepoints-v${VERSION}.mbtiles`),
   ]);
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -532,7 +532,7 @@ async function fixMbtilesName() {
     WHERE name='description';
   `);
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -560,7 +560,7 @@ async function uploadToMapbox() {
   });
   logger.info('mapbox output end');
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 

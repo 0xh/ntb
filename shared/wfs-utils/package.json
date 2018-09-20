@@ -1,10 +1,9 @@
 {
   "private": true,
-  "name": "@ntb/shared-wfs-utils",
+  "name": "@ntb/wfs-utils",
   "version": "0.0.0",
   "dependencies": {
-    "@ntb/shared-settings": "*",
-    "@ntb/shared-utils": "*",
-    "ogr2ogr": "1.2.1"
+    "@ntb/settings": "*",
+    "@ntb/utils": "*"
   }
 }

@@ -3,8 +3,8 @@
   "name": "@ntb/cronjobs-16",
   "version": "0.0.0",
   "dependencies": {
-    "@ntb/shared-db-utils": "*",
-    "@ntb/shared-gis-utils": "*",
-    "@ntb/shared-utils": "*"
+    "@ntb/db-utils": "*",
+    "@ntb/gis-utils": "*",
+    "@ntb/utils": "*"
   }
 }

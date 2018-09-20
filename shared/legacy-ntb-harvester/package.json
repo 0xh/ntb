@@ -1,14 +1,14 @@
 {
   "private": true,
-  "name": "@ntb/shared-legacy-ntb-harvester",
+  "name": "@ntb/legacy-ntb-harvester",
   "version": "0.0.0",
   "dependencies": {
-    "@ntb/shared-db-utils": "*",
-    "@ntb/shared-gis-utils": "*",
-    "@ntb/shared-models": "*",
-    "@ntb/shared-settings": "*",
-    "@ntb/shared-text-content-utils": "*",
-    "@ntb/shared-utils": "*",
+    "@ntb/db-utils": "*",
+    "@ntb/gis-utils": "*",
+    "@ntb/models": "*",
+    "@ntb/settings": "*",
+    "@ntb/text-content-utils": "*",
+    "@ntb/utils": "*",
     "mongodb": "3.1.4"
   }
 }

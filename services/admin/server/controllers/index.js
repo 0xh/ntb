@@ -1,7 +1,7 @@
 import {
   express,
   morgan,
-} from '@ntb/shared-web-server-utils';
+} from '@ntb/web-server-utils';
 
 import authController from './auth';
 import apiController from './api';

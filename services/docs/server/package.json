@@ -11,10 +11,10 @@
     "test:watch": "mocha -w -b -c -t 10000 --check-leaks -R progress -r server/test/*.js server/test/**/*.js"
   },
   "dependencies": {
-    "@ntb/shared-models": "*",
-    "@ntb/shared-settings": "*",
-    "@ntb/shared-utils": "*",
-    "@ntb/shared-web-server-utils": "*"
+    "@ntb/models": "*",
+    "@ntb/settings": "*",
+    "@ntb/utils": "*",
+    "@ntb/web-server-utils": "*"
   },
   "devDependencies": {}
 }

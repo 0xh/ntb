@@ -1,15 +1,15 @@
 import {
-  createLogger,
+  Logger,
   startDuration,
-  endDuration,
-} from '@ntb/shared-utils';
-import { knex, Model } from '@ntb/shared-db-utils';
-import { geomFromGeoJSON } from '@ntb/shared-gis-utils';
+  printDuration,
+} from '@ntb/utils';
+import { knex, Model } from '@ntb/db-utils';
+import { geomFromGeoJSON } from '@ntb/gis-utils';
 
 import * as legacy from '../legacy-structure/';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 const DATASOURCE_NAME = 'legacy-ntb';
 
 
@@ -210,7 +210,7 @@ async function createTempTables(handler, sync = false) {
   handler.trips.TempTripAccessabilityModel = TempTripAccessabilityModel;
 
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -231,7 +231,7 @@ async function dropTempTables(handler) {
     .dropTableIfExists(handler.trips.TempTripAccessabilityModel.tableName)
     .dropTableIfExists(handler.trips.TempTripPicturesModel.tableName);
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -253,7 +253,7 @@ async function mapData(handler) {
         }
       })
   );
-  endDuration(durationId);
+  printDuration(durationId);
 
   handler.trips.processed = trips;
 }
@@ -280,7 +280,7 @@ async function populateTempTables(handler) {
   await handler.trips.TempTripModel
     .query()
     .insert(trips);
-  endDuration(durationId);
+  printDuration(durationId);
 
   const tripToGroup = [];
   const tripToPoi = [];
@@ -349,7 +349,7 @@ async function populateTempTables(handler) {
   await handler.trips.TempTripTypeModel
     .query()
     .insert(activitySubTypes);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for Accessability
   // logger.info('Inserting accessabilities to temporary table');
@@ -357,7 +357,7 @@ async function populateTempTables(handler) {
   // await handler.trips.TempAccessabilityModel
   //   .query()
   //   .insert(accessabilities);
-  // endDuration(durationId);
+  // printDuration(durationId);
 
   // Insert temp data for TripAccessability
   logger.info('Inserting trip accessabilities to temporary table');
@@ -365,7 +365,7 @@ async function populateTempTables(handler) {
   await handler.trips.TempTripAccessabilityModel
     .query()
     .insert(tripAccessabilities);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for TripLink
   logger.info('Inserting trip links to temporary table');
@@ -373,7 +373,7 @@ async function populateTempTables(handler) {
   await handler.trips.TempTripLinkModel
     .query()
     .insert(links);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for TripToGroup
   logger.info('Inserting trip to group temporary table');
@@ -381,7 +381,7 @@ async function populateTempTables(handler) {
   await handler.trips.TempTripToGroupModel
     .query()
     .insert(tripToGroup);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for TripToPoi
   logger.info('Inserting trip to poi temporary table');
@@ -389,7 +389,7 @@ async function populateTempTables(handler) {
   await handler.trips.TempTripToPoiModel
     .query()
     .insert(tripToPoi);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for TripToPoi
   logger.info('Inserting trip pictures to temporary table');
@@ -397,7 +397,7 @@ async function populateTempTables(handler) {
   await handler.trips.TempTripPicturesModel
     .query()
     .insert(pictures);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -422,7 +422,7 @@ async function mergeActivityType(handler) {
   logger.info('Creating primary activity types');
   let durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge sub types into prod table
   ({ tableName } = handler.trips.TempTripTypeModel);
@@ -437,7 +437,7 @@ async function mergeActivityType(handler) {
   logger.info('Creating sub activity types');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge primary to sub type relations into prod table
   sql = [
@@ -451,7 +451,7 @@ async function mergeActivityType(handler) {
   logger.info('Creating primary to sub activity type relations');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -577,7 +577,7 @@ async function createTripToActivityTypes(handler) {
   logger.info('Update ids on trip to activity type temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Create trip to activity type relations on primary activity types
   sql = [
@@ -598,7 +598,7 @@ async function createTripToActivityTypes(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Create trip to activity type relations on sub activity types
   sql = [
@@ -619,7 +619,7 @@ async function createTripToActivityTypes(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -650,7 +650,7 @@ async function removeDepreactedTripToActivityTypes(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 /**
@@ -676,7 +676,7 @@ async function mergeTripLinks(handler) {
   logger.info('Update ids on trip links temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -699,7 +699,7 @@ async function mergeTripLinks(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -726,7 +726,7 @@ async function removeDepreactedTripLinks(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -745,7 +745,7 @@ async function createAccessabilities(handler) {
   logger.info('Create new accessabilities');
   const durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -771,7 +771,7 @@ async function createTripAccessabilities(handler) {
   logger.info('Update ids on trip accessability temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Create trip accessability relations
   sql = [
@@ -789,7 +789,7 @@ async function createTripAccessabilities(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -817,7 +817,7 @@ async function removeDepreactedTripAccessabilities(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -847,7 +847,7 @@ async function mergeTripToGroup(handler) {
   logger.info('Update ids on trip-to-group temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -866,7 +866,7 @@ async function mergeTripToGroup(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -894,7 +894,7 @@ async function removeDepreactedTripToGroup(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -924,7 +924,7 @@ async function mergeTripToPoi(handler) {
   logger.info('Update ids on trip-to-poi temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -943,7 +943,7 @@ async function mergeTripToPoi(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -971,7 +971,7 @@ async function removeDepreactedTripToPoi(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -998,7 +998,7 @@ async function setTripPictures(handler) {
   logger.info('Update ids on trip-to-picture temp data');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -1017,7 +1017,7 @@ async function setTripPictures(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -1043,7 +1043,7 @@ async function removeDepreactedTripPictures(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -1071,7 +1071,7 @@ async function removeDepreactedTrip(handler) {
     data_source: DATASOURCE_NAME,
     status: 'deleted',
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 

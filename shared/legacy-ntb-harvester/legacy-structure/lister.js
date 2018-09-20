@@ -1,13 +1,13 @@
 import {
   sanitizeHtml,
   stripHtml,
-} from '@ntb/shared-text-content-utils';
-import { createLogger, uuid4 } from '@ntb/shared-utils';
+} from '@ntb/text-content-utils';
+import { Logger, uuid4 } from '@ntb/utils';
 
 import statusMapper from '../lib/statusMapper';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 
 
 function mapLinkType(type, res) {

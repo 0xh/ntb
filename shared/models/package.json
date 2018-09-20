@@ -1,12 +1,15 @@
 {
   "private": true,
-  "name": "@ntb/shared-models",
+  "name": "@ntb/models",
   "version": "0.0.0",
   "dependencies": {
-    "@ntb/shared-db-utils": "*",
-    "@ntb/shared-gis-utils": "*",
-    "@ntb/shared-utils": "*",
+    "@ntb/db-utils": "*",
+    "@ntb/gis-utils": "*",
+    "@ntb/utils": "*",
+    "@types/ajv": "^1.0.0",
+    "@types/json-schema": "^7.0.0",
     "ajv": "6.5.3",
-    "ajv-keywords": "3.2.0"
+    "ajv-keywords": "3.2.0",
+    "json-schema": "^0.2.3"
   }
 }

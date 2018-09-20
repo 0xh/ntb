@@ -1,14 +1,14 @@
 import {
-  createLogger,
+  Logger,
   startDuration,
-  endDuration,
-} from '@ntb/shared-utils';
-import { knex, Model } from '@ntb/shared-db-utils';
+  printDuration,
+} from '@ntb/utils';
+import { knex, Model } from '@ntb/db-utils';
 
 import * as legacy from '../legacy-structure/';
 
 
-const logger = createLogger();
+const logger = Logger.getLogger();
 const DATASOURCE_NAME = 'legacy-ntb';
 
 
@@ -203,7 +203,7 @@ async function createTempTables(handler, sync = false) {
   handler.routes.TempRoutePicturesModel = TempRoutePicturesModel;
 
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -224,7 +224,7 @@ async function dropTempTables(handler) {
     .dropTableIfExists(handler.routes.TempRouteToPoiModel.tableName)
     .dropTableIfExists(handler.routes.TempRoutePicturesModel.tableName);
 
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -246,7 +246,7 @@ async function mapData(handler) {
         }
       })
   );
-  endDuration(durationId);
+  printDuration(durationId);
 
   handler.routes.processed = routes;
 }
@@ -267,7 +267,7 @@ async function populateTempTables(handler) {
   await handler.routes.TempRouteModel
     .query()
     .insert(routes);
-  endDuration(durationId);
+  printDuration(durationId);
 
   const routeWaymarkTypes = [];
   const routeRouteWaymarkTypes = [];
@@ -330,7 +330,7 @@ async function populateTempTables(handler) {
   await handler.routes.TempRouteTypeModel
     .query()
     .insert(suitableActivityTypes);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for RouteWaymarkType
   logger.info('Inserting route waymark types to temporary table');
@@ -338,7 +338,7 @@ async function populateTempTables(handler) {
   await handler.routes.TempRouteWaymarkTypeModel
     .query()
     .insert(routeWaymarkTypes);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for RouteToRouteWaymarkType
   logger.info(
@@ -348,7 +348,7 @@ async function populateTempTables(handler) {
   await handler.routes.TempRouteRouteWaymarkTypeModel
     .query()
     .insert(routeRouteWaymarkTypes);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for RouteLink
   logger.info('Inserting route links to temporary table');
@@ -356,7 +356,7 @@ async function populateTempTables(handler) {
   await handler.routes.TempRouteLinkModel
     .query()
     .insert(links);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for RouteToGroup
   logger.info('Inserting route to group temporary table');
@@ -364,7 +364,7 @@ async function populateTempTables(handler) {
   await handler.routes.TempRouteToGroupModel
     .query()
     .insert(routeToGroup);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for RouteToPoi
   logger.info('Inserting route to poi temporary table');
@@ -372,7 +372,7 @@ async function populateTempTables(handler) {
   await handler.routes.TempRouteToPoiModel
     .query()
     .insert(routeToPoi);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Insert temp data for RouteToPoi
   logger.info('Inserting route pictures to temporary table');
@@ -380,7 +380,7 @@ async function populateTempTables(handler) {
   await handler.routes.TempRoutePicturesModel
     .query()
     .insert(pictures);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -401,7 +401,7 @@ async function verifyRouteCodeCount(handler) {
     .groupBy('r.code')
     .having(knex.raw('COUNT(*) > 2'));
 
-  endDuration(durationId);
+  printDuration(durationId);
 
   if (res && res.length > 0) {
     res.forEach((err) => {
@@ -436,7 +436,7 @@ async function mergeActivityType(handler) {
   logger.info('Creating primary activity types');
   let durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge sub types into prod table
   sql = [
@@ -450,7 +450,7 @@ async function mergeActivityType(handler) {
   logger.info('Creating sub activity types');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge primary to sub type relations into prod table
   sql = [
@@ -464,7 +464,7 @@ async function mergeActivityType(handler) {
   logger.info('Creating primary to sub activity type relations');
   durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -587,7 +587,7 @@ async function mergeRoute(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -617,7 +617,7 @@ async function createRouteToActivityTypes(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Create route to activity type relations on primary activity types
   sql = [
@@ -638,7 +638,7 @@ async function createRouteToActivityTypes(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Create route to activity type relations on sub activity types
   sql = [
@@ -659,7 +659,7 @@ async function createRouteToActivityTypes(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -690,7 +690,7 @@ async function removeDepreactedRouteToActivityTypes(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -709,7 +709,7 @@ async function createRouteWaymarkTypes(handler) {
   logger.info('Create new route waymark types');
   const durationId = startDuration();
   await knex.raw(sql);
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -739,7 +739,7 @@ async function createRouteToRouteWaymarkTypes(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Create route to route waymark type relations
   sql = [
@@ -758,7 +758,7 @@ async function createRouteToRouteWaymarkTypes(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -787,7 +787,7 @@ async function removeDepreactedRouteToRouteWaymarkTypes(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -817,7 +817,7 @@ async function mergeRouteLinks(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -840,7 +840,7 @@ async function mergeRouteLinks(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -867,7 +867,7 @@ async function removeDepreactedRouteLinks(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -899,7 +899,7 @@ async function mergeRouteToGroup(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -918,7 +918,7 @@ async function mergeRouteToGroup(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -946,7 +946,7 @@ async function removeDepreactedRouteToGroup(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -978,7 +978,7 @@ async function mergeRouteToPoi(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 
   // Merge into prod table
   sql = [
@@ -997,7 +997,7 @@ async function mergeRouteToPoi(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -1025,7 +1025,7 @@ async function removeDepreactedRouteToPoi(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -1055,7 +1055,7 @@ async function setRoutePictures(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 
 
   // Merge into prod table
@@ -1075,7 +1075,7 @@ async function setRoutePictures(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -1101,7 +1101,7 @@ async function removeDepreactedRoutePictures(handler) {
   await knex.raw(sql, {
     data_source: DATASOURCE_NAME,
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 
@@ -1130,7 +1130,7 @@ async function removeDepreactedRoute(handler) {
     data_source: DATASOURCE_NAME,
     status: 'deleted',
   });
-  endDuration(durationId);
+  printDuration(durationId);
 }
 
 

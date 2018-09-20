@@ -1,12 +1,12 @@
 import path from 'path';
 
-import { settings } from '@ntb/shared-settings';
+import { settings } from '@ntb/settings';
 import {
   express,
   bodyParser,
   nunjucks as _nunjucks,
   Raven,
-} from '@ntb/shared-web-server-utils';
+} from '@ntb/web-server-utils';
 
 import NunjuckCustomWebLoader from './utils/nunjucks-custom-web-loader';
 import environment from './lib/environment';

@@ -1,4 +1,4 @@
-import { validateGeojson } from '@ntb/shared-gis-utils';
+import { validateAndFixGeojson } from '@ntb/gis-utils/validate';
 
 import * as helpers from './helpers';
 
@@ -100,12 +100,10 @@ export default function verify(
       }
       // verify GeoJson data
       else if (type === 'geojson') {
-        const [valid, errs] = validateGeojson(value);
-        if (!valid) {
+        const res = validateAndFixGeojson(value);
+        if (!res) {
           isValid = false;
-          log.errors.push(
-            `GeoJSON error on ID: ${id} - ${errs}`
-          );
+          log.errors.push(`GeoJSON error on ID: ${id}`);
         }
       }
 

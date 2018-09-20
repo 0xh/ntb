@@ -3,7 +3,7 @@
   "name": "@ntb/cronjobs-12",
   "version": "0.0.0",
   "dependencies": {
-    "@ntb/shared-utils": "*",
-    "@ntb/shared-process-route-segments": "*"
+    "@ntb/utils": "*",
+    "@ntb/process-route-segments": "*"
   }
 }
