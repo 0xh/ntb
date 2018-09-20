@@ -49,7 +49,20 @@ class ApiQueryRequest extends AbstractApiRequest {
         }
         // Add to requestFilters
         else if (this.isValidFilterKey(requestParameter.key)) {
-          this.requestFilters.push(requestParameter);
+          if (
+            Array.isArray(requestParameter.value)
+            && requestParameter.value.length > 1
+          ) {
+            for (const v of requestParameter.value) {
+              this.requestFilters.push({
+                ...requestParameter,
+                value: [v],
+              });
+            }
+          }
+          else {
+            this.requestFilters.push(requestParameter);
+          }
         }
         // Add to requestParameters
         else if (
