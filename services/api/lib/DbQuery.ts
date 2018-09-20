@@ -1484,7 +1484,7 @@ class DbQuery {
               nextApiRequest.singleInstance,
             );
           }
-          else if ((row as ao) && (row as ao).rows) {
+          else if ((row as ao)[relationKey].rows) {
             document[relationKey].rows = this.formatRows(
               nextApiRequest,
               (row as ao)[relationKey].rows,
