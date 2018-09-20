@@ -86,10 +86,11 @@ class DbQuery {
         );
       }
       else if (this.result.rows) {
-        this.result.rows = this.formatRows(
+        this.result.documents = this.formatRows(
           this.apiRequest,
           this.result.rows,
         );
+        delete this.result.rows;
       }
     }
 
@@ -1489,7 +1490,8 @@ class DbQuery {
             );
           }
           else if (nextRows.rows) {
-            document[relationKey].rows = this.formatRows(
+            delete document[relationKey].rows;
+            document[relationKey].documents = this.formatRows(
               nextApiRequest,
               nextRows.rows,
             );
