@@ -41,6 +41,7 @@ interface KeywordAugmentations {
   readOnly?: boolean,
   noApiReturn?: boolean,
   availableForReferrers?: string[],
+  geojsonType?: string,
 
   // define other keywords...
 }
