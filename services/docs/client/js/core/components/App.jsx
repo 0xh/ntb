@@ -1,15 +1,20 @@
+import snakeCase from 'lodash/snakeCase';
 import React, { Component } from 'react';
 import { replace as routerReplace } from 'react-router-redux';
 
 import connect from 'lib/wrappedConnect';
 import fetchModels from 'core/actions/models/fetch';
 import { getPath, getQueryParams } from 'core/selectors/router';
-import { getIsFetching as getIsFetchingModels } from 'core/selectors/models';
+import {
+  getIsFetching as getIsFetchingModels,
+  getModelNames,
+} from 'core/selectors/models';
 
 import { Route } from 'react-router';
 import { Layout } from 'antd';
 
-import Main from 'modules/main';
+import About from 'modules/About';
+import Model from 'modules/Model';
 import CoreLayout from './layout/CoreLayout.jsx';
 import Loading from './layout/Loading.jsx';
 
@@ -26,6 +31,7 @@ class App extends Component {
   render() {
     const {
       isFetchingModels,
+      modelNames,
     } = this.props;
 
     if (isFetchingModels) {
@@ -41,7 +47,16 @@ class App extends Component {
     return (
       <CoreLayout>
         <div>
-          <Route exact path="/" component={Main}/>
+          <Route exact path="/" component={About}/>
+
+          {modelNames.map((modelName) => (
+            <Route
+              key={modelName}
+              exact
+              path={`/${snakeCase(modelName)}`}
+              component={Model}
+            />
+          ))}
         </div>
       </CoreLayout>
     );
@@ -53,6 +68,7 @@ const mapStateToProps = (state) => ({
   isFetchingModels: getIsFetchingModels(state),
   path: getPath(state),
   queryParams: getQueryParams(state),
+  modelNames: getModelNames(state),
 });
 
 

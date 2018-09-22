@@ -1,28 +1,38 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import { Layout } from 'antd';
+
+import TopBar from './TopBar.jsx';
+import SideMenu from './SideMenu.jsx';
+
+
+const { Content } = Layout;
 
 
 const CoreLayout = ({ children }) => (
   <Layout>
-    <Layout
-      className="page"
-      style={{ position: 'relative' }}>
-      <h1>NTB API Documentation</h1>
-      <hr />
-      { children }
+    <TopBar />
+
+    <Layout>
+      <SideMenu />
+
+      <Layout style={{ padding: '0 24px 24px' }}>
+        <Content
+          style={{
+            background: '#fff',
+            padding: 24,
+            margin: 0,
+            minHeight: 280,
+          }}
+        >
+          { children }
+        </Content>
+      </Layout>
+
     </Layout>
+
   </Layout>
 );
-
-
-CoreLayout.propTypes = {
-  children: PropTypes.oneOfType([
-    PropTypes.arrayOf(PropTypes.node),
-    PropTypes.node,
-  ]).isRequired,
-};
 
 
 export default CoreLayout;

@@ -1,8 +1,8 @@
 import { connect } from 'react-redux';
 
 
-export default (mapStateToProps = {}, actions = {}) => connect(
-  mapStateToProps,
+export default (mapStateToProps = null, actions = {}) => connect(
+  mapStateToProps || ((state) => ({})),
   actions,
   (stateProps, dispatchProps, ownProps) =>
     Object.assign({}, ownProps, stateProps, { actions: dispatchProps })
