@@ -5,6 +5,7 @@ import Document, {
   ApiConfigPerReferrer,
   ApiConfig,
 } from './Document';
+import { geojsonPolygonSchema } from './schemas';
 
 
 export default class HazardRegion extends Document {
@@ -147,9 +148,9 @@ export default class HazardRegion extends Document {
       regionId: { type: 'number' },
       regionTypeId: { type: 'number' },
       regionType: { type: 'string' },
-      geometry: { type: 'object' },
-      updatedAt: { format: 'date', readOnly: true },
-      createdAt: { format: 'date', readOnly: true },
+      geometry: { ...geojsonPolygonSchema },
+      updatedAt: { type: 'string', format: 'date', readOnly: true },
+      createdAt: { type: 'string', format: 'date', readOnly: true },
     },
   };
 

@@ -104,8 +104,8 @@ export default class Municipality extends Document {
       name: { type: 'string', minLength: 2, maxLength: 100 },
       geometry: { ...geojsonPolygonSchema },
       status: { ...documentStatusSchema },
-      updatedAt: { format: 'date', readOnly: true },
-      createdAt: { format: 'date', readOnly: true },
+      updatedAt: { type: 'string', format: 'date', readOnly: true },
+      createdAt: { type: 'string', format: 'date', readOnly: true },
     },
   };
 

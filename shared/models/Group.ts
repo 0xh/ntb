@@ -164,8 +164,8 @@ export default class Group extends Document {
       license: { type: 'string', maxLength: 300 },
       provider: { type: 'string', maxLength: 300, readOnly: true },
       status: { ...documentStatusSchema },
-      updatedAt: { format: 'date', readOnly: true },
-      createdAt: { format: 'date', readOnly: true },
+      updatedAt: { type: 'string', format: 'date', readOnly: true },
+      createdAt: { type: 'string', format: 'date', readOnly: true },
     },
   };
 

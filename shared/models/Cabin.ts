@@ -287,19 +287,16 @@ export default class Cabin extends Document {
     properties: {
       uri: { type: 'string', readOnly: true },
       id: { type: 'string', format: 'uuid', readOnly: true },
-      idLegacyNtb: { type: 'string', readOnly: true, noApiReturn: true },
       dntCabin: { type: 'boolean', default: false },
       dntDiscount: { type: 'boolean', default: false },
       name: { type: 'string', minLength: 2, maxLength: 100 },
       nameAlt: {
         type: 'array',
-        items: [
-          {
-            type: 'string',
-            minLength: 2,
-            maxLength: 100,
-          },
-        ],
+        items: {
+          type: 'string',
+          minLength: 2,
+          maxLength: 100,
+        },
       },
       description: { type: 'string', maxLength: 100000 },
       serviceLevel: { ...serviceLevelSchema },
@@ -347,7 +344,7 @@ export default class Cabin extends Document {
       yearOfConstruction: { type: 'string', maxLength: 100 },
       coordinates: { ...geojsonPointSchema },
       map: { type: 'string', maxLength: 300 },
-      mapAlt: { type: 'array', items: [{ type: 'string', maxLength: 400 }] },
+      mapAlt: { type: 'array', items: { type: 'string', maxLength: 400 } },
       license: { type: 'string', maxLength: 300 },
       provider: { type: 'string', maxLength: 300, readOnly: true },
       status: { ...documentStatusSchema },
