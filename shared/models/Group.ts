@@ -225,23 +225,31 @@ export default class Group extends Document {
         },
         groupType: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
         groupSubType: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
-        name: { type: 'text' },
+        name: {
+          type: 'text',
+          tableAttribute: 'nameLowerCase',
+          caseInsensitive: true,
+        },
         provider: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
         status: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
-        updatedAt: { type: 'text' },
-        createdAt: { type: 'text' },
+        updatedAt: { type: 'date' },
+        createdAt: { type: 'date' },
       },
     };
 

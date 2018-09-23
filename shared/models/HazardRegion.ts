@@ -176,10 +176,11 @@ export default class HazardRegion extends Document {
         id: { type: 'uuid' },
         type: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
         regionId: {
-          type: 'text',
+          type: 'number',
           filterTypes: ['=', '$in', '$nin'],
         },
       },

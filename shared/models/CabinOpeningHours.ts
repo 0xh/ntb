@@ -64,6 +64,7 @@ export default class CabinOpeningHours extends Document {
         to: { type: 'date' },
         serviceLevel: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
       },

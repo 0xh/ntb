@@ -225,17 +225,19 @@ export default class Area extends Document {
           type: 'text',
           filterTypes: ['=', '$in', '$nin'],
         },
-        name: { type: 'text' },
+        name: {
+          type: 'text',
+          tableAttribute: 'nameLowerCase',
+          caseInsensitive: true,
+        },
         provider: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
-        },
-        geometry: {
-          type: 'geojson',
-          geojsonType: 'Polygon',
         },
         status: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
         updatedAt: { type: 'date' },

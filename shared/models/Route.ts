@@ -382,6 +382,7 @@ export default class Route extends Document {
         id: { type: 'uuid' },
         type: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
         idLegacyNtbAb: {
@@ -393,19 +394,26 @@ export default class Route extends Document {
           filterTypes: ['=', '$in', '$nin'],
         },
         isWinter: { type: 'boolean' },
-        name: { type: 'text' },
+        name: {
+          type: 'text',
+          tableAttribute: 'nameLowerCase',
+          caseInsensitive: true,
+        },
         grading: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', 'null', 'notnull', '$in', '$nin'],
         },
         suitableForChildren: { type: 'boolean' },
         distance: { type: 'number' },
         provider: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
         status: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
         updatedAt: { type: 'date' },

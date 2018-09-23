@@ -220,15 +220,17 @@ export default class Picture extends Document {
         },
         cabinPictureType: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
-        name: { type: 'text' },
         provider: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
         status: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
         updatedAt: { type: 'date' },

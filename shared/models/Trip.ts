@@ -391,21 +391,29 @@ export default class Trip extends Document {
         },
         activityType: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', 'null', 'notnull', '$in', '$nin'],
         },
-        name: { type: 'text' },
+        name: {
+          type: 'text',
+          tableAttribute: 'nameLowerCase',
+          caseInsensitive: true,
+        },
         suitableForChildren: { type: 'boolean' },
         provider: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
         distance: { type: 'number' },
         direction: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', 'null', 'notnull'],
         },
         status: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
         updatedAt: { type: 'date' },

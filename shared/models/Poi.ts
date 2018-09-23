@@ -305,19 +305,22 @@ export default class Poi extends Document {
         },
         type: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', 'null', 'notnull', '$in', '$nin'],
         },
-        name: { type: 'text' },
-        coordinates: {
-          type: 'geojson',
-          geojsonType: 'Point',
+        name: {
+          type: 'text',
+          tableAttribute: 'nameLowerCase',
+          caseInsensitive: true,
         },
         provider: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
         status: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
         updatedAt: { type: 'date' },

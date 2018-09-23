@@ -68,6 +68,7 @@ export default class PoiType extends Document {
       filters: {
         name: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
       },

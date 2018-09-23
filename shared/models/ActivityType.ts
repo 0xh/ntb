@@ -111,6 +111,7 @@ export default class ActivityType extends Document {
       filters: {
         name: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
         primary: { type: 'boolean' },

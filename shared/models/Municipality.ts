@@ -135,7 +135,11 @@ export default class Municipality extends Document {
           type: 'text',
           filterTypes: ['=', '$in', '$nin'],
         },
-        name: { type: 'text' },
+        name: {
+          type: 'text',
+          tableAttribute: 'nameLowerCase',
+          caseInsensitive: true,
+        },
         status: {
           type: 'text',
           filterTypes: ['=', '$in', '$nin'],

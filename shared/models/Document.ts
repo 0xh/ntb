@@ -95,6 +95,7 @@ export interface ApiFilter {
     | 'geojson'
     | 'relationExistance';
   tableAttribute?: string;
+  caseInsensitive?: boolean;
   filterTypes?: filterType[];
   geojsonType?: 'Point' | 'LineString' | 'Polygon';
 }

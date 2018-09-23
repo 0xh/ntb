@@ -473,34 +473,34 @@ export default class Cabin extends Document {
         dntDiscount: { type: 'boolean' },
         serviceLevel: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', 'null', 'notnull', '$in', '$nin'],
         },
         serviceLevelToday: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', 'null', 'notnull', '$in', '$nin'],
         },
-        name: { type: 'text' },
+        name: {
+          type: 'text',
+          tableAttribute: 'nameLowerCase',
+          caseInsensitive: true,
+        },
         provider: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
         status: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
-        },
-        coordinates: {
-          type: 'geojson',
-          geojsonType: 'Point',
         },
         updatedAt: { type: 'date' },
         createdAt: { type: 'date' },
         'beds.today': {
           type: 'number',
           tableAttribute: 'bedsToday',
-        },
-        'htgt.publicTransport': {
-          type: 'boolean',
-          tableAttribute: 'htgtPublicTransport',
         },
         'htgt.carAllYear': {
           type: 'boolean',

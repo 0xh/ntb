@@ -91,6 +91,7 @@ export default class Facility extends Document {
       filters: {
         name: {
           type: 'text',
+          caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
       },
