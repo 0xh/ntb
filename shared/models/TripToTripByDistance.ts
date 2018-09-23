@@ -20,8 +20,8 @@ export default class TripToTripByDistance extends Document {
     },
     ordering: {
       validFields: [
-        'calculatedDistance'
+        'calculatedDistance',
       ],
     },
-  }
+  };
 }
