@@ -20,12 +20,20 @@ export const getModelNames = createSelector(
 );
 
 
-export const getModelConfig = (state, modelName) =>
-  getModels(state)[modelName].config;
+export const getModelConfig = (state, modelName) => {
+  const models = getModels(state);
+  return models[modelName] && models[modelName].config
+    ? models[modelName].config
+    : null;
+};
 
 
 export const getModelRelations = (state, modelName) =>
   getModels(state)[modelName].relations;
+
+
+export const getModelRelationNames = (state, modelName) =>
+  Object.keys(getModels(state)[modelName].relations);
 
 
 export const getModelIdColumn = (state, modelName) =>
@@ -42,6 +50,10 @@ export const getModelConfigByReferrers = (
   referrers,
 ) => {
   const modelConfig = getModelConfig(state, modelName);
+  if (!modelConfig) {
+    return null;
+  }
+
   let config;
 
   referrers.forEach((ref) => {
@@ -55,4 +67,33 @@ export const getModelConfigByReferrers = (
   }
 
   return config;
+};
+
+
+export const getRelationFilters = (
+  state,
+  modelName,
+) => {
+  const relations = getModelRelations(state, modelName);
+
+  if (!relations || !Object.keys(relations).length) {
+    return null;
+  }
+
+  const filters = {};
+
+  Object.keys(relations).forEach((relationName) => {
+    const relation = relations[relationName];
+    const relationNameKey = relation.model;
+    const referrers = [`${modelName}.${relationName}`];
+    const config = getModelConfigByReferrers(
+      state, relationNameKey, referrers
+    );
+
+    if (config && config.filters) {
+      filters[relationName] = config.filters;
+    }
+  });
+
+  return Object.keys(filters) ? filters : null;
 };

@@ -6,6 +6,7 @@ import {
 } from 'core/selectors/models';
 
 import Fields from './Fields.jsx';
+import Filters from './Filters.jsx';
 
 
 class Details extends Component {
@@ -19,6 +20,12 @@ class Details extends Component {
           single={single}
           config={config}
         />
+        {!single && (
+          <Filters
+            modelNameKey={modelNameKey}
+            config={config}
+          />
+        )}
         <pre>
           {JSON.stringify(config, null, 2)}
         </pre>

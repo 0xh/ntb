@@ -144,12 +144,7 @@ class FieldRow extends Component {
     return Object.keys(properties).map((subFieldKey) => (
       <Row
         key={subFieldKey}
-        style={{
-          backgroundColor: '#f0f0f0',
-          marginBottom: '1px',
-          marginLeft: '15px',
-          paddingLeft: '6px',
-        }}
+        className="sub-row"
       >
         <Col span={7}>| &nbsp;&nbsp;{snakeCase(subFieldKey)}</Col>
         <Col span={5}>{this.type(properties[subFieldKey])}</Col>
@@ -163,13 +158,7 @@ class FieldRow extends Component {
 
     return (
       <React.Fragment>
-        <Row
-          style={{
-            backgroundColor: '#f5f5f5',
-            marginBottom: '1px',
-            paddingLeft: '6px',
-          }}
-        >
+        <Row className="main-row">
           <Col span={7}><strong>{snakeCase(fieldKey)}</strong></Col>
           <Col span={5}>{this.type(options)}</Col>
           <Col span={4} style={{ textAlign: 'center' }}>

@@ -14,15 +14,8 @@ class Fields extends Component {
     const { schema, config } = this.props;
 
     return (
-      <div
-        style={{
-          marginTop: '32px',
-          maxWidth: '700px',
-          minWidth: '600px',
-          overflow: 'auto',
-        }}
-      >
-        <h3>Available fields</h3>
+      <div className="model-details-section">
+        <h2>Available fields</h2>
 
         <Row>
           <Col span={7}><strong>Field name</strong></Col>
