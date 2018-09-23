@@ -32,9 +32,28 @@ class FilterRow extends Component {
         return 'boolean';
       case 'number':
         return 'number';
+      case 'relationExistance':
+        return 'relation exists';
       default:
         return 'UNKNOWN';
     }
+  }
+
+  relationExistanceFilterDetails = () => {
+    const details = [];
+
+    details.push({
+      prefix: null,
+      description: 'Related document exist',
+      value: '',
+    });
+    details.push({
+      prefix: null,
+      description: 'Related document does not exist',
+      value: '!',
+    });
+
+    return details;
   }
 
   uuidFilterDetails = (filter) => {
@@ -303,6 +322,10 @@ class FilterRow extends Component {
         description = 'Supports ISO 8601 formatted dates.';
         details = this.dateFilterDetails(filter);
         break;
+      case 'relationExistance':
+        description = 'Filter whether related documents exist';
+        details = this.relationExistanceFilterDetails();
+        break;
       default:
         details = [];
         break;
@@ -334,9 +357,13 @@ class FilterRow extends Component {
   }
 
   render() {
-    const { filterKey, filter } = this.props;
+    const { filterKey, filter, prefix } = this.props;
     const { open } = this.state;
-    const filterName = filterKey.split('.').map((k) => snakeCase(k)).join('.');
+    const casedFilterKey = filterKey
+      .split('.')
+      .map((k) => snakeCase(k))
+      .join('.');
+    const filterName = `${prefix || ''}${casedFilterKey}`;
 
     return (
       <React.Fragment>

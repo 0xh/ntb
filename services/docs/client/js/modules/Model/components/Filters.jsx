@@ -1,3 +1,4 @@
+import snakeCase from 'lodash/snakeCase';
 import React, { Component } from 'react';
 
 import connect from 'lib/wrappedConnect';
@@ -27,7 +28,7 @@ class Filters extends Component {
   }
 
   render() {
-    const { config, relationFilters } = this.props;
+    const { modelNameKey, config, relationFilters } = this.props;
     const { filters } = config;
 
     // No filters
@@ -50,6 +51,35 @@ class Filters extends Component {
             />
           ))
         }
+
+        {relationFilters && (
+          <div>
+            <br />
+            <h3>Filter {modelNameKey} using related documents</h3>
+            <br />
+
+            {Object.keys(relationFilters).map((relationName) => (
+              <FilterRow
+                key={relationName}
+                filterKey={relationName}
+                filter={{
+                  type: 'relationExistance',
+                }}
+              />
+            ))}
+            <br />
+            {Object.keys(relationFilters).map((relationName) => (
+              Object.keys(relationFilters[relationName]).map((filterKey) => (
+                <FilterRow
+                  key={filterKey}
+                  filterKey={filterKey}
+                  filter={relationFilters[relationName][filterKey]}
+                  prefix={`${snakeCase(relationName)}.`}
+                />
+              ))
+            ))}
+          </div>
+        )}
         <pre>{JSON.stringify(filters, null, 2)}</pre>
         ---
         <pre>{JSON.stringify(relationFilters, null, 2)}</pre>
