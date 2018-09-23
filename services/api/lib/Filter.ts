@@ -89,16 +89,17 @@ class Filter {
   }
 
   private processUuid(): this {
+    const { filterTypes, errorTrace } = this.filterOptions;
     const value = this.getSingleStringValue();
     if (value === null) return this;
 
     // Where null
-    if (value === '') {
+    if (value === '' && (!filterTypes || filterTypes.includes('notnull'))) {
       return this.whereNotNull();
     }
 
     // Where not null
-    if (value === '!') {
+    if (value === '!' && (!filterTypes || filterTypes.includes('null'))) {
       return this.whereNull();
     }
 
@@ -108,15 +109,21 @@ class Filter {
     }
 
     // Exact match
-    this.queryFilterOptions = [{
-      whereType: 'where',
-      options: [
-        this.filterOptions.attribute as string,
-        '=',
-        value,
-      ],
-    }];
+    if (!filterTypes || filterTypes.includes('=')) {
+      this.queryFilterOptions = [{
+        whereType: 'where',
+        options: [
+          this.filterOptions.attribute as string,
+          '=',
+          value,
+        ],
+      }];
+      return this;
+    }
 
+    this.errors.push(
+      `Invalid value of '${errorTrace}'. Refer to the docs for correct usage.`,
+    );
     return this;
   }
 
@@ -126,6 +133,16 @@ class Filter {
     const error = `Invalid value of '${errorTrace}'. Invalid format.`;
 
     if (value === null) return this;
+
+    // Where null
+    if (value === '' && (!filterTypes || filterTypes.includes('notnull'))) {
+      return this.whereNotNull();
+    }
+
+    // Where not null
+    if (value === '!' && (!filterTypes || filterTypes.includes('null'))) {
+      return this.whereNull(true);
+    }
 
     // Set prefix
     type prefixType = '' | '$after' | '$between' | '$before';
@@ -208,15 +225,21 @@ class Filter {
     }
 
     // Exact match
-    this.queryFilterOptions = [{
-      whereType: 'where',
-      options: [
-        this.filterOptions.attribute as string,
-        '=',
-        date1.format(),
-      ],
-    }];
+    if (!filterTypes || filterTypes.includes('=')) {
+      this.queryFilterOptions = [{
+        whereType: 'where',
+        options: [
+          this.filterOptions.attribute as string,
+          '=',
+          date1.format(),
+        ],
+      }];
+      return this;
+    }
 
+    this.errors.push(
+      `Invalid value of '${errorTrace}'. Refer to the docs for correct usage.`,
+    );
     return this;
   }
 
@@ -232,16 +255,39 @@ class Filter {
       return this;
     }
 
-    this.queryFilterOptions = [
-      {
-        whereType: 'where',
-        options: [
-          this.filterOptions.attribute as string,
-          '=',
-          value,
-        ],
-      },
-    ];
+    if (value === 'true') {
+      this.queryFilterOptions = [
+        {
+          whereType: 'where',
+          options: [
+            this.filterOptions.attribute as string,
+            '=',
+            'true',
+          ],
+        },
+      ];
+      return this;
+    }
+
+    this.queryFilterOptions = [[
+      '$or',
+      [
+        {
+          whereType: 'where',
+          options: [
+            this.filterOptions.attribute as string,
+            '=',
+            'false',
+          ],
+        },
+        {
+          whereType: 'whereNull',
+          options: [
+            this.filterOptions.attribute as string,
+          ],
+        },
+      ],
+    ]];
 
     return this;
   }
@@ -253,6 +299,16 @@ class Filter {
     let num: number;
 
     if (value === null) return this;
+
+    // Where null
+    if (value === '' && (!filterTypes || filterTypes.includes('notnull'))) {
+      return this.whereNotNull();
+    }
+
+    // Where not null
+    if (value === '!' && (!filterTypes || filterTypes.includes('null'))) {
+      return this.whereNull();
+    }
 
     type prefixType = '$gt' | '$gte' | '$lt' | '$lte';
     let prefix: prefixType | '' = '';
@@ -269,6 +325,14 @@ class Filter {
           }
           prefix = p;
         }
+      }
+
+      if (prefix === '' && filterTypes && !filterTypes.includes('=')) {
+        this.errors.push(
+          `Invalid value of '${errorTrace}'. Equal match ` +
+          'is not supported on this field',
+        );
+        return this;
       }
 
       const rawValue = value.slice(prefix.length + 1);
@@ -321,17 +385,21 @@ class Filter {
 
   private processText(): this {
     const { filterTypes, errorTrace } = this.filterOptions;
-    const value = this.getSingleStringValue();
+    let value = this.getSingleStringValue();
     if (value === null) return this;
 
+    if (this.filterOptions.caseInsensitive) {
+      value = value.toLowerCase();
+    }
+
     // Where null
-    if (value === '') {
+    if (value === '' && (!filterTypes || filterTypes.includes('notnull'))) {
       return this.whereNotNull();
     }
 
     // Where not null
-    if (value === '!') {
-      return this.whereNull(true);
+    if (value === '!' && (!filterTypes || filterTypes.includes('null'))) {
+      return this.whereNull();
     }
 
     // In or not in list of values
@@ -364,7 +432,7 @@ class Filter {
         whereType: 'where',
         options: [
           this.filterOptions.attribute as string,
-          'ilike',
+          'like',
           `%${value.slice(1)}%`,
         ],
       }];
@@ -377,7 +445,7 @@ class Filter {
         whereType: 'where',
         options: [
           this.filterOptions.attribute as string,
-          'ilike',
+          'like',
           `%${value.slice(1)}`,
         ],
       }];
@@ -390,7 +458,7 @@ class Filter {
         whereType: 'where',
         options: [
           this.filterOptions.attribute as string,
-          'ilike',
+          'like',
           `${value.slice(1)}%`,
         ],
       }];
@@ -411,15 +479,21 @@ class Filter {
     }
 
     // Exact match
-    this.queryFilterOptions = [{
-      whereType: 'where',
-      options: [
-        this.filterOptions.attribute as string,
-        'ilike',
-        value,
-      ],
-    }];
+    if (!filterTypes || filterTypes.includes('=')) {
+      this.queryFilterOptions = [{
+        whereType: 'where',
+        options: [
+          this.filterOptions.attribute as string,
+          '=',
+          value,
+        ],
+      }];
+      return this;
+    }
 
+    this.errors.push(
+      `Invalid value of '${errorTrace}'. Refer to the docs for correct usage.`,
+    );
     return this;
   }
 
@@ -584,10 +658,10 @@ class Filter {
     }
 
     if (Array.isArray(values)) {
-      return values[0].trim().toLowerCase();
+      return values[0].trim();
     }
 
-    return values.trim().toLowerCase();
+    return values.trim();
   }
 
   private getSingleStringOrNumberValue(
