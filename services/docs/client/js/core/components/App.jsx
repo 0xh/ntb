@@ -1,6 +1,8 @@
 import snakeCase from 'lodash/snakeCase';
 import React, { Component } from 'react';
 import { replace as routerReplace } from 'react-router-redux';
+import { Route, withRouter } from 'react-router';
+import { Layout } from 'antd';
 
 import connect from 'lib/wrappedConnect';
 import fetchModels from 'core/actions/models/fetch';
@@ -9,9 +11,6 @@ import {
   getIsFetching as getIsFetchingModels,
   getModelNames,
 } from 'core/selectors/models';
-
-import { Route } from 'react-router';
-import { Layout } from 'antd';
 
 import About from 'modules/About';
 import Model from 'modules/Model';
@@ -26,6 +25,12 @@ class App extends Component {
   componentDidMount() {
     const { actions } = this.props;
     actions.fetchModels();
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.props.location !== prevProps.location) {
+      window.scrollTo(0, 0);
+    }
   }
 
   render() {
@@ -72,10 +77,10 @@ const mapStateToProps = (state) => ({
 });
 
 
-const ConnectedComponent = connect(
+const ConnectedComponent = withRouter(connect(
   mapStateToProps,
   { routerReplace, fetchModels }
-)(App);
+)(App));
 
 
 export default ConnectedComponent;

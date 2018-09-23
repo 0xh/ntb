@@ -38,6 +38,7 @@ class Filters extends Component {
 
     return (
       <div className="model-details-section">
+        <hr />
         <h2>Filters</h2>
 
         {
