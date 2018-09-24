@@ -45,7 +45,7 @@ class Relations extends Component {
                 limit in your apps configuration screen.
               </p>
               <p>
-                <a href="/help/max-depth">Read more about it here.</a>
+                <a href="/concepts/relation-depth">Read more about it here.</a>
               </p>
             </React.Fragment>
           }
@@ -57,7 +57,9 @@ class Relations extends Component {
         {!isMaxLevel && (
           <Row>
             <Col span={16}>&nbsp;</Col>
-            <Col span={4}>Default in fields</Col>
+            <Col span={4} style={{ textAlign: 'center' }}>
+              <strong>*default</strong>
+            </Col>
           </Row>
         )}
 

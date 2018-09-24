@@ -70,7 +70,11 @@ class Relations extends Component {
             onClose={this.onClose}
             visible={drawerOpen}
           >
-            <h2>{nextTitlePrefix}</h2>
+            <h2>
+              <Icon type="right-circle" theme="twoTone" />
+              &nbsp;
+              {nextTitlePrefix}
+            </h2>
             <h1>{relation.model}</h1>
 
             <Details

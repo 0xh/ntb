@@ -341,7 +341,7 @@ class FilterRow extends Component {
             <Col span={12}><em>Example</em></Col>
           </Row>
           {details.map((detail, idx) => (
-            <Row key={idx} className="sublte-row">
+            <Row key={idx} className="subtle-row">
               <Col span={8}>{detail.description}</Col>
               <Col span={4}>{detail.prefix}</Col>
               <Col span={12}>

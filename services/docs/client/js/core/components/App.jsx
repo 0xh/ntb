@@ -13,6 +13,7 @@ import {
 } from 'core/selectors/models';
 
 import About from 'modules/About';
+import Concepts from 'modules/Concepts';
 import Model from 'modules/Model';
 import CoreLayout from './layout/CoreLayout.jsx';
 import Loading from './layout/Loading.jsx';
@@ -53,6 +54,7 @@ class App extends Component {
       <CoreLayout>
         <div>
           <Route exact path="/" component={About}/>
+          <Route path="/concepts" component={Concepts}/>
 
           {modelNames.map((modelName) => (
             <Route

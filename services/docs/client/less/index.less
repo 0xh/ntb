@@ -27,11 +27,16 @@ body {
   }
 }
 
-.model-details-section {
-  margin-top: 32px;
+.content {
   max-width: 700px;
   min-width: 600px;
   overflow: auto;
+}
+
+
+.model-details-section {
+  &:extend(.content);
+  margin-top: 32px;
 }
 
 .main-row {
@@ -52,7 +57,7 @@ body {
   padding-bottom: 10px;
 }
 
-.sublte-row {
+.subtle-row {
   border-bottom: 1px solid #ccc;
 }
 
@@ -60,6 +65,24 @@ body {
   margin: 0;
 }
 
-.document-description {
+.leading {
   font-size: 1.2em;
+}
+
+.concept {
+  pre {
+    display: inline;
+    margin: 0;
+    color: @highlight-color;
+  }
+
+  h2 {
+    margin-top: 2em;
+  }
+}
+
+.code-snippet {
+  display: inline;
+  font-family: @code-family;
+  color: @highlight-color;
 }

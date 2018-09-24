@@ -46,17 +46,19 @@ class Details extends Component {
 
     return (
       <div>
-        <Alert
-          message={resultInfo}
-          type="success"
-          showIcon
-          iconType={resultInfoIcon}
-        />
+        <div className="content">
+          <Alert
+            message={resultInfo}
+            type="success"
+            showIcon
+            iconType={resultInfoIcon}
+          />
+        </div>
 
         {modelDescription && (
           <div className="model-details-section">
             {modelDescription.split('\n\n').map((section, idx) => (
-              <p className="document-description" key={idx}>{section}</p>
+              <p className="leading" key={idx}>{section}</p>
             ))}
           </div>
         )}
