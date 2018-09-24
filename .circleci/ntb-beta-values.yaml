@@ -9,7 +9,7 @@ containerName: ntb
 
 image:
   name: "eu.gcr.io/dnt-docker-registry-public/ntb"
-  tag: "ntb-da66245d2"
+  tag: "ntb-cfa8bd6d7"
   imagePullPolicy: "Always"
 
 environment:
