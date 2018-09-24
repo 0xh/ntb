@@ -39,6 +39,7 @@ export default class TripLink extends Document {
     },
   };
 
+  static extraIncludeInDocs = true;
 
   static getApiConfigPerReferrer(): ApiConfigPerReferrer {
     // Configuration when it's the entry model

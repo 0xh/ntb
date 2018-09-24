@@ -44,6 +44,9 @@ export default class CabinOpeningHours extends Document {
   };
 
 
+  static extraIncludeInDocs = true;
+
+
   static getApiConfigPerReferrer(): ApiConfigPerReferrer {
     // Configuration when it's the entry model
     const standard: ApiConfig = {

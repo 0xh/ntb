@@ -151,6 +151,7 @@ export default abstract class Document extends Model {
   static jsonSchema: JsonSchema;
   static relationMappings: RelationMappings | (() => RelationMappings);
   static apiEntryModel: boolean = false;
+  static extraIncludeInDocs: boolean = false;
   static geometryAttributes: string[] = [];
   static apiConfig?: ApiConfigJoinTable;
 
