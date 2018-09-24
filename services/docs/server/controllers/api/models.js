@@ -11,7 +11,7 @@ router.get('/', (req, res, next) => {
   const data = {};
 
   Object.values(models)
-    .filter((model) => model.apiEntryModel)
+    .filter((model) => model.apiEntryModel || model.extraIncludeInDocs)
     .forEach((model) => {
       const relations = {};
       Object.keys(model.relationMappings || {}).forEach((relationKey) => {
@@ -41,6 +41,7 @@ router.get('/', (req, res, next) => {
       data[model.name] = {
         relations,
         idColumn: model.idColumn,
+        apiEntryModel: !!model.apiEntryModel,
         config: model.getApiConfigPerReferrer(),
         schema: model.jsonSchema,
         modelDescription: modelDescription || null,

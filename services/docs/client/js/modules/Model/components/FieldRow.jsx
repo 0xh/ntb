@@ -81,7 +81,6 @@ class FieldRow extends Component {
       case 'array.object':
         return <span>array of objects</span>;
       case 'array':
-          console.log('ARRAY', options);  // eslint-disable-line
         return <span>array</span>;
       case 'boolean':
         return <span>boolean</span>;
@@ -92,7 +91,6 @@ class FieldRow extends Component {
       case 'object.subkeys':
         return <span>object</span>;
       default:
-        console.log('UNKNOWN', options);  // eslint-disable-line
         return <em title={typeKey}>UNKNOWN</em>;
     }
   };

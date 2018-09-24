@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Row, Col } from 'antd';
+import { Row, Col, Divider } from 'antd';
 
 import connect from 'lib/wrappedConnect';
 import {
@@ -15,6 +15,7 @@ class Fields extends Component {
 
     return (
       <div className="model-details-section">
+        <Divider />
         <h2>Available fields</h2>
 
         <Row>

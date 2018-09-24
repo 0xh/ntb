@@ -1,5 +1,6 @@
 import snakeCase from 'lodash/snakeCase';
 import React, { Component } from 'react';
+import { Divider } from 'antd';
 
 import connect from 'lib/wrappedConnect';
 import {
@@ -38,7 +39,7 @@ class Filters extends Component {
 
     return (
       <div className="model-details-section">
-        <hr />
+        <Divider />
         <h2>Filters</h2>
 
         {
@@ -81,9 +82,6 @@ class Filters extends Component {
             ))}
           </div>
         )}
-        <pre>{JSON.stringify(filters, null, 2)}</pre>
-        ---
-        <pre>{JSON.stringify(relationFilters, null, 2)}</pre>
       </div>
     );
   }

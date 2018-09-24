@@ -16,7 +16,7 @@ export const getModels = (state) => state['core/models'].data;
 
 export const getModelNames = createSelector(
   getModels,
-  (models) => Object.keys(models || {})
+  (models, onlyEntryModels) => Object.keys(models || {})
 );
 
 
@@ -38,6 +38,21 @@ export const getModelRelationNames = (state, modelName) =>
 
 export const getModelIdColumn = (state, modelName) =>
   getModels(state)[modelName].idColumn;
+
+
+export const getModelDescription = (state, modelName) =>
+  getModels(state)[modelName].modelDescription;
+
+
+export const getModelIsEntry = (state, modelName) =>
+  getModels(state)[modelName].apiEntryModel;
+
+
+export const getEntryModelNames = (state) => (
+  Object.keys(getModels(state)).filter(
+    (n) => getModels(state)[n].apiEntryModel
+  )
+);
 
 
 export const getModelSchema = (state, modelName) =>

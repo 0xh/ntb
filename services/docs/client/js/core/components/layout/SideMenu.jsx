@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { Layout, Menu, Icon } from 'antd';
 
 import connect from 'lib/wrappedConnect';
-import { getModelNames } from 'core/selectors/models';
+import { getEntryModelNames } from 'core/selectors/models';
 
 
 const { Sider } = Layout;
@@ -44,7 +44,7 @@ class SideMenu extends Component {
                 key={modelName}
               >
                 <Link
-                  to={`/${snakeCase(modelName)}`}
+                  to={`/document/${snakeCase(modelName)}`}
                 >
                   {modelName}
                 </Link>
@@ -59,7 +59,7 @@ class SideMenu extends Component {
 
 
 const mapStateToProps = (state) => ({
-  modelNames: getModelNames(state),
+  modelNames: getEntryModelNames(state),
 });
 
 

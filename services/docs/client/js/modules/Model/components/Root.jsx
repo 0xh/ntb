@@ -1,12 +1,12 @@
 import camelCase from 'lodash/camelCase';
 import upperFirst from 'lodash/upperFirst';
 import React, { Component } from 'react';
-import { Radio } from 'antd';
 import { autobind } from 'core-decorators';
 
 import connect from 'lib/wrappedConnect';
 import { getPath } from 'core/selectors/router';
 
+import ListOrSingleSelector from './ListOrSingleSelector.jsx';
 import Details from './Details.jsx';
 
 
@@ -30,31 +30,27 @@ class Root extends Component {
   render() {
     const { path } = this.props;
     const { referrers, single } = this.state;
-    const modelName = path.slice(1);
+    const modelName = path.slice(10);
     const modelNameKey = upperFirst(camelCase(modelName));
 
     return (
       <div>
         <h1>{modelNameKey}</h1>
 
-        <Radio.Group value={referrers} onChange={this.setReferres}>
-          <Radio.Button value="*list">
-            <strong>/{modelName}/</strong>
-            &nbsp;
-            <small><em>list of documents</em></small>
-          </Radio.Button>
-          <Radio.Button value="*single">
-            <strong>/{modelName}/&lt;id&gt;</strong>
-            &nbsp;
-            <small><em>single document</em></small>
-          </Radio.Button>
-        </Radio.Group>
+        <ListOrSingleSelector
+          modelName={modelName}
+          modelNameKey={modelNameKey}
+          referrers={referrers}
+          setReferres={this.setReferres}
+        />
 
+        <p>&nbsp;</p>
         <Details
           modelName={modelName}
           modelNameKey={modelNameKey}
           referrers={[referrers]}
           single={single}
+          level={0}
         />
       </div>
     );
@@ -62,7 +58,7 @@ class Root extends Component {
 }
 
 
-const mapStateToProps = (state) => ({
+const mapStateToProps = (state, ownProps) => ({
   path: getPath(state),
 });
 

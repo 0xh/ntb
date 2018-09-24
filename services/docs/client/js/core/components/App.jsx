@@ -9,7 +9,7 @@ import fetchModels from 'core/actions/models/fetch';
 import { getPath, getQueryParams } from 'core/selectors/router';
 import {
   getIsFetching as getIsFetchingModels,
-  getModelNames,
+  getEntryModelNames,
 } from 'core/selectors/models';
 
 import About from 'modules/About';
@@ -58,7 +58,7 @@ class App extends Component {
             <Route
               key={modelName}
               exact
-              path={`/${snakeCase(modelName)}`}
+              path={`/document/${snakeCase(modelName)}`}
               component={Model}
             />
           ))}
@@ -73,7 +73,7 @@ const mapStateToProps = (state) => ({
   isFetchingModels: getIsFetchingModels(state),
   path: getPath(state),
   queryParams: getQueryParams(state),
-  modelNames: getModelNames(state),
+  modelNames: getEntryModelNames(state, true),
 });
 
 
