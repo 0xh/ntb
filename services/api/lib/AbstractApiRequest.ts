@@ -163,7 +163,7 @@ abstract class AbstractApiRequest {
       .setValidFilters()
       .setValidKeys()
       .processRequestObject()
-      .setAndValidateLangauge()
+      .setAndValidateLanguage()
       .setAndValidateFullTextQuery()
       .setAndValidateFilters()
       .setAndValidateLimitAndOffset()
@@ -354,7 +354,7 @@ abstract class AbstractApiRequest {
     return this;
   }
 
-  private setAndValidateLangauge(): this {
+  private setAndValidateLanguage(): this {
     const requestParameter = this.requestParameters.language;
     if (requestParameter) {
       let value = this.processLanguageValue(
