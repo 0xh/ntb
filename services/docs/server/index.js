@@ -84,10 +84,12 @@ if (useRaven) {
 // Fallthrough error handler
 app.use((err, req, res, next) => {
   res.statusCode = 500;
-  if (environment.production) {
+  if (useRaven) {
     res.end(res.sentry);
   }
   else {
+    console.log('**** ERROR ***');
+    console.log(err);
     next(err);
   }
 });
