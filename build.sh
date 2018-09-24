@@ -27,8 +27,11 @@ echo "Running webpack for services/docs"
 echo "Building typescript"
 ./node_modules/.bin/tsc --outDir ../
 
-echo "Moving node_modules"
-cd .. && mv __compile/node_modules/ node_modules
+echo "Moving node_modules, assets and templates"
+cd ..
+mv __compile/node_modules/ node_modules
+mv __compile/services/docs/assets/ services/docs/assets
+mv __compile/services/docs/templates/ services/docs/templates
 
 echo "Removing __compile directory"
 rm -rf __compile
