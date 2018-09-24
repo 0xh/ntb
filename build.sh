@@ -21,6 +21,9 @@ cp yarn.lock build/__compile
 echo "Bootstrapp using Lerna"
 cd build/__compile && lerna bootstrap
 
+echo "Running webpack for services/docs"
+./node_modules/.bin/webpack -p --env.production --config services/docs/client/webpack.config.js
+
 echo "Building typescript"
 ./node_modules/.bin/tsc --outDir ../
 
