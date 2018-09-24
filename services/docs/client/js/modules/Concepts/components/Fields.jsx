@@ -8,7 +8,7 @@ const Fields = () => (
   <div>
     <h1>Fields</h1>
     <p className="leading">
-      Which document fields is returned from the API is controlled by the
+      Which document fields are returned from the API is controlled by the
       <C>fields</C> parameter. Any fields with null values
       (for each document) will be stripped away.
     </p>
