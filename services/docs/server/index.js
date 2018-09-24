@@ -68,9 +68,10 @@ nunjucksEnvironment
   .addGlobal('IS_PRODUCTION', environment.ifProduction(true, false))
   .addGlobal('IS_DEVELOPMENT', environment.ifDevelopment(true, false));
 
-version.promise.then((tag) => {
-  nunjucksEnvironment.addGlobal('VERSION', tag);
-}).catch(() => {});
+nunjucksEnvironment.addGlobal('VERSION', version.tag);
+// version.promise.then((tag) => {
+//   nunjucksEnvironment.addGlobal('VERSION', tag);
+// }).catch(() => {});
 
 // Set the base router
 app.use('/', controllers);

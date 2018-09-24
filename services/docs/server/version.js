@@ -1,22 +1,23 @@
-'use strict'
+'use strict';
 
-const fs = require('fs')
-
-
-const version = {tag: 'unknown'}
-
-version.promise = new Promise((resolve, reject) => {
-  fs.readFile(`${__dirname}/version-tag`, {encoding: 'utf-8'}, (err, data) => {
-    if (err) {
-      console.log('UNABLE TO READ VERSION FILE')
-      console.log(err)
-      reject()
-    } else {
-      version.tag = data.trim()
-      resolve(version.tag)
-    }
-  })
-})
+const fs = require('fs');
 
 
-module.exports = version
+const version = { tag: 'unknown' };
+
+// version.promise = new Promise((resolve, reject) => {
+//   resolve('version file mission');
+//   // fs.readFileSync(`${__dirname}/version-tag`, {encoding: 'utf-8'}, (err, data) => {
+//   //   if (err) {
+//   //     console.log('UNABLE TO READ VERSION FILE')
+//   //     console.log(err)
+//   //     reject()
+//   //   } else {
+//   //     version.tag = data.trim()
+//   //     resolve(version.tag)
+//   //   }
+//   // })
+// })
+
+
+module.exports = version;
