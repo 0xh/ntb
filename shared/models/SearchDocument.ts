@@ -12,7 +12,7 @@ export type searchDocumentType =
 
 
 export default class SearchDocument extends Document {
-  static tableName = 'searchDocument';
+  static tableName = 'searchDocuments';
   static idColumn = 'id';
 
   // Database columns
