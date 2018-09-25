@@ -299,6 +299,7 @@ export default class Cabin extends Document {
         },
       },
       description: { type: 'string', maxLength: 100000 },
+      descriptionPlain: { type: 'string', readOnly: true },
       serviceLevel: { ...serviceLevelSchema },
       serviceLevelToday: { ...serviceLevelSchema },
       contact: {

@@ -255,6 +255,7 @@ export default class Poi extends Document {
       type: { type: 'string', maxLength: 100 },
       name: { type: 'string', minLength: 2, maxLength: 100 },
       description: { type: 'string', maxLength: 100000 },
+      descriptionPlain: { type: 'string', readOnly: true },
       coordinates: { ...geojsonPointSchema },
       season: {
         type: 'array',

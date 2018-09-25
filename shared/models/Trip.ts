@@ -268,6 +268,7 @@ export default class Trip extends Document {
       activityType: { type: 'string', maxLength: 100 },
       name: { type: 'string', minLength: 2, maxLength: 100 },
       description: { type: 'string', maxLength: 100000 },
+      descriptionPlain: { type: 'string', readOnly: true },
       url: { type: 'string', maxLength: 100 },
       grading: { ...gradingSchema },
       suitableForChildren: { type: 'boolean', default: false },
