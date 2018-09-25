@@ -29,9 +29,9 @@ interface RankRow {
   [key: string]: string | number;
 }
 interface ApiResult {
-  selected: documentType;
-  counts?: Counts;
-  documents?: DbQueryResult;
+  counts: Counts;
+  selected?: documentType;
+  documents?: DbQueryResult | null;
 }
 
 /**
