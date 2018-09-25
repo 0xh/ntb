@@ -404,6 +404,11 @@ export default class Trip extends Document {
           tableAttribute: 'nameLowerCase',
           caseInsensitive: true,
         },
+        grading: {
+          type: 'text',
+          caseInsensitive: true,
+          filterTypes: ['=', 'null', 'notnull', '$in', '$nin'],
+        },
         suitableForChildren: { type: 'boolean' },
         startingPoint: { type: 'geojson' },
         provider: {
