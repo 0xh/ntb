@@ -295,6 +295,10 @@ export default class Poi extends Document {
       },
       filters: {
         id: { type: 'uuid' },
+        shortId: {
+          type: 'short-uuid',
+          tableAttribute: 'id',
+        },
         idLegacyNtb: {
           type: 'text',
           filterTypes: ['=', '$in', '$nin'],

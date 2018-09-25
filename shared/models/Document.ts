@@ -90,6 +90,7 @@ export interface ApiFilter {
     | 'text'
     | 'number'
     | 'uuid'
+    | 'short-uuid'
     | 'boolean'
     | 'date'
     | 'geojson'
