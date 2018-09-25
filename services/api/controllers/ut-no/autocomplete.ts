@@ -69,7 +69,7 @@ async function searchDb(q: string): Promise<ao> {
       model = Poi;
     }
 
-    const document = await getDocument(model, q);
+    const document = await getDocument(model, q, exact);
     if (document) {
       data.document = document;
     }
@@ -79,13 +79,13 @@ async function searchDb(q: string): Promise<ao> {
 }
 
 
-async function getDocument(model: modelType, q: string) {
+async function getDocument(model: modelType, q: string, documentType: string) {
   const requestObject = {
     limit: 1,
     filters: [
       ['name', q],
     ],
-    fields: ['id', 'name'],
+    fields: ['id', 'name', 'description_plain'],
   };
   const apiRequest = new ApiStructuredRequest(model, requestObject);
   apiRequest.verify();
@@ -104,7 +104,20 @@ async function getDocument(model: modelType, q: string) {
     return null;
   }
 
-  return result.documents[0];
+  const document = {
+    ...result.documents[0],
+    document_type: documentType,
+  };
+
+  if (result.documents[0].description_plain) {
+    const plain = result.documents[0].description_plain;
+    document.description = plain.slice(0, 150);
+    document.description_complete =
+      !(document.description.length < plain.length);
+    delete document.description_plain;
+  }
+
+  return document;
 }
 
 
