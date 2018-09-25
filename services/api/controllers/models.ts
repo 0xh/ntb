@@ -3,7 +3,6 @@ import uuidValidate from 'uuid-validate';
 import { _ } from '@ntb/utils';
 import {
   express,
-  morgan,
   Request as ExpressRequest,
 } from '@ntb/web-server-utils';
 import * as models from '@ntb/models';
@@ -112,10 +111,6 @@ function createModelRouter(model: typeof models.Document) {
 
   return modelRouter;
 }
-
-
-// Access logs
-router.use(morgan('combined'));
 
 
 // Add entry models
