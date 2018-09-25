@@ -496,6 +496,7 @@ export default class Cabin extends Document {
           caseInsensitive: true,
           filterTypes: ['=', '$in', '$nin'],
         },
+        coordinates: { type: 'geojson' },
         updatedAt: { type: 'date' },
         createdAt: { type: 'date' },
         'beds.today': {

@@ -313,6 +313,7 @@ export default class Poi extends Document {
           tableAttribute: 'nameLowerCase',
           caseInsensitive: true,
         },
+        coordinates: { type: 'geojson' },
         provider: {
           type: 'text',
           caseInsensitive: true,

@@ -400,6 +400,7 @@ export default class Trip extends Document {
           caseInsensitive: true,
         },
         suitableForChildren: { type: 'boolean' },
+        startingPoint: { type: 'geojson' },
         provider: {
           type: 'text',
           caseInsensitive: true,
