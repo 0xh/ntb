@@ -16,11 +16,7 @@
     "no-unused-variable": false,
     "ter-arrow-parens": [true, "always"],
     "brace-style": [2, "stroustrup", { "allowSingleLine": true }],
-    "import-name": [ true, {
-      "lodash": "_",
-      "knex": "Knex",
-      "v4": "uuid4"
-    }]
+    "import-name": [false]
   },
   "rulesDirectory": [
     "node_modules/tslint-origin-ordered-imports-rule/dist",
