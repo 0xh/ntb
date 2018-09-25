@@ -3,6 +3,7 @@ import * as lodash from 'lodash';
 import _moment from 'moment';
 import _uuid4 from 'uuid/v4';
 import _fetch from 'isomorphic-fetch';
+import shortUuid from 'short-uuid';
 
 
 export { default as Logger } from './Logger';
@@ -22,6 +23,8 @@ export const _ = lodash;
 export const fetch = _fetch;
 export const moment = _moment;
 export const uuid4 = _uuid4;
+
+export const uuidTranslator = shortUuid(shortUuid.constants.flickrBase58);
 
 /**
  * Starts a duration timer. Returns the duration id
