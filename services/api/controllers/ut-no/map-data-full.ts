@@ -64,7 +64,7 @@ async function createResult(
     const key = row.coordinates ? 'coordinates' : 'starting_point';
     const line = [
       uuidTranslator.fromUUID(row.id),
-      row[key].coordinates,
+      row[key].coordinates.map((c: number) => c.toFixed(6)).join(','),
     ];
 
     // Icon
