@@ -24,6 +24,8 @@ class FilterRow extends Component {
     switch (options.type) {
       case 'uuid':
         return 'uuid';
+      case 'short-uuid':
+        return 'short-uuid';
       case 'text':
         return 'text';
       case 'date':
@@ -229,6 +231,18 @@ class FilterRow extends Component {
     return details;
   }
 
+  shortUuidFilterDetails = (filter) => {
+    const details = [];
+
+    details.push({
+      prefix: null,
+      description: 'Equal',
+      value: 'qFVik33mgjCvyJfpj8SS3R',
+    });
+
+    return details;
+  }
+
   textFilterDetails = (filter) => {
     const details = [];
     const { filterTypes } = filter;
@@ -247,10 +261,12 @@ class FilterRow extends Component {
         value: '!',
       });
     }
-    details.push({
-      prefix: null,
-      description: 'Equal',
-    });
+    if (!filterTypes || filterTypes.includes('=')) {
+      details.push({
+        prefix: null,
+        description: 'Equal',
+      });
+    }
     if (!filterTypes || filterTypes.includes('!')) {
       details.push({
         prefix: '!',
@@ -311,6 +327,9 @@ class FilterRow extends Component {
       }
       case 'uuid':
         details = this.uuidFilterDetails(filter);
+        break;
+      case 'short-uuid':
+        details = this.shortUuidFilterDetails(filter);
         break;
       case 'number':
         details = this.numberFilterDetails(filter);
