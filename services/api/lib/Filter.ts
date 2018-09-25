@@ -45,6 +45,10 @@ class Filter {
       this.processText();
       return;
     }
+    if (filterOptions.type === 'geojson') {
+      this.processGeojson();
+      return;
+    }
 
     // filterOptions.type;
     throw new Error('Unsupported filter type');
@@ -489,6 +493,27 @@ class Filter {
         ],
       }];
       return this;
+    }
+
+    this.errors.push(
+      `Invalid value of '${errorTrace}'. Refer to the docs for correct usage.`,
+    );
+    return this;
+  }
+
+  private processGeojson(): this {
+    const { filterTypes, errorTrace } = this.filterOptions;
+    const value = this.getSingleStringValue();
+    if (value === null) return this;
+
+    // Where null
+    if (value === '' && (!filterTypes || filterTypes.includes('notnull'))) {
+      return this.whereNotNull();
+    }
+
+    // Where not null
+    if (value === '!' && (!filterTypes || filterTypes.includes('null'))) {
+      return this.whereNull();
     }
 
     this.errors.push(
