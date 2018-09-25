@@ -1,6 +1,6 @@
 import uuidValidate from 'uuid-validate';
 
-import { _ } from '@ntb/utils';
+import { _, uuidTranslator } from '@ntb/utils';
 import {
   express,
   Request as ExpressRequest,
@@ -54,7 +54,7 @@ async function verifyAndExecute(
 function createModelRouter(model: typeof models.Document) {
   const modelRouter = Router();
 
-  // Find specific document
+  // Find specific document using id
   modelRouter.get('/:id', expressAsyncHandler(async (req, res, next) => {
     if (Array.isArray(model.idColumn)) {
       throw new Error('Multi column identifiers are not supported here');
@@ -72,6 +72,37 @@ function createModelRouter(model: typeof models.Document) {
     }
 
     const data = await verifyAndExecute(model, req.query, 'query', id);
+
+    if (data === null) {
+      res.status(404).json({ error: 'Not found' });
+    }
+    else {
+      return res.json(data);
+    }
+  }));
+
+  // Find specific document using short-uuid
+  modelRouter.get('/:shortId', expressAsyncHandler(async (req, res, next) => {
+    if (Array.isArray(model.idColumn)) {
+      throw new Error('Multi column identifiers are not supported here');
+    }
+
+    const { shortId } = req.params;
+    // Skip if model does not have a jsonSchema
+    if (!model.idColumnType || model.idColumnType !== 'uuid') {
+      return next();
+    }
+
+    // Validate short-uuid
+    let uuid = '';
+    try {
+      uuid = uuidTranslator.toUUID(shortId);
+    }
+    catch (e) {
+      return next();
+    }
+
+    const data = await verifyAndExecute(model, req.query, 'query', uuid);
 
     if (data === null) {
       res.status(404).json({ error: 'Not found' });
