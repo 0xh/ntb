@@ -172,12 +172,12 @@ abstract class AbstractApiRequest {
       .setAndValidateFields()
       .validateInvalidRelationReferences();
 
-    // Abort if an error has occured up until this point
+    // Abort if an error has occurred up until this point
     if (this.errors.length) return this;
 
     this.processRelationRequests();
 
-    // Abort if an error has occured up until this point
+    // Abort if an error has occurred up until this point
     if (this.errors.length) return this;
 
     this.setAttributes();
@@ -432,7 +432,10 @@ abstract class AbstractApiRequest {
     if (!this.requestFilters) return this;
     const queryFilters = this.processFilters(this.requestFilters);
     if (queryFilters !== null) {
-      this.queryOptions.filters = queryFilters;
+      this.queryOptions.filters = [
+        ...this.queryOptions.filters,
+        ...queryFilters,
+      ];
     }
     return this;
   }
