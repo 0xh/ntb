@@ -1,6 +1,6 @@
 import uuidValidate from 'uuid-validate';
 
-import { moment, isNumber } from '@ntb/utils';
+import { moment, isNumber, uuidTranslator } from '@ntb/utils';
 
 import {
   FilterOptions,
@@ -27,6 +27,10 @@ class Filter {
     }
     if (filterOptions.type === 'uuid') {
       this.processUuid();
+      return;
+    }
+    if (filterOptions.type === 'short-uuid') {
+      this.processShortUuid();
       return;
     }
     if (filterOptions.type === 'date') {
@@ -120,6 +124,40 @@ class Filter {
           this.filterOptions.attribute as string,
           '=',
           value,
+        ],
+      }];
+      return this;
+    }
+
+    this.errors.push(
+      `Invalid value of '${errorTrace}'. Refer to the docs for correct usage.`,
+    );
+    return this;
+  }
+
+  private processShortUuid(): this {
+    const { errorTrace } = this.filterOptions;
+    const value = this.getSingleStringValue();
+    if (value === null) return this;
+
+    if (value) {
+      let uuid = '';
+      try {
+        uuid = uuidTranslator.toUUID(value);
+      }
+      catch (e) {
+        this.errors.push(
+          `Invalid value of '${errorTrace}'. Not valid short-uuid`,
+        );
+        return this;
+      }
+
+      this.queryFilterOptions = [{
+        whereType: 'where',
+        options: [
+          this.filterOptions.attribute as string,
+          '=',
+          uuid,
         ],
       }];
       return this;
