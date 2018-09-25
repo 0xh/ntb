@@ -418,6 +418,14 @@ export default class Route extends Document {
         },
         updatedAt: { type: 'date' },
         createdAt: { type: 'date' },
+        'duration.hours': {
+          type: 'number',
+          tableAttribute: 'durationHours',
+        },
+        'duration.days': {
+          type: 'number',
+          tableAttribute: 'durationDays',
+        },
       },
       fullFields: [
         'uri',
