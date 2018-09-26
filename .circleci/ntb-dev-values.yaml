@@ -188,15 +188,39 @@ cronJobs:
   - name: cron-16
     schedule: "*/3 * * * *" # Every 3 minutes
     startingDeadlineSeconds: 400
-    concurrencyPolicy: Forbid # or Forbid or Allow
+    concurrencyPolicy: Forbid # or Replace or Allow
     cloudsqlProxy: true # add a cloudsql proxy container
     command: node cronjobs/16-process-trip-path-buffer/index.js
   - name: cron-17
     schedule: "*/3 * * * *" # Every 3 minutes
     startingDeadlineSeconds: 400
-    concurrencyPolicy: Forbid # or Forbid or Allow
+    concurrencyPolicy: Forbid # or Replace or Allow
     cloudsqlProxy: true # add a cloudsql proxy container
     command: node cronjobs/17-process-geometry-relations/index.js
+  # - name: cron-18
+  #   schedule: "SOME SCHEDULE" # Every 3 minutes
+  #   startingDeadlineSeconds: 400
+  #   concurrencyPolicy: Forbid # or Forbid or Allow
+  #   cloudsqlProxy: true # add a cloudsql proxy container
+  #   command: node cronjobs/18-generate-mapbox-tiles/index.js
+  - name: cron-19
+    schedule: "10 * * * *" # 10 minutes past every hour
+    startingDeadlineSeconds: 400
+    concurrencyPolicy: Forbid # or Replace or Allow
+    cloudsqlProxy: true # add a cloudsql proxy container
+    command: node cronjobs/19-remove-stale-temp-tables/index.js
+  - name: cron-20
+    schedule: "2-59/10 * * * *" # Every 10 minutes, with 2 minute offset
+    startingDeadlineSeconds: 400
+    concurrencyPolicy: Forbid # or Replace or Allow
+    cloudsqlProxy: true # add a cloudsql proxy container
+    command: node cronjobs/20-cabin-service-level-and-beds/index.js
+  - name: cron-21
+    schedule: "*/10 * * * *" # Every 10 minutes
+    startingDeadlineSeconds: 400
+    concurrencyPolicy: Forbid # or Replace or Allow
+    cloudsqlProxy: true # add a cloudsql proxy container
+    command: node cronjobs/21-generate-unique-names/index.js
 
 service:
   api:
