@@ -86,7 +86,11 @@ async function generateUniqueNamesForType(
     FROM (
       SELECT
         x.name_lower_case,
-        array_agg(x.id::TEXT) ids,
+        array_agg(
+          x.id::TEXT
+          ORDER BY
+            (x.search_document_boost + x.search_document_manual_boost) DESC
+        ) ids,
         MAX(x.search_document_boost + x.search_document_manual_boost) boost
       FROM ${documentType}s x
       ${
