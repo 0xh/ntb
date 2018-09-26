@@ -190,6 +190,7 @@ export default class Area extends Document {
       idLegacyNtb: { type: 'string', readOnly: true },
       name: { type: 'string', minLength: 2, maxLength: 100 },
       description: { type: 'string', maxLength: 100000 },
+      descriptionPlain: { type: 'string', readOnly: true },
       geometry: { ...geojsonPolygonSchema },
       map: { type: 'string', maxLength: 300 },
       url: { type: 'string', maxLength: 300 },
