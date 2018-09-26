@@ -41,10 +41,16 @@ router.get('/', expressAsyncHandler(async (req, res, _next) => {
     return;
   }
 
-  const [autocomplete, document] = await Promise.all([
+  const [autocompleteData, documentData] = await Promise.all([
     searchDbForAutocomplete(q),
     searchDbForExactMatch(q),
   ]);
+  const autocomplete = autocompleteData ? autocompleteData.autocomplete : null;
+
+  // If no exact document is found, and only one autocomplete
+  const document = !documentData && autocompleteData && autocompleteData.ids
+    ? await processIdsRow(autocompleteData.ids)
+    : documentData;
 
   res.json({
     ...(autocomplete ? { autocomplete } : {}),
@@ -68,12 +74,18 @@ async function searchDbForExactMatch(q: string): Promise<ao | null> {
     .orderBy('autocompleteRank', 'desc');
 
   if (result && result.length) {
-    const [documentType, ids] = getExactIds(result[0]);
-    if (documentType && ids) {
-      return getDocument(q, documentType, ids);
-    }
+    return await processIdsRow(result[0]);
   }
 
+  return null;
+}
+
+
+async function processIdsRow(row: ao) {
+  const [documentType, ids] = getExactIds(row);
+  if (documentType && ids) {
+    return await getDocument(documentType, ids);
+  }
   return null;
 }
 
@@ -82,7 +94,11 @@ async function searchDbForAutocomplete(q: string): Promise<ao | null> {
   const result = await knex('unique_names')
     .select(
       'name',
-      knex.raw('ts_rank(search_nb, full_text_phrase) as rank'),
+      // knex.raw('ts_rank(search_nb, full_text_phrase) as rank'),
+      'cabin_ids',
+      'poi_ids',
+      'route_ids',
+      'trip_ids',
     )
     .joinRaw(
       "JOIN to_tsquery('simple', ?) AS full_text_phrase ON TRUE",
@@ -96,7 +112,10 @@ async function searchDbForAutocomplete(q: string): Promise<ao | null> {
     .orderBy('autocompleteRank', 'desc');
 
   if (result && result.length) {
-    return result.map((r: ao) => r.name);
+    return {
+      autocomplete: result.map((r: ao) => r.name),
+      ids: result.length === 1 ? result[0] : null,
+    };
   }
 
   return null;
@@ -116,20 +135,11 @@ function getExactIds(row: ao): [string | null, string[] | null] {
 
 
 async function getDocument(
-  q: string,
   documentType: string,
   documentIds: string[],
 ) {
   const model = getModelClass(documentType);
-  const idsFilter = documentIds.length > 1
-    ? `"${documentIds.join('","')}"`
-    : documentIds[0];
   const requestObject = {
-    limit: 1,
-    filters: [
-      ['name', q],
-      ['id', idsFilter],
-    ],
     fields: [
       'id',
       'name',
@@ -137,7 +147,7 @@ async function getDocument(
     ],
   };
   const apiRequest = new ApiStructuredRequest(model, requestObject);
-  apiRequest.verify();
+  apiRequest.setRequestedId(documentIds[0]).verify();
 
   if (apiRequest.errors.length) {
     throw new APIError(
@@ -149,17 +159,17 @@ async function getDocument(
   const query = new DbQuery(model, apiRequest);
   const result = await query.execute() as ao;
 
-  if (!result || !result.count || !result.documents) {
+  if (!result) {
     return null;
   }
 
-  const document = {
-    ...result.documents[0],
+  const document: ao = {
+    ...result,
     document_type: documentType,
   };
 
-  if (result.documents[0].description_plain) {
-    const plain = result.documents[0].description_plain;
+  if (result.description_plain) {
+    const plain = result.description_plain;
     document.description = plain.slice(0, 150);
     document.description_complete =
       !(document.description.length < plain.length);
