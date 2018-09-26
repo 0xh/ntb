@@ -11,20 +11,8 @@ export async function up(knex) {
     table.specificType('poiIds', 'TEXT[]');
     table.specificType('routeIds', 'TEXT[]');
     table.specificType('tripIds', 'TEXT[]');
-    table.boolean('isArea')
-      .default(false)
-      .index();
-    table.boolean('isCabin')
-      .default(false)
-      .index();
-    table.boolean('isPoi')
-      .default(false)
-      .index();
-    table.boolean('isRoute')
-      .default(false)
-      .index();
-    table.boolean('isTrip')
-      .default(false)
+    table.integer('autocompleteRank')
+      .default(0)
       .index();
 
     table.index('searchNb', null, 'gin');
