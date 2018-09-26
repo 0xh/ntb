@@ -83,23 +83,23 @@ interface KnexEventData extends Knex.Sql {
 knex.on('query', (status: KnexEventData) => {
   logger.debug('Query start');
 
-  if (settings.ENV_IS_DEVELOPMENT) {
-    logger.debug(
-      status.sql.length > 1500
-        ? `${status.sql.substr(0, 1500)}... [TRUNCATED]`
-        : status.sql,
-    );
-    if (
-      status.bindings &&
-      status.bindings.length &&
-      status.bindings.length <= 20
-    ) {
-      logger.debug(status.bindings);
-    }
-    else if (status.bindings && status.bindings.length) {
-      logger.debug('[Too many sql bindings to log]');
-    }
-  }
+  // if (settings.ENV_IS_DEVELOPMENT) {
+  //   logger.debug(
+  //     status.sql.length > 1500
+  //       ? `${status.sql.substr(0, 1500)}... [TRUNCATED]`
+  //       : status.sql,
+  //   );
+  //   if (
+  //     status.bindings &&
+  //     status.bindings.length &&
+  //     status.bindings.length <= 20
+  //   ) {
+  //     logger.debug(status.bindings);
+  //   }
+  //   else if (status.bindings && status.bindings.length) {
+  //     logger.debug('[Too many sql bindings to log]');
+  //   }
+  // }
 
   startDuration(status.__knexQueryUid);
 });
