@@ -315,7 +315,7 @@ async function mergeList(handler) {
     '  :data_source,',
     '  updated_at,',
     '  updated_at,',
-    '  1',
+    '  100',
     `FROM "public"."${tableName}"`,
     'ON CONFLICT (id_legacy_ntb) DO UPDATE',
     'SET',

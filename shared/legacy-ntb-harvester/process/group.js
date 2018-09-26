@@ -244,7 +244,7 @@ async function mergeGroups(handler) {
     '  updated_at,',
     '  updated_at,',
     '  municipality_id,',
-    '  1',
+    '  100',
     `FROM public."${handler.groups.TempGroupModel.tableName}"`,
     'ON CONFLICT (id_legacy_ntb) DO UPDATE',
     'SET',

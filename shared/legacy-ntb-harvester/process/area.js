@@ -222,7 +222,7 @@ async function mergeAreas(handler) {
     '  provider,',
     '  status,',
     '  data_source,',
-    '  1,',
+    '  100,',
     '  updated_at,',
     '  updated_at',
     `FROM "public"."${handler.areas.TempAreaModel.tableName}"`,

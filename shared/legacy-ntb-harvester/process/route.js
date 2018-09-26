@@ -542,7 +542,7 @@ async function mergeRoute(handler) {
     '  :data_source,',
     '  a.updated_at,',
     '  a.updated_at,',
-    '  1',
+    '  100',
     'FROM (',
     '  SELECT DISTINCT ON (r.code) r.code, r.id',
     `  FROM "public"."${tableName}" r`,
