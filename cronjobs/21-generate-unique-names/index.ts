@@ -107,11 +107,7 @@ async function mergeIntoUniqueNamesTable(tempTableName: string) {
       poi_ids,
       route_ids,
       trip_ids,
-      is_area,
-      is_cabin,
-      is_poi,
-      is_route,
-      is_trip
+      autocomplete_rank
     )
     SELECT
       name,
@@ -121,11 +117,13 @@ async function mergeIntoUniqueNamesTable(tempTableName: string) {
       poi_ids,
       route_ids,
       trip_ids,
-      is_area,
-      is_cabin,
-      is_poi,
-      is_route,
-      is_trip
+      CASE
+        WHEN is_cabin THEN 4
+        WHEN is_route THEN 3
+        WHEN is_trip THEN 2
+        WHEN is_poi THEN 1
+        ELSE 0
+      END
     FROM "${tempTableName}" t
     ON CONFLICT (name) DO UPDATE SET
       area_ids = EXCLUDED.area_ids,
@@ -133,11 +131,7 @@ async function mergeIntoUniqueNamesTable(tempTableName: string) {
       poi_ids = EXCLUDED.poi_ids,
       route_ids = EXCLUDED.route_ids,
       trip_ids = EXCLUDED.trip_ids,
-      is_area = EXCLUDED.is_area,
-      is_cabin = EXCLUDED.is_cabin,
-      is_poi = EXCLUDED.is_poi,
-      is_route = EXCLUDED.is_route,
-      is_trip = EXCLUDED.is_trip
+      autocomplete_rank = EXCLUDED.autocomplete_rank
   `);
 }
 
