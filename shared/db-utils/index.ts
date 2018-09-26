@@ -53,7 +53,7 @@ export const knexConfig: Knex.Config = {
 
   // Use lodash to set correct identifier case.
   // We use lodash and not the ObjectionJS internal one in order to be sure
-  // we use the same identifier format elswhere in our code
+  // we use the same identifier format elsewhere in our code
   ...knexIdentifierMappers({
     parse: (str: string) => _.camelCase(str) || str,
     format: (str: string) => _.snakeCase(str) || str,
