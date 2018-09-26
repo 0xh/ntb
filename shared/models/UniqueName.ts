@@ -13,9 +13,5 @@ export default class DocumentStatus extends Document {
   poiIds?: string[];
   routeIds?: string[];
   tripIds?: string[];
-  isArea: boolean = false;
-  isCabin: boolean = false;
-  isPoi: boolean = false;
-  isRoute: boolean = false;
-  isTrip: boolean = false;
+  autocompleteRank: number = 0;
 }
