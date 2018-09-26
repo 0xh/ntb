@@ -82,7 +82,7 @@ async function searchDbForAutocomplete(q: string): Promise<ao | null> {
   const result = await knex('unique_names')
     .select(
       'name',
-      knex.raw('ts_rank(search_nb, full_text_phrase)'),
+      knex.raw('ts_rank(search_nb, full_text_phrase) as rank'),
     )
     .joinRaw(
       "JOIN to_tsquery('simple', ?) AS full_text_phrase ON TRUE",
