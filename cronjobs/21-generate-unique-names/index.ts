@@ -46,6 +46,11 @@ async function createTempTable() {
     table.boolean('isPoi');
     table.boolean('isRoute');
     table.boolean('isTrip');
+    table.float('areaMaxScore');
+    table.float('cabinMaxScore');
+    table.float('poiMaxScore');
+    table.float('routeMaxScore');
+    table.float('tripMaxScore');
   });
 
   return tableName;
@@ -66,31 +71,49 @@ async function generateUniqueNamesForType(
 
   await knex.raw(`
     INSERT INTO "${tempTableName}" (
-      name, search_nb, ${documentType}_ids, is_${documentType}
+      name,
+      search_nb,
+      ${documentType}_ids,
+      is_${documentType},
+      ${documentType}_max_score
     )
     SELECT
       a.name_lower_case,
       to_tsvector('simple', a.name_lower_case),
       ARRAY(SELECT DISTINCT UNNEST(a.ids || u2.${documentType}_ids)),
-      TRUE
+      TRUE,
+      a.boost
     FROM (
       SELECT
-        name_lower_case,
-        array_agg(id::TEXT) ids
-      FROM ${documentType}s
+        x.name_lower_case,
+        array_agg(x.id::TEXT) ids,
+        MAX(x.search_document_boost + x.search_document_manual_boost) boost
+      FROM ${documentType}s x
+      ${
+        documentType !== 'trip' ? '' : (`
+          LEFT JOIN trips_to_groups ttg ON
+            ttg.trip_id = x.id
+        `)
+      }
       WHERE
-        name_lower_case IS NOT NULL
-        AND LENGTH(name_lower_case) > 0
-        AND provider = 'DNT'
-        AND status = 'public'
+        x.name_lower_case IS NOT NULL
+        AND LENGTH(x.name_lower_case) > 0
+        AND x.provider = 'DNT'
+        AND x.status = 'public'
+        ${
+          documentType !== 'trip' ? '' : (`
+            AND ttg.trip_id IS NULL
+          `)
+        }
       GROUP BY
-        name_lower_case
+        x.name_lower_case
     ) a
     LEFT JOIN unique_names u2 ON
       u2.name = a.name_lower_case
     ON CONFLICT (name) DO UPDATE SET
       ${documentType}_ids = EXCLUDED.${documentType}_ids,
-      is_${documentType} = TRUE
+      is_${documentType} = TRUE,
+      ${documentType}_max_score = EXCLUDED.${documentType}_max_score
   `);
 }
 
@@ -118,10 +141,10 @@ async function mergeIntoUniqueNamesTable(tempTableName: string) {
       route_ids,
       trip_ids,
       CASE
-        WHEN is_cabin THEN 4
-        WHEN is_route THEN 3
-        WHEN is_trip THEN 2
-        WHEN is_poi THEN 1
+        WHEN is_cabin THEN 10000 + cabin_max_score
+        WHEN is_route THEN 7000 + route_max_score
+        WHEN is_trip THEN 4000 + trip_max_score
+        WHEN is_poi THEN 1000 + poi_max_score
         ELSE 0
       END
     FROM "${tempTableName}" t
