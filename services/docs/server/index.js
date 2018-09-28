@@ -35,7 +35,7 @@ app.set('etag', false);
 app.use(bodyParser.json());
 
 
-// Serve assests
+// Serve assets
 // Assets are built through Webpack and will be loaded using webpack dev server
 // when in development mode
 const assetsFolder = path.resolve(__dirname, '..', 'assets');
