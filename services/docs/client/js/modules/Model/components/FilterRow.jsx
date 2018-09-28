@@ -34,6 +34,8 @@ class FilterRow extends Component {
         return 'boolean';
       case 'number':
         return 'number';
+      case 'geojson':
+        return 'geojson';
       case 'relationExistance':
         return 'relation exists';
       default:
@@ -243,6 +245,35 @@ class FilterRow extends Component {
     return details;
   }
 
+  geojsonFilterDetails = (filter) => {
+    const details = [];
+    const { filterTypes } = filter;
+
+    if (!filterTypes || filterTypes.includes('notnull')) {
+      details.push({
+        prefix: null,
+        description: 'Not Null / Has a value',
+        value: null,
+      });
+    }
+    if (!filterTypes || filterTypes.includes('null')) {
+      details.push({
+        prefix: null,
+        description: 'Null / Empty value',
+        value: '!',
+      });
+    }
+    if (!filterTypes || filterTypes.includes('$bbox')) {
+      details.push({
+        prefix: '$bbox:',
+        description: 'Within bounding box',
+        value: '61.231144,10.190776,60.889433,11.390530',
+      });
+    }
+
+    return details;
+  }
+
   textFilterDetails = (filter) => {
     const details = [];
     const { filterTypes } = filter;
@@ -340,6 +371,14 @@ class FilterRow extends Component {
       case 'date':
         description = 'Supports ISO 8601 formatted dates.';
         details = this.dateFilterDetails(filter);
+        break;
+      case 'geojson':
+        description = (
+          'Coordinates in SRID 4326 [lat,long] format. ' +
+          'For $bbox: [lat,lng,lat,lng], as in coordinates for top ' +
+          'left, bottom right.'
+        );
+        details = this.geojsonFilterDetails(filter);
         break;
       case 'relationExistance':
         description = 'Filter whether related documents exist';

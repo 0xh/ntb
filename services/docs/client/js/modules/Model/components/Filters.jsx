@@ -11,23 +11,6 @@ import FilterRow from './FilterRow.jsx';
 
 
 class Filters extends Component {
-  type = (options) => {
-    switch (options.type) {
-      case 'uuid':
-        return 'uuid';
-      case 'text':
-        return 'text';
-      case 'date':
-        return 'date';
-      case 'boolean':
-        return 'boolean';
-      case 'number':
-        return 'number';
-      default:
-        return 'UNKNOWN';
-    }
-  }
-
   render() {
     const { modelNameKey, config, relationFilters } = this.props;
     const { filters } = config;
