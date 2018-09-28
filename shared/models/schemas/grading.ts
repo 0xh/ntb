@@ -8,7 +8,6 @@ const schema: JsonSchema = {
     'moderate',
     'tough',
     'very tough',
-    'moderate',
   ],
 };
 
