@@ -1,4 +1,9 @@
-import { RequestHandler, Request, Response, NextFunction } from 'express';
+import {
+  RequestHandler,
+  Request,
+  Response,
+  NextFunction,
+} from '@ntb/web-server-utils';
 
 
 export default function (fn: RequestHandler) {
