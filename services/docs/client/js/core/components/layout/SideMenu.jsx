@@ -34,6 +34,11 @@ class SideMenu extends Component {
       selectedKeys = [`concepts-${name}`];
       defaultOpenKeys.push('concepts');
     }
+    if (location.pathname.startsWith('/ut-no/')) {
+      const name = location.pathname.slice(7).toLowerCase();
+      selectedKeys = [`utno-${name}`];
+      defaultOpenKeys.push('utno');
+    }
 
     return (
       <Sider
@@ -52,6 +57,8 @@ class SideMenu extends Component {
               <span><Icon type="info-circle" />About NTB</span>
             </Link>
           </Menu.Item>
+
+          {/* Concepts */}
           <SubMenu
             key="concepts"
             title={
@@ -77,6 +84,36 @@ class SideMenu extends Component {
             </Menu.Item>
           </SubMenu>
 
+          {/* ut-no */}
+          <SubMenu
+            key="utno"
+            title={
+              <span><Icon type="question-circle" />/ut-no</span>
+            }
+          >
+            <Menu.Item key="utno-map-data/compact/spec">
+              <Link to="/ut-no/map-data/compact/spec">
+                /map-data/compact/spec
+              </Link>
+            </Menu.Item>
+            <Menu.Item key="utno-map-data/compact/cabin">
+              <Link to="/ut-no/map-data/compact/cabin">
+                /map-data/compact/cabin
+              </Link>
+            </Menu.Item>
+            <Menu.Item key="utno-map-data/compact/poi">
+              <Link to="/ut-no/map-data/compact/poi">
+                /map-data/compact/poi
+              </Link>
+            </Menu.Item>
+            <Menu.Item key="utno-map-data/compact/trip">
+              <Link to="/ut-no/map-data/compact/trip">
+                /map-data/compact/trip
+              </Link>
+            </Menu.Item>
+          </SubMenu>
+
+          {/* Document types */}
           <SubMenu
             key="documents"
             title={

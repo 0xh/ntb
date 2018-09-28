@@ -14,6 +14,7 @@ import {
 
 import About from 'modules/About';
 import Concepts from 'modules/Concepts';
+import Utno from 'modules/Utno';
 import Model from 'modules/Model';
 import CoreLayout from './layout/CoreLayout.jsx';
 import Loading from './layout/Loading.jsx';
@@ -55,6 +56,7 @@ class App extends Component {
         <div>
           <Route exact path="/" component={About}/>
           <Route path="/concepts" component={Concepts}/>
+          <Route path="/ut-no" component={Utno}/>
 
           {modelNames.map((modelName) => (
             <Route
