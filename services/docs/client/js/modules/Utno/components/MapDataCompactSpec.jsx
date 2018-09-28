@@ -15,7 +15,7 @@ const MapDataCompactSpec = () => (
     <h2>About the custom data</h2>
     <p>
       For each of the document types <C>Cabin</C>, <C>Poi</C> and <C>Trip</C>,
-      you can fetch a list of documents in a custom data format. On endpoint
+      you can fetch a list of documents in a custom data format. One endpoint
       per document type (
         <Link to="/ut-no/map-data/compact/cabin">cabin</Link>,
         {' '}<Link to="/ut-no/map-data/compact/poi">poi</Link>,
