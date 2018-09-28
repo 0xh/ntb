@@ -74,6 +74,7 @@ type filterType =
   | '~'
   | '$'
   | '$after'
+  | '$bbox'
   | '$before'
   | '$between'
   | '$gt'
@@ -81,6 +82,7 @@ type filterType =
   | '$in'
   | '$lt'
   | '$lte'
+  | '$near'
   | '$nin'
   | 'notnull'
   | 'null';
