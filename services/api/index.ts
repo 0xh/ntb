@@ -40,10 +40,15 @@ interface ErrorData {
   };
 }
 
-// tslint:disable-next-line
-app.use((err: Error | APIError, _req: Request, res: Response, _next: NextFunction) => {
+
+app.use((
+  err: Error | APIError,
+  _req: Request,
+  res: Response,
+  _next: NextFunction,
+) => {
   const data: ErrorData = {
-    error: "Oops, an unknown error occured! We're on it!",
+    error: "Oops, an unknown error occurred! We're on it!",
   };
   let code = 500;
 
