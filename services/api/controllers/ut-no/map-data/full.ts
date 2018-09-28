@@ -2,10 +2,10 @@ import { express, Request } from '@ntb/web-server-utils';
 import { Cabin, Poi, Trip } from '@ntb/models';
 import { uuidTranslator } from '@ntb/utils';
 
-import expressAsyncHandler from '../../lib/expressAsyncHandler';
-import APIError from '../../lib/APIError';
-import ApiQueryRequest from '../../lib/ApiQueryRequest';
-import DbQuery from '../../lib/DbQuery';
+import expressAsyncHandler from '../../../lib/expressAsyncHandler';
+import APIError from '../../../lib/APIError';
+import ApiQueryRequest from '../../../lib/ApiQueryRequest';
+import DbQuery from '../../../lib/DbQuery';
 
 
 type ao = { [key: string]: any };
