@@ -71,7 +71,7 @@ export interface QueryFilterOption {
     | 'whereNull'
     | 'whereNotNull'
     | 'whereRaw';
-  options: (string | string[] | number)[];
+  options: (string | string[] | number | number[])[];
 }
 
 

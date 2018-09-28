@@ -554,6 +554,85 @@ class Filter {
       return this.whereNull();
     }
 
+    // Set prefix
+    type prefixType = '' | '$bbox'; // | '$near';
+    let prefix: prefixType = '';
+    const prefixes: prefixType[] = ['$bbox'/*, '$near'*/];
+    for (const p of prefixes) {
+      if (value.startsWith(`${p}:`)) {
+        prefix = p;
+      }
+    }
+
+    // Make sure a prefix is set
+    if (!prefix) {
+      this.errors.push(
+        `Invalid value of '${errorTrace}'.` +
+        'Refer to the docs for correct usage.',
+      );
+      return this;
+    }
+
+    // Make sure the prefix is supported
+    if (prefix && filterTypes && !filterTypes.includes(prefix)) {
+      this.errors.push(
+        `Invalid value of '${errorTrace}'. ${prefix}-filter is not ` +
+        'supported on this field.',
+      );
+      return this;
+    }
+
+    // $bbox
+    if (prefix === '$bbox') {
+      const commaCount = (
+        value.slice(prefix.length + 1).match(/,/g) || []
+      ).length;
+      if (commaCount !== 3) {
+        this.errors.push(
+          `Invalid value of '${errorTrace}'. ` +
+          'Refer to the docs for correct usage.',
+        );
+        return this;
+      }
+
+      const coordinates = value
+        .slice(prefix.length + 1)
+        .split(',')
+        .map((c) => c.trim())
+        .filter((c) => c && c.length && !isNaN(+c))
+        .map((c) => Number(c))
+        .filter((c) => c >= -90 && c <= 90);
+
+      if (coordinates.length !== 4) {
+        this.errors.push(
+          `Invalid value of '${errorTrace}'.` +
+          'Refer to the docs for correct usage.',
+        );
+        return this;
+      }
+
+      // ST_Envelope (xmin, ymin, xmax, ymax, srid)
+      const optionValues = [
+        coordinates[1],
+        coordinates[2],
+        coordinates[3],
+        coordinates[0],
+      ];
+
+      this.queryFilterOptions = [{
+        whereType: 'whereRaw',
+        options: [
+          (
+            'ST_Intersects(ST_Transform(' +
+            'ST_MakeEnvelope(?, ?, ?, ?, 4326), 25833), ' +
+            `${this.filterOptions.snakeCasedAttribute})`
+          ),
+          optionValues,
+        ],
+      }];
+      return this;
+    }
+
     this.errors.push(
       `Invalid value of '${errorTrace}'. Refer to the docs for correct usage.`,
     );
