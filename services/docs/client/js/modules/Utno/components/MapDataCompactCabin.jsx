@@ -50,7 +50,7 @@ const MapDataCompactCabin = () => (
 
     <h2><C>beds</C></h2>
     <p>
-      The number of beds on the cabin. If the cabin has no beds, the value is
+      The number of beds in the cabin. If the cabin has no beds, the value is
       blank.
     </p>
 
