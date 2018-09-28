@@ -19,7 +19,7 @@ const router = Router();
 const API_REQUEST_OPTIONS = {
   cabin: {
     fields: 'id,coordinates,service_level,dnt_cabin',
-    // coordinates: '',
+    coordinates: '',
   },
   trip: {
     fields: 'id,activity_type,grading,starting_point',
