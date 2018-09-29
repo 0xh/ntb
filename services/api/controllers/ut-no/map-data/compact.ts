@@ -65,6 +65,34 @@ router.get('/spec', (
   res.json(snakeCaseSpecKeys(spec));
 });
 
+router.get('/spec/reverse', (
+  _req: Request,
+  res: Response,
+  _next: NextFunction,
+) => {
+  const data: ao = {
+    cabin: {},
+    poi: {},
+    trip: {},
+  };
+
+  for (const documentType of Object.keys(spec)) {
+    const documentSpec = (spec as any)[documentType];
+    for (const key of Object.keys(documentSpec)) {
+      if (key === 'orderOfFields') {
+        data[documentType].orderOfFields = documentSpec.orderOfFields;
+        continue;
+      }
+
+      data[documentType][key] = {};
+      for (const code of Object.keys(documentSpec[key])) {
+        data[documentType][key][documentSpec[key][code]] = code;
+      }
+    }
+  }
+  res.json(snakeCaseSpecKeys(data));
+});
+
 
 /*
  * HELPERS --------------------------------------------------------------------
@@ -83,7 +111,7 @@ const API_REQUEST_OPTIONS = {
     starting_point: '',
   },
   poi: {
-    fields: 'id,type,coordinates',
+    fields: 'id,type,coordinates,poi_types',
     coordinates: '',
   },
 };
