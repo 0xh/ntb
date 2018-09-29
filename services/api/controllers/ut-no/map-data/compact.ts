@@ -204,6 +204,10 @@ function processPois(result: DbQueryRow): string[] {
     // type
     line.push(spec.poi.type[row.type]);
 
+    // poiTypes
+    const poiTypes = processPoiTypes(row);
+    line.push(poiTypes || '');
+
     // Safe guard for undefined
     if (line.some((v) => v === undefined)) {
       logger.warn('** Found undefined value **');
@@ -284,6 +288,25 @@ function processHtgt(row: ao) {
     }
 
     return htgt.join('');
+  }
+  return null;
+}
+
+
+function processPoiTypes(row: ao) {
+  if (row.poi_types) {
+    const poiTypes: (string | undefined)[] = [];
+    for (const { name } of row.poi_types) {
+      poiTypes.push(spec.poi.type[name]);
+    }
+
+    // Safe guard for undefined
+    if (poiTypes.some((v) => v === undefined)) {
+      logger.warn('** Found undefined value in poiTypes **');
+      return null;
+    }
+
+    return poiTypes.join('');
   }
   return null;
 }

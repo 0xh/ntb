@@ -97,6 +97,7 @@ const poiSpec: PoiSpec = {
     'id',
     'coordinates',
     'type',
+    'poiTypes',
   ],
   type: {
     'train station': 'a',
