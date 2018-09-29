@@ -325,7 +325,10 @@ function processPoiTypes(row: ao) {
   if (row.poi_types) {
     const poiTypes: (string | undefined)[] = [];
     for (const { name } of row.poi_types) {
-      poiTypes.push(spec.poi.type[name]);
+      // Exclude primary poi type
+      if (name !== row.type) {
+        poiTypes.push(spec.poi.type[name]);
+      }
     }
 
     // Safe guard for undefined
