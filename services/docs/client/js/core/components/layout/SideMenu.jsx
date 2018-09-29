@@ -96,6 +96,11 @@ class SideMenu extends Component {
                 /map-data/compact/spec
               </Link>
             </Menu.Item>
+            <Menu.Item key="utno-map-data/compact/spec/reverse">
+              <Link to="/ut-no/map-data/compact/spec/reverse">
+                /map-data/compact/spec/reverse
+              </Link>
+            </Menu.Item>
             <Menu.Item key="utno-map-data/compact/cabin">
               <Link to="/ut-no/map-data/compact/cabin">
                 /map-data/compact/cabin
