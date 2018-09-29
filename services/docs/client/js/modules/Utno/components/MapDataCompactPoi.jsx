@@ -45,8 +45,9 @@ const MapDataCompactPoi = () => (
     <h2><C>poi_types</C></h2>
     <p>
       See the spec-json for a mapping of the type name to a single character.
-      If a Poi has multiple types, each of the characters will be present in
-      the value, for example: <C>altuw</C> (five different poi types).
+      If a Poi has multiple alternative types, each of the characters will be
+      present in the value, for example: <C>altuw</C> (five different poi
+      types). The primary type is not included in this field.
     </p>
   </div>
 );
